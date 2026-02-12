@@ -100,8 +100,8 @@ function FormBoxes({ player, results }: { player: string; results: CompletedMatc
       {form.map((r, i) => (
         <span
           key={i}
-          className={`w-6 h-6 rounded flex items-center justify-center text-xs font-extrabold text-white ${
-            r === 'W' ? 'bg-green-500' : 'bg-red-500'
+          className={`w-7 h-7 rounded flex items-center justify-center text-sm font-extrabold text-white ${
+            r === 'W' ? 'bg-green-700' : 'bg-rose-700'
           }`}
         >{r}</span>
       ))}
@@ -151,6 +151,19 @@ function eloColorClass(elo: number): string {
   if (elo >= 1500) return 'text-green-400';
   if (elo >= 1400) return 'text-dark-300';
   return 'text-red-400';
+}
+
+function eloBgClass(elo: number): string {
+  if (elo >= 1600) return 'bg-yellow-500 text-gray-900';
+  if (elo >= 1500) return 'bg-green-600 text-white';
+  if (elo >= 1400) return 'bg-dark-600 text-white';
+  return 'bg-red-600 text-white';
+}
+
+function winPctBgClass(pct: number): string {
+  if (pct >= 60) return 'bg-green-600 text-white';
+  if (pct >= 40) return 'bg-yellow-500 text-gray-900';
+  return 'bg-red-600 text-white';
 }
 
 // ── TrendArrow ──────────────────────────────────────────────────────────────
@@ -528,14 +541,12 @@ export default function Tournament() {
                             }`}>{s.leg_diff > 0 ? '+' : ''}{s.leg_diff}</td>
                             <td className="py-3.5 text-center hidden sm:table-cell">
                               <Tooltip text={winPctFormula}>
-                                <span className={`px-2.5 py-1 rounded-md text-sm font-bold ${
-                                  Number(winPct) >= 60 ? 'bg-green-500/20 text-green-400' : Number(winPct) >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
-                                }`}>{winPct}%</span>
+                                <span className={`px-2.5 py-1 rounded-md text-sm font-bold ${winPctBgClass(Number(winPct))}`}>{winPct}%</span>
                               </Tooltip>
                             </td>
                             <td className="py-3.5 text-center hidden md:table-cell">
                               <Tooltip text={eloFormula}>
-                                <span className={`font-extrabold text-lg ${eloColorClass(Number(elo))}`}>{elo}</span>
+                                <span className={`px-2.5 py-1 rounded-md font-extrabold text-lg ${eloBgClass(Number(elo))}`}>{elo}</span>
                               </Tooltip>
                             </td>
                           </tr>
@@ -597,30 +608,74 @@ export default function Tournament() {
                         const p1Elo = p1r ? p1r.elo : 1500;
                         const p2Elo = p2r ? p2r.elo : 1500;
                         const [odds1, odds2] = eloToOdds(p1Elo, p2Elo);
-                        const p1WinPct = p1s && p1s.played > 0 ? ((p1s.wins / p1s.played) * 100).toFixed(0) + '%' : '—';
-                        const p2WinPct = p2s && p2s.played > 0 ? ((p2s.wins / p2s.played) * 100).toFixed(0) + '%' : '—';
+                        const p1Name = shortName(m.player1);
+                        const p2Name = shortName(m.player2);
+                        const p1EloStr = p1Elo.toFixed(0);
+                        const p2EloStr = p2Elo.toFixed(0);
+                        const p1WinPctNum = p1s && p1s.played > 0 ? Math.round((p1s.wins / p1s.played) * 100) : 0;
+                        const p2WinPctNum = p2s && p2s.played > 0 ? Math.round((p2s.wins / p2s.played) * 100) : 0;
+                        // Elo tooltips
+                        const p1gp = p1r ? p1r.games_played : 0;
+                        const p2gp = p2r ? p2r.games_played : 0;
+                        const p1decay = p1gp >= 30 ? 0.75 : +(1.5 + (0.75 - 1.5) * (p1gp / 30)).toFixed(2);
+                        const p2decay = p2gp >= 30 ? 0.75 : +(1.5 + (0.75 - 1.5) * (p2gp / 30)).toFixed(2);
+                        const p1kEff = +(32 * p1decay).toFixed(1);
+                        const p2kEff = +(32 * p2decay).toFixed(1);
+                        const p1Rank = p1s ? p1s.rank : '—';
+                        const p2Rank = p2s ? p2s.rank : '—';
+                        const p1EloTip = p1r
+                          ? locale === 'tr'
+                            ? `${p1Name}: ${p1EloStr} Elo (Sıra #${p1Rank})\n${p1r.wins}G ${p1r.losses}M ${p1r.draws}B — ${p1gp} maç\nK azalma: ${p1decay}× (${p1gp}/30)\nEtkili K = 32 × ${p1decay} = ${p1kEff}\nΔElo = ${p1kEff} × faz × MOV × (S−E)`
+                            : `${p1Name}: ${p1EloStr} Elo (Rank #${p1Rank})\n${p1r.wins}W ${p1r.losses}L ${p1r.draws}D — ${p1gp} games\nK decay: ${p1decay}× (${p1gp}/30)\nEffective K = 32 × ${p1decay} = ${p1kEff}\nΔElo = ${p1kEff} × phase × MOV × (S−E)`
+                          : '—';
+                        const p2EloTip = p2r
+                          ? locale === 'tr'
+                            ? `${p2Name}: ${p2EloStr} Elo (Sıra #${p2Rank})\n${p2r.wins}G ${p2r.losses}M ${p2r.draws}B — ${p2gp} maç\nK azalma: ${p2decay}× (${p2gp}/30)\nEtkili K = 32 × ${p2decay} = ${p2kEff}\nΔElo = ${p2kEff} × faz × MOV × (S−E)`
+                            : `${p2Name}: ${p2EloStr} Elo (Rank #${p2Rank})\n${p2r.wins}W ${p2r.losses}L ${p2r.draws}D — ${p2gp} games\nK decay: ${p2decay}× (${p2gp}/30)\nEffective K = 32 × ${p2decay} = ${p2kEff}\nΔElo = ${p2kEff} × phase × MOV × (S−E)`
+                          : '—';
+                        // Win% tooltips
+                        const p1WinTip = p1s && p1s.played > 0
+                          ? locale === 'tr'
+                            ? `${p1Name}: ${p1s.wins} / ${p1s.played} × 100 = ${p1WinPctNum}%\n(Galibiyetler / Oynanan Maçlar × 100)`
+                            : `${p1Name}: ${p1s.wins} / ${p1s.played} × 100 = ${p1WinPctNum}%\n(Wins / Matches Played × 100)`
+                          : '—';
+                        const p2WinTip = p2s && p2s.played > 0
+                          ? locale === 'tr'
+                            ? `${p2Name}: ${p2s.wins} / ${p2s.played} × 100 = ${p2WinPctNum}%\n(Galibiyetler / Oynanan Maçlar × 100)`
+                            : `${p2Name}: ${p2s.wins} / ${p2s.played} × 100 = ${p2WinPctNum}%\n(Wins / Matches Played × 100)`
+                          : '—';
                         return (
-                          <div key={m.match_id} className="flex items-center py-3 px-4 rounded-lg bg-dark-800/50 gap-2 min-w-0 overflow-x-auto">
-                            {/* P1: Name Elo Win% Form */}
-                            <span className="font-semibold text-base truncate shrink-0">{shortName(m.player1)}</span>
-                            <span className={`text-sm font-bold shrink-0 ${eloColorClass(p1Elo)}`}>{p1Elo.toFixed(0)}</span>
-                            <span className="text-sm text-dark-400 shrink-0">{p1WinPct}</span>
-                            <div className="shrink-0"><FormBoxes player={m.player1} results={dateFilteredResults} /></div>
-
-                            {/* Center: Odds — Date — Odds */}
-                            <div className="flex items-center gap-2 mx-auto shrink-0">
-                              <span className="text-primary-400 font-bold text-base">{odds1}</span>
-                              <span className="text-dark-600">—</span>
-                              <span className="text-xs text-dark-500 whitespace-nowrap">{formatGameNight(round, locale)}</span>
-                              <span className="text-dark-600">—</span>
-                              <span className="text-primary-400 font-bold text-base">{odds2}</span>
+                          <div key={m.match_id} className="grid grid-cols-[1fr_auto_1fr] items-center py-3.5 px-5 rounded-lg bg-dark-800/50 gap-4">
+                            {/* P1: Name Elo Win% Form — left-aligned */}
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="font-bold text-lg truncate">{p1Name}</span>
+                              <Tooltip text={p1EloTip}>
+                                <span className={`px-2.5 py-1 rounded-md text-base font-bold ${eloBgClass(p1Elo)}`}>{p1EloStr}</span>
+                              </Tooltip>
+                              <Tooltip text={p1WinTip}>
+                                <span className={`px-2 py-1 rounded-md text-base font-bold ${winPctBgClass(p1WinPctNum)}`}>{p1WinPctNum}%</span>
+                              </Tooltip>
+                              <FormBoxes player={m.player1} results={dateFilteredResults} />
                             </div>
 
-                            {/* P2: Form Win% Elo Name (mirrored) */}
-                            <div className="shrink-0"><FormBoxes player={m.player2} results={dateFilteredResults} /></div>
-                            <span className="text-sm text-dark-400 shrink-0">{p2WinPct}</span>
-                            <span className={`text-sm font-bold shrink-0 ${eloColorClass(p2Elo)}`}>{p2Elo.toFixed(0)}</span>
-                            <span className="font-semibold text-base truncate shrink-0 text-right">{shortName(m.player2)}</span>
+                            {/* Center: Odds — Date — Odds */}
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center">{odds1}</span>
+                              <span className="text-dark-400 text-sm whitespace-nowrap font-medium">{formatGameNight(round, locale)}</span>
+                              <span className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center">{odds2}</span>
+                            </div>
+
+                            {/* P2: Form Win% Elo Name — right-aligned, mirrored */}
+                            <div className="flex items-center gap-2.5 justify-end min-w-0">
+                              <FormBoxes player={m.player2} results={dateFilteredResults} />
+                              <Tooltip text={p2WinTip}>
+                                <span className={`px-2 py-1 rounded-md text-base font-bold ${winPctBgClass(p2WinPctNum)}`}>{p2WinPctNum}%</span>
+                              </Tooltip>
+                              <Tooltip text={p2EloTip}>
+                                <span className={`px-2.5 py-1 rounded-md text-base font-bold ${eloBgClass(p2Elo)}`}>{p2EloStr}</span>
+                              </Tooltip>
+                              <span className="font-bold text-lg truncate text-right">{p2Name}</span>
+                            </div>
                           </div>
                         );
                       })}
