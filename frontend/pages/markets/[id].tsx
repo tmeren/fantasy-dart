@@ -1,29 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
+import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { api, Market, Bet } from '@/lib/api';
 import Link from 'next/link';
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   return (
     <nav className="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/dashboard" className="text-xl font-bold text-primary-400">
-          Fantasy Darts
+          {t('nav.brand')}
         </Link>
         <div className="flex items-center gap-6">
-          <Link href="/markets" className="text-dark-300 hover:text-white">Markets</Link>
-          <Link href="/leaderboard" className="text-dark-300 hover:text-white">Leaderboard</Link>
-          <Link href="/tournament" className="text-dark-300 hover:text-white">Tournament</Link>
-          <Link href="/activity" className="text-dark-300 hover:text-white">Live Feed</Link>
-          {user?.is_admin && <Link href="/admin" className="text-yellow-400">Admin</Link>}
+          <Link href="/markets" className="text-dark-300 hover:text-white">{t('nav.markets')}</Link>
+          <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
+          <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
+          <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
+          {user?.is_admin && <Link href="/admin" className="text-yellow-400">{t('nav.admin')}</Link>}
+          <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
             <div className="text-right">
               <div className="text-sm text-dark-400">{user?.name}</div>
-              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} tokens</div>
+              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
             </div>
-            <button onClick={logout} className="text-dark-400 hover:text-red-400">Logout</button>
+            <button onClick={logout} className="text-dark-400 hover:text-red-400">{t('nav.logout')}</button>
           </div>
         </div>
       </div>
@@ -33,6 +36,7 @@ function Navbar() {
 
 export default function MarketDetail() {
   const { user, loading, refreshUser } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const { id } = router.query;
 
@@ -76,7 +80,7 @@ export default function MarketDetail() {
 
     try {
       await api.placeBet(selectedSelection, parseFloat(stake));
-      setSuccess('Bet placed successfully!');
+      setSuccess(t('marketDetail.betPlaced'));
       setSelectedSelection(null);
       setStake('10');
       loadData();
@@ -107,7 +111,7 @@ export default function MarketDetail() {
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <Link href="/markets" className="text-primary-400 hover:underline mb-4 inline-block">
-          ← Back to Markets
+          {t('marketDetail.backToMarkets')}
         </Link>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -134,19 +138,18 @@ export default function MarketDetail() {
                 <p className="text-dark-400">{market.description}</p>
               )}
               <div className="flex flex-wrap gap-4 text-sm mt-4 text-dark-400">
-                <span>Total pool: <span className="text-white">{market.total_staked.toFixed(0)} tokens</span></span>
+                <span>{t('marketDetail.totalPool')} <span className="text-white">{market.total_staked.toFixed(0)} {t('marketDetail.tokens')}</span></span>
                 {isParimutuel && (
                   <>
-                    <span>House cut: <span className="text-white">{(market.house_cut * 100).toFixed(0)}%</span></span>
-                    <span>Payout pool: <span className="text-green-400">{market.pool_after_cut.toFixed(0)} tokens</span></span>
+                    <span>{t('marketDetail.houseCut')} <span className="text-white">{(market.house_cut * 100).toFixed(0)}%</span></span>
+                    <span>{t('marketDetail.payoutPool')} <span className="text-green-400">{market.pool_after_cut.toFixed(0)} {t('marketDetail.tokens')}</span></span>
                   </>
                 )}
               </div>
               {isParimutuel && (
                 <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
                   <p className="text-yellow-400 text-sm">
-                    <span className="font-bold">Pool Betting:</span> Odds change dynamically based on how others bet.
-                    Your final payout depends on the pool at market close.
+                    <span className="font-bold">{t('marketDetail.poolBetting')}</span> {t('marketDetail.poolBettingDesc')}
                   </p>
                 </div>
               )}
@@ -154,7 +157,7 @@ export default function MarketDetail() {
 
             {/* Selections */}
             <div className="card">
-              <h2 className="text-xl font-bold mb-4">Selections</h2>
+              <h2 className="text-xl font-bold mb-4">{t('marketDetail.selections')}</h2>
               <div className="space-y-3">
                 {market.selections.map((sel) => {
                   const displayOdds = isParimutuel ? sel.dynamic_odds : sel.odds;
@@ -182,7 +185,7 @@ export default function MarketDetail() {
                             {displayOdds > 0 ? displayOdds.toFixed(2) : '—'}
                           </span>
                           {isParimutuel && displayOdds > 0 && (
-                            <span className="text-xs text-dark-500 ml-1">est.</span>
+                            <span className="text-xs text-dark-500 ml-1">{t('marketDetail.est')}</span>
                           )}
                         </div>
                       </div>
@@ -208,7 +211,7 @@ export default function MarketDetail() {
             {/* Bets on this market */}
             {allBets.length > 0 && (
               <div className="card mt-6">
-                <h2 className="text-xl font-bold mb-4">Bets Placed</h2>
+                <h2 className="text-xl font-bold mb-4">{t('marketDetail.betsPlaced')}</h2>
                 <div className="space-y-2">
                   {allBets.map((bet) => (
                     <div key={bet.id} className="flex items-center justify-between py-2 border-b border-dark-700 last:border-0">
@@ -218,7 +221,7 @@ export default function MarketDetail() {
                         <span className="text-primary-400">{bet.selection_name}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-dark-300">{bet.stake.toFixed(0)} tokens</span>
+                        <span className="text-dark-300">{bet.stake.toFixed(0)} {t('marketDetail.tokens')}</span>
                         <span className="text-dark-500 mx-2">@</span>
                         <span className="odds-badge">{bet.odds_at_time.toFixed(2)}</span>
                       </div>
@@ -232,32 +235,32 @@ export default function MarketDetail() {
           {/* Bet Slip */}
           <div>
             <div className="card sticky top-24">
-              <h2 className="text-xl font-bold mb-4">Place Bet</h2>
+              <h2 className="text-xl font-bold mb-4">{t('marketDetail.placeBet')}</h2>
 
               {market.status !== 'open' ? (
                 <div className="text-center py-8">
-                  <p className="text-dark-400">This market is {market.status}</p>
-                  <p className="text-dark-500 text-sm mt-2">Betting is no longer available</p>
+                  <p className="text-dark-400">{t('marketDetail.marketIs')} {market.status}</p>
+                  <p className="text-dark-500 text-sm mt-2">{t('marketDetail.bettingNotAvailable')}</p>
                 </div>
               ) : (
                 <>
                   {selectedSelection ? (
                     <div className="mb-4 p-3 bg-dark-700 rounded-lg">
-                      <div className="text-sm text-dark-400">Selected:</div>
+                      <div className="text-sm text-dark-400">{t('marketDetail.selected')}</div>
                       <div className="font-semibold">
                         {market.selections.find(s => s.id === selectedSelection)?.name}
                       </div>
                       <div className="text-primary-400">
                         @ {selectedOdds > 0 ? selectedOdds.toFixed(2) : '—'}
-                        {isParimutuel && <span className="text-xs text-dark-500 ml-1">(current)</span>}
+                        {isParimutuel && <span className="text-xs text-dark-500 ml-1">{t('marketDetail.current')}</span>}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-dark-400 mb-4">Select a player above to place a bet</p>
+                    <p className="text-dark-400 mb-4">{t('marketDetail.selectPlayer')}</p>
                   )}
 
                   <div className="mb-4">
-                    <label className="block text-sm text-dark-400 mb-2">Stake</label>
+                    <label className="block text-sm text-dark-400 mb-2">{t('marketDetail.stakeLabel')}</label>
                     <div className="relative">
                       <input
                         type="number"
@@ -269,7 +272,7 @@ export default function MarketDetail() {
                         disabled={!selectedSelection}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400">
-                        tokens
+                        {t('marketDetail.tokens')}
                       </span>
                     </div>
                     <div className="flex gap-2 mt-2">
@@ -289,26 +292,26 @@ export default function MarketDetail() {
                   {selectedSelection && parseFloat(stake) > 0 && (
                     <div className="mb-4 p-3 bg-dark-700 rounded-lg">
                       <div className="flex justify-between mb-1">
-                        <span className="text-dark-400">Stake</span>
-                        <span>{parseFloat(stake).toFixed(0)} tokens</span>
+                        <span className="text-dark-400">{t('marketDetail.stakeLabel')}</span>
+                        <span>{parseFloat(stake).toFixed(0)} {t('marketDetail.tokens')}</span>
                       </div>
                       <div className="flex justify-between mb-1">
                         <span className="text-dark-400">
-                          {isParimutuel ? 'Current Odds' : 'Odds'}
+                          {isParimutuel ? t('marketDetail.currentOdds') : t('dashboard.odds')}
                         </span>
                         <span>{selectedOdds > 0 ? selectedOdds.toFixed(2) : '—'}</span>
                       </div>
                       <div className="flex justify-between font-bold text-lg border-t border-dark-600 pt-2 mt-2">
                         <span className="text-dark-300">
-                          {isParimutuel ? 'Est. Win' : 'Potential Win'}
+                          {isParimutuel ? t('marketDetail.estWin') : t('marketDetail.potentialWin')}
                         </span>
                         <span className="text-green-400">
-                          {potentialWin > 0 ? `${potentialWin.toFixed(0)} tokens` : '—'}
+                          {potentialWin > 0 ? `${potentialWin.toFixed(0)} ${t('marketDetail.tokens')}` : '—'}
                         </span>
                       </div>
                       {isParimutuel && (
                         <p className="text-xs text-dark-500 mt-2">
-                          Final payout depends on pool at close
+                          {t('marketDetail.finalPayoutNote')}
                         </p>
                       )}
                     </div>
@@ -331,11 +334,11 @@ export default function MarketDetail() {
                     disabled={!selectedSelection || !stake || parseFloat(stake) <= 0 || placing}
                     className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {placing ? 'Placing...' : 'Place Bet'}
+                    {placing ? t('marketDetail.placing') : t('marketDetail.placeBet')}
                   </button>
 
                   <p className="text-dark-500 text-xs text-center mt-4">
-                    Your balance: {user.balance.toFixed(0)} tokens
+                    {t('marketDetail.yourBalance')} {user.balance.toFixed(0)} {t('marketDetail.tokens')}
                   </p>
                 </>
               )}

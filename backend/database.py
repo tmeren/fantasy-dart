@@ -138,6 +138,23 @@ class Bet(Base):
     selection = relationship("Selection", back_populates="bets")
 
 
+class Match(Base):
+    """Tournament match — persisted to survive ephemeral deploys."""
+
+    __tablename__ = "matches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    round = Column(Integer, nullable=False)
+    match_id = Column(Integer, unique=True, index=True, nullable=False)
+    player1 = Column(String(100), nullable=False)
+    player2 = Column(String(100), nullable=False)
+    score1 = Column(Integer, nullable=True)
+    score2 = Column(Integer, nullable=True)
+    status = Column(String(20), nullable=False, default="Scheduled")
+    winner = Column(String(100), nullable=True)
+    is_draw = Column(Boolean, default=False)
+
+
 class Activity(Base):
     """Activity feed for live updates."""
 

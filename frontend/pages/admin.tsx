@@ -1,29 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
+import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { api, Market, ScheduledMatch, PlayerRating, OutrightOdds } from '@/lib/api';
 import Link from 'next/link';
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   return (
     <nav className="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/dashboard" className="text-xl font-bold text-primary-400">
-          Fantasy Darts
+          {t('nav.brand')}
         </Link>
         <div className="flex items-center gap-6">
-          <Link href="/markets" className="text-dark-300 hover:text-white">Markets</Link>
-          <Link href="/leaderboard" className="text-dark-300 hover:text-white">Leaderboard</Link>
-          <Link href="/tournament" className="text-dark-300 hover:text-white">Tournament</Link>
-          <Link href="/activity" className="text-dark-300 hover:text-white">Live Feed</Link>
-          <Link href="/admin" className="text-yellow-400 font-medium">Admin</Link>
+          <Link href="/markets" className="text-dark-300 hover:text-white">{t('nav.markets')}</Link>
+          <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
+          <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
+          <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
+          <Link href="/admin" className="text-yellow-400 font-medium">{t('nav.admin')}</Link>
+          <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
             <div className="text-right">
               <div className="text-sm text-dark-400">{user?.name}</div>
-              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} tokens</div>
+              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
             </div>
-            <button onClick={logout} className="text-dark-400 hover:text-red-400">Logout</button>
+            <button onClick={logout} className="text-dark-400 hover:text-red-400">{t('nav.logout')}</button>
           </div>
         </div>
       </div>
@@ -35,6 +38,7 @@ type AdminTab = 'tournament' | 'markets';
 
 export default function Admin() {
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<AdminTab>('tournament');
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -105,7 +109,7 @@ export default function Admin() {
     const s2 = parseInt(resultScore.score2);
 
     if (isNaN(s1) || isNaN(s2)) {
-      alert('Please enter valid scores');
+      alert(t('admin.validScores'));
       return;
     }
 
@@ -116,7 +120,7 @@ export default function Admin() {
     } else if (s2 === 3 && s1 >= 0 && s1 <= 2) {
       winner = resultModal.player2;
     } else {
-      alert('Invalid score: one player must have 3, other must have 0-2');
+      alert(t('admin.invalidScoreAlert'));
       return;
     }
 
@@ -177,7 +181,7 @@ export default function Admin() {
   };
 
   const handleCloseMarket = async (marketId: number) => {
-    if (!confirm('Close this market? No more bets will be allowed.')) return;
+    if (!confirm(t('admin.closeConfirm'))) return;
     try {
       await api.closeMarket(marketId);
       loadMarkets();
@@ -187,7 +191,7 @@ export default function Admin() {
   };
 
   const handleSettleMarket = async (marketId: number, winningSelectionId: number) => {
-    if (!confirm('Settle this market? Winners will be paid out.')) return;
+    if (!confirm(t('admin.settleConfirm'))) return;
     try {
       await api.settleMarket(marketId, winningSelectionId);
       setSettleModal(null);
@@ -232,15 +236,15 @@ export default function Admin() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Bookmaker Admin</h1>
-            <p className="text-dark-400">Tournament management, markets, odds</p>
+            <h1 className="text-3xl font-bold">{t('admin.title')}</h1>
+            <p className="text-dark-400">{t('admin.subtitle')}</p>
           </div>
         </div>
 
         {/* Success Banner */}
         {successMsg && (
           <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg text-green-400">
-            Result entered: {successMsg} — Elo ratings and odds updated.
+            {t('admin.resultEntered')} {successMsg} {t('admin.ratingsUpdated')}
           </div>
         )}
 
@@ -254,7 +258,7 @@ export default function Admin() {
                 : 'text-dark-400 hover:text-white'
             }`}
           >
-            Tournament
+            {t('admin.tournament')}
           </button>
           <button
             onClick={() => setActiveTab('markets')}
@@ -264,7 +268,7 @@ export default function Admin() {
                 : 'text-dark-400 hover:text-white'
             }`}
           >
-            Markets
+            {t('admin.markets')}
           </button>
         </div>
 
@@ -274,13 +278,13 @@ export default function Admin() {
             {/* Scheduled Matches */}
             <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Scheduled Matches ({scheduledMatches.length})</h2>
+                <h2 className="text-xl font-bold">{t('admin.scheduledMatches')} ({scheduledMatches.length})</h2>
                 <button
                   onClick={loadTournamentData}
                   className="btn-secondary text-sm"
                   disabled={loadingTournament}
                 >
-                  {loadingTournament ? 'Loading...' : 'Refresh'}
+                  {loadingTournament ? t('admin.loading') : t('admin.refresh')}
                 </button>
               </div>
 
@@ -289,7 +293,7 @@ export default function Admin() {
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500 mx-auto"></div>
                 </div>
               ) : scheduledMatches.length === 0 ? (
-                <p className="text-dark-400 text-center py-4">All matches have been played!</p>
+                <p className="text-dark-400 text-center py-4">{t('admin.allPlayed')}</p>
               ) : (
                 <div className="grid gap-3">
                   {scheduledMatches.slice(0, 20).map((match) => (
@@ -312,13 +316,13 @@ export default function Admin() {
                         }}
                         className="px-3 py-1.5 bg-primary-500/20 text-primary-400 rounded-md text-sm hover:bg-primary-500/30 transition-colors"
                       >
-                        Enter Result
+                        {t('admin.enterResult')}
                       </button>
                     </div>
                   ))}
                   {scheduledMatches.length > 20 && (
                     <p className="text-dark-500 text-sm text-center">
-                      +{scheduledMatches.length - 20} more matches
+                      +{scheduledMatches.length - 20} {t('admin.moreMatches')}
                     </p>
                   )}
                 </div>
@@ -327,20 +331,20 @@ export default function Admin() {
 
             {/* Elo Ratings */}
             <div className="card">
-              <h2 className="text-xl font-bold mb-4">Current Elo Ratings</h2>
+              <h2 className="text-xl font-bold mb-4">{t('admin.currentElo')}</h2>
               {ratings.length === 0 ? (
-                <p className="text-dark-400 text-center py-4">Loading ratings...</p>
+                <p className="text-dark-400 text-center py-4">{t('admin.loadingRatings')}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
                         <th className="pb-2 w-12">#</th>
-                        <th className="pb-2">Player</th>
-                        <th className="pb-2 text-right">Elo</th>
-                        <th className="pb-2 text-right">W</th>
-                        <th className="pb-2 text-right">L</th>
-                        <th className="pb-2 text-right">GP</th>
+                        <th className="pb-2">{t('admin.player')}</th>
+                        <th className="pb-2 text-right">{t('admin.elo')}</th>
+                        <th className="pb-2 text-right">{t('admin.winsShort')}</th>
+                        <th className="pb-2 text-right">{t('admin.lossesShort')}</th>
+                        <th className="pb-2 text-right">{t('admin.gamesPlayed')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -370,18 +374,18 @@ export default function Admin() {
 
             {/* Outright Odds */}
             <div className="card">
-              <h2 className="text-xl font-bold mb-4">Tournament Winner Odds</h2>
+              <h2 className="text-xl font-bold mb-4">{t('admin.winnerOdds')}</h2>
               {outrightOdds.length === 0 ? (
-                <p className="text-dark-400 text-center py-4">Loading odds...</p>
+                <p className="text-dark-400 text-center py-4">{t('admin.loadingOdds')}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
-                        <th className="pb-2">Player</th>
-                        <th className="pb-2 text-right">Win %</th>
-                        <th className="pb-2 text-right">Top 8 %</th>
-                        <th className="pb-2 text-right">Odds</th>
+                        <th className="pb-2">{t('admin.player')}</th>
+                        <th className="pb-2 text-right">{t('admin.winPct')}</th>
+                        <th className="pb-2 text-right">{t('admin.top8Pct')}</th>
+                        <th className="pb-2 text-right">{t('admin.odds')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -414,7 +418,7 @@ export default function Admin() {
           <div>
             <div className="flex justify-end mb-4">
               <button onClick={() => setShowCreate(true)} className="btn-primary">
-                + Create Market
+                {t('admin.createMarket')}
               </button>
             </div>
 
@@ -423,12 +427,12 @@ export default function Admin() {
               <table className="w-full">
                 <thead>
                   <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
-                    <th className="pb-3">Market</th>
-                    <th className="pb-3">Type</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3 text-right">Staked</th>
-                    <th className="pb-3 text-right">Selections</th>
-                    <th className="pb-3 text-right">Actions</th>
+                    <th className="pb-3">{t('admin.tableMarket')}</th>
+                    <th className="pb-3">{t('admin.tableType')}</th>
+                    <th className="pb-3">{t('admin.tableStatus')}</th>
+                    <th className="pb-3 text-right">{t('admin.tableStaked')}</th>
+                    <th className="pb-3 text-right">{t('admin.tableSelections')}</th>
+                    <th className="pb-3 text-right">{t('admin.tableActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -454,7 +458,7 @@ export default function Admin() {
                               ? 'bg-yellow-500/20 text-yellow-400'
                               : 'bg-gray-500/20 text-gray-400'
                           }`}>
-                            {market.betting_type === 'parimutuel' ? 'pool' : 'fixed'}
+                            {market.betting_type === 'parimutuel' ? t('admin.pool') : t('admin.fixedLabel')}
                           </span>
                         </div>
                       </td>
@@ -467,7 +471,7 @@ export default function Admin() {
                         </span>
                       </td>
                       <td className="py-4 text-right">
-                        {market.total_staked.toFixed(0)} tokens
+                        {market.total_staked.toFixed(0)} {t('admin.tokensLabel')}
                       </td>
                       <td className="py-4 text-right">
                         {market.selections.length}
@@ -479,7 +483,7 @@ export default function Admin() {
                               onClick={() => handleCloseMarket(market.id)}
                               className="text-yellow-400 hover:text-yellow-300 text-sm"
                             >
-                              Close
+                              {t('admin.close')}
                             </button>
                           )}
                           {market.status === 'closed' && (
@@ -487,12 +491,12 @@ export default function Admin() {
                               onClick={() => setSettleModal(market)}
                               className="text-green-400 hover:text-green-300 text-sm"
                             >
-                              Settle
+                              {t('admin.settle')}
                             </button>
                           )}
                           {market.status === 'settled' && (
                             <span className="text-dark-500 text-sm">
-                              Winner: {market.selections.find(s => s.is_winner)?.name}
+                              {t('admin.winner')} {market.selections.find(s => s.is_winner)?.name}
                             </span>
                           )}
                         </div>
@@ -505,7 +509,7 @@ export default function Admin() {
 
             {markets.length === 0 && (
               <div className="card text-center py-12">
-                <p className="text-dark-400">No markets yet. Create your first market!</p>
+                <p className="text-dark-400">{t('admin.noMarkets')}</p>
               </div>
             )}
           </div>
@@ -517,7 +521,7 @@ export default function Admin() {
         {resultModal && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="card max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-2">Enter Match Result</h2>
+              <h2 className="text-2xl font-bold mb-2">{t('admin.enterMatchResult')}</h2>
               <p className="text-dark-400 mb-6">
                 R{resultModal.round} M{resultModal.match_id}
               </p>
@@ -575,11 +579,11 @@ export default function Admin() {
                 {resultScore.score1 && resultScore.score2 && (
                   <div className="text-center text-sm">
                     {parseInt(resultScore.score1) === 3 ? (
-                      <span className="text-green-400">Winner: {resultModal.player1}</span>
+                      <span className="text-green-400">{t('admin.winnerPreview')} {resultModal.player1}</span>
                     ) : parseInt(resultScore.score2) === 3 ? (
-                      <span className="text-green-400">Winner: {resultModal.player2}</span>
+                      <span className="text-green-400">{t('admin.winnerPreview')} {resultModal.player2}</span>
                     ) : (
-                      <span className="text-red-400">Invalid: one player must score 3</span>
+                      <span className="text-red-400">{t('admin.invalidScore')}</span>
                     )}
                   </div>
                 )}
@@ -591,13 +595,13 @@ export default function Admin() {
                   disabled={submitting}
                   className="btn-primary flex-1"
                 >
-                  {submitting ? 'Saving...' : 'Confirm Result'}
+                  {submitting ? t('admin.saving') : t('admin.confirmResult')}
                 </button>
                 <button
                   onClick={() => setResultModal(null)}
                   className="btn-secondary flex-1"
                 >
-                  Cancel
+                  {t('admin.cancel')}
                 </button>
               </div>
             </div>
@@ -608,64 +612,64 @@ export default function Admin() {
         {showCreate && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-6">Create New Market</h2>
+              <h2 className="text-2xl font-bold mb-6">{t('admin.createNewMarket')}</h2>
               <form onSubmit={handleCreateMarket}>
                 <div className="mb-4">
-                  <label className="block text-sm text-dark-400 mb-2">Market Name</label>
+                  <label className="block text-sm text-dark-400 mb-2">{t('admin.marketName')}</label>
                   <input
                     type="text"
                     value={newMarket.name}
                     onChange={(e) => setNewMarket({ ...newMarket, name: e.target.value })}
                     className="input"
-                    placeholder="e.g., QF1: Berkay vs Ece"
+                    placeholder={t('admin.namePlaceholder')}
                     required
                   />
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-dark-400 mb-2">Description (optional)</label>
+                  <label className="block text-sm text-dark-400 mb-2">{t('admin.description')}</label>
                   <textarea
                     value={newMarket.description}
                     onChange={(e) => setNewMarket({ ...newMarket, description: e.target.value })}
                     className="input"
                     rows={2}
-                    placeholder="Additional details..."
+                    placeholder={t('admin.additionalDetails')}
                   />
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-dark-400 mb-2">Market Type</label>
+                  <label className="block text-sm text-dark-400 mb-2">{t('admin.marketType')}</label>
                   <select
                     value={newMarket.market_type}
                     onChange={(e) => setNewMarket({ ...newMarket, market_type: e.target.value })}
                     className="input"
                   >
-                    <option value="match">Match (head-to-head)</option>
-                    <option value="outright">Outright (tournament winner)</option>
-                    <option value="prop">Prop (yes/no or multiple)</option>
+                    <option value="match">{t('marketType.match')}</option>
+                    <option value="outright">{t('marketType.outright')}</option>
+                    <option value="prop">{t('marketType.prop')}</option>
                   </select>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-dark-400 mb-2">Betting Type</label>
+                  <label className="block text-sm text-dark-400 mb-2">{t('admin.bettingType')}</label>
                   <select
                     value={newMarket.betting_type}
                     onChange={(e) => setNewMarket({ ...newMarket, betting_type: e.target.value as 'fixed' | 'parimutuel' })}
                     className="input"
                   >
-                    <option value="parimutuel">Pool (Parimutuel) - Odds change with bets</option>
-                    <option value="fixed">Fixed Odds - Traditional bookmaker</option>
+                    <option value="parimutuel">{t('bettingType.parimutuel')}</option>
+                    <option value="fixed">{t('bettingType.fixed')}</option>
                   </select>
                   {newMarket.betting_type === 'parimutuel' && (
                     <p className="text-xs text-dark-500 mt-1">
-                      Pool betting: All stakes go into a pool. Winners split the pool proportionally.
+                      {t('admin.poolDesc')}
                     </p>
                   )}
                 </div>
 
                 {newMarket.betting_type === 'parimutuel' && (
                   <div className="mb-4">
-                    <label className="block text-sm text-dark-400 mb-2">House Cut (%)</label>
+                    <label className="block text-sm text-dark-400 mb-2">{t('admin.houseCut')}</label>
                     <input
                       type="number"
                       value={newMarket.house_cut}
@@ -676,14 +680,14 @@ export default function Admin() {
                       step="1"
                     />
                     <p className="text-xs text-dark-500 mt-1">
-                      Percentage taken from pool before distribution (default: 10%)
+                      {t('admin.houseCutDesc')}
                     </p>
                   </div>
                 )}
 
                 <div className="mb-4">
                   <label className="block text-sm text-dark-400 mb-2">
-                    Selections & {newMarket.betting_type === 'fixed' ? 'Fixed Odds' : 'Initial Odds'}
+                    {t('admin.selections')} & {newMarket.betting_type === 'fixed' ? t('admin.fixedOdds') : t('admin.initialOdds')}
                   </label>
                   <div className="space-y-2">
                     {newMarket.selections.map((sel, index) => (
@@ -693,7 +697,7 @@ export default function Admin() {
                           value={sel.name}
                           onChange={(e) => updateSelection(index, 'name', e.target.value)}
                           className="input flex-1"
-                          placeholder="Selection name"
+                          placeholder={t('admin.selectionName')}
                           required
                         />
                         <input
@@ -701,7 +705,7 @@ export default function Admin() {
                           value={sel.odds}
                           onChange={(e) => updateSelection(index, 'odds', e.target.value)}
                           className="input w-24"
-                          placeholder="Odds"
+                          placeholder={t('admin.odds')}
                           step="0.01"
                           min="1.01"
                           required
@@ -718,20 +722,20 @@ export default function Admin() {
                     ))}
                   </div>
                   <button type="button" onClick={addSelection} className="btn-secondary mt-2">
-                    + Add Selection
+                    {t('admin.addSelection')}
                   </button>
                 </div>
 
                 <div className="flex gap-3 mt-6">
                   <button type="submit" className="btn-primary flex-1">
-                    Create Market
+                    {t('admin.createMarket')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowCreate(false)}
                     className="btn-secondary flex-1"
                   >
-                    Cancel
+                    {t('admin.cancel')}
                   </button>
                 </div>
               </form>
@@ -743,9 +747,9 @@ export default function Admin() {
         {settleModal && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="card max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-2">Settle Market</h2>
+              <h2 className="text-2xl font-bold mb-2">{t('admin.settleMarket')}</h2>
               <p className="text-dark-400 mb-6">{settleModal.name}</p>
-              <p className="text-sm text-dark-300 mb-4">Select the winning selection:</p>
+              <p className="text-sm text-dark-300 mb-4">{t('admin.selectWinner')}</p>
               <div className="space-y-2">
                 {settleModal.selections.map((sel) => (
                   <button
@@ -762,7 +766,7 @@ export default function Admin() {
                 onClick={() => setSettleModal(null)}
                 className="btn-secondary w-full mt-4"
               >
-                Cancel
+                {t('admin.cancel')}
               </button>
             </div>
           </div>

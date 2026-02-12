@@ -35,6 +35,7 @@ from match_data import (
     get_scheduled_matches,
     get_standings,
     invalidate_cache,
+    seed_matches_from_csv,
     write_match_result,
 )
 from odds_engine import get_outright_odds
@@ -114,6 +115,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Global exception handler — clean JSON 500s instead of raw tracebacks
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -157,6 +159,7 @@ manager = ConnectionManager()
 @app.on_event("startup")
 async def startup():
     create_tables()
+    seed_matches_from_csv()
 
 
 # ============================================================================

@@ -1,44 +1,47 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
+import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { api, Market, Bet, Activity } from '@/lib/api';
 import Link from 'next/link';
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   return (
     <nav className="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/dashboard" className="text-xl font-bold text-primary-400">
-          Fantasy Darts
+          {t('nav.brand')}
         </Link>
         <div className="flex items-center gap-6">
           <Link href="/markets" className="text-dark-300 hover:text-white transition-colors">
-            Markets
+            {t('nav.markets')}
           </Link>
           <Link href="/leaderboard" className="text-dark-300 hover:text-white transition-colors">
-            Leaderboard
+            {t('nav.leaderboard')}
           </Link>
           <Link href="/tournament" className="text-dark-300 hover:text-white transition-colors">
-            Tournament
+            {t('nav.tournament')}
           </Link>
           <Link href="/activity" className="text-dark-300 hover:text-white transition-colors">
-            Live Feed
+            {t('nav.liveFeed')}
           </Link>
           {user?.is_admin && (
             <Link href="/admin" className="text-yellow-400 hover:text-yellow-300 transition-colors">
-              Admin
+              {t('nav.admin')}
             </Link>
           )}
+          <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
             <div className="text-right">
               <div className="text-sm text-dark-400">{user?.name}</div>
-              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} tokens</div>
+              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
             </div>
             <button onClick={logout} className="text-dark-400 hover:text-red-400 transition-colors">
-              Logout
+              {t('nav.logout')}
             </button>
           </div>
         </div>
@@ -49,6 +52,7 @@ function Navbar() {
 
 export default function Dashboard() {
   const { user, loading, refreshUser } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [myBets, setMyBets] = useState<Bet[]>([]);
@@ -85,7 +89,7 @@ export default function Dashboard() {
       setError(null);
     } catch (err) {
       console.error('Failed to load data:', err);
-      setError('Unable to connect to server. Please try again.');
+      setError(t('dashboard.connectionError'));
     }
   };
 
@@ -93,10 +97,8 @@ export default function Dashboard() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     let wsUrl: string;
     if (apiUrl) {
-      // Production: derive WS URL from API URL
       wsUrl = apiUrl.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:') + '/ws';
     } else {
-      // Dev: backend on port 8000
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       wsUrl = `${protocol}//${window.location.host.replace(':3000', ':8000')}/ws`;
     }
@@ -129,52 +131,49 @@ export default function Dashboard() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Error Banner */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-between">
             <span className="text-red-400">{error}</span>
             <button onClick={loadData} className="px-4 py-1.5 bg-red-500/30 text-red-300 rounded hover:bg-red-500/40 text-sm">
-              Retry
+              {t('dashboard.retry')}
             </button>
           </div>
         )}
 
-        {/* Welcome & Stats */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome, {user.name}</h1>
-          <p className="text-dark-400">Here's your betting dashboard</p>
+          <h1 className="text-3xl font-bold mb-2">{t('dashboard.welcome')} {user.name}</h1>
+          <p className="text-dark-400">{t('dashboard.subtitle')}</p>
         </div>
 
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="card">
-            <div className="text-dark-400 text-sm">Balance</div>
+            <div className="text-dark-400 text-sm">{t('dashboard.balance')}</div>
             <div className="text-3xl font-bold text-primary-400">{user.balance.toFixed(0)}</div>
-            <div className="text-dark-500 text-xs">tokens</div>
+            <div className="text-dark-500 text-xs">{t('nav.tokens')}</div>
           </div>
           <div className="card">
-            <div className="text-dark-400 text-sm">Active Bets</div>
+            <div className="text-dark-400 text-sm">{t('dashboard.activeBets')}</div>
             <div className="text-3xl font-bold">{activeBets.length}</div>
-            <div className="text-dark-500 text-xs">open positions</div>
+            <div className="text-dark-500 text-xs">{t('dashboard.openPositions')}</div>
           </div>
           <div className="card">
-            <div className="text-dark-400 text-sm">At Risk</div>
+            <div className="text-dark-400 text-sm">{t('dashboard.atRisk')}</div>
             <div className="text-3xl font-bold text-yellow-400">{totalAtRisk.toFixed(0)}</div>
-            <div className="text-dark-500 text-xs">tokens staked</div>
+            <div className="text-dark-500 text-xs">{t('dashboard.tokensStaked')}</div>
           </div>
           <div className="card">
-            <div className="text-dark-400 text-sm">Potential Win</div>
+            <div className="text-dark-400 text-sm">{t('dashboard.potentialWin')}</div>
             <div className="text-3xl font-bold text-green-400">{potentialWin.toFixed(0)}</div>
-            <div className="text-dark-500 text-xs">if all win</div>
+            <div className="text-dark-500 text-xs">{t('dashboard.ifAllWin')}</div>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Open Markets */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Open Markets</h2>
+              <h2 className="text-xl font-bold">{t('dashboard.openMarkets')}</h2>
               <Link href="/markets" className="text-primary-400 hover:underline text-sm">
-                View All →
+                {t('dashboard.viewAll')}
               </Link>
             </div>
             <div className="space-y-4">
@@ -184,7 +183,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold">{market.name}</h3>
                       <span className="px-2 py-1 rounded text-xs status-open">
-                        Open
+                        {t('dashboard.open')}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -196,30 +195,29 @@ export default function Dashboard() {
                       ))}
                       {market.selections.length > 4 && (
                         <span className="text-dark-400 text-sm self-center">
-                          +{market.selections.length - 4} more
+                          +{market.selections.length - 4} {t('dashboard.more')}
                         </span>
                       )}
                     </div>
                     <div className="text-dark-500 text-xs mt-2">
-                      {market.total_staked.toFixed(0)} tokens staked
+                      {market.total_staked.toFixed(0)} {t('dashboard.tokensStaked')}
                     </div>
                   </div>
                 </Link>
               ))}
               {markets.length === 0 && (
                 <div className="card text-center text-dark-400">
-                  No open markets right now
+                  {t('dashboard.noOpenMarkets')}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Activity Feed */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Live Activity</h2>
+              <h2 className="text-xl font-bold">{t('dashboard.liveActivity')}</h2>
               <Link href="/activity" className="text-primary-400 hover:underline text-sm">
-                View All →
+                {t('dashboard.viewAll')}
               </Link>
             </div>
             <div className="card">
@@ -241,26 +239,25 @@ export default function Dashboard() {
                   </div>
                 ))}
                 {activities.length === 0 && (
-                  <p className="text-dark-400 text-center text-sm">No activity yet</p>
+                  <p className="text-dark-400 text-center text-sm">{t('dashboard.noActivity')}</p>
                 )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* My Active Bets */}
         {activeBets.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-xl font-bold mb-4">My Active Bets</h2>
+            <h2 className="text-xl font-bold mb-4">{t('dashboard.myActiveBets')}</h2>
             <div className="card overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
-                    <th className="pb-3">Market</th>
-                    <th className="pb-3">Selection</th>
-                    <th className="pb-3">Stake</th>
-                    <th className="pb-3">Odds</th>
-                    <th className="pb-3">Potential Win</th>
+                    <th className="pb-3">{t('dashboard.market')}</th>
+                    <th className="pb-3">{t('dashboard.selection')}</th>
+                    <th className="pb-3">{t('dashboard.stake')}</th>
+                    <th className="pb-3">{t('dashboard.odds')}</th>
+                    <th className="pb-3">{t('dashboard.potentialWin')}</th>
                   </tr>
                 </thead>
                 <tbody>

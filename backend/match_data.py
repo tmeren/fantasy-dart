@@ -1,7 +1,7 @@
-"""Tournament match data parser for Fantasy Darts Betting.
+"""Tournament match data for Fantasy Darts Betting.
 
-Parses the Tournament Database CSV file to extract all matches.
-Source of truth: data/tournament_database.csv
+Primary source: PostgreSQL database (persists across deploys).
+Seed source: data/tournament_database.csv (loaded once on first deploy).
 """
 
 import csv
@@ -115,10 +115,80 @@ def parse_tournament_csv(filepath: str = CSV_PATH) -> list[dict]:
     return matches
 
 
+# ---------------------------------------------------------------------------
+# Database-backed accessors (replace CSV read/write for persistence)
+# ---------------------------------------------------------------------------
+
+
+def _match_row_to_dict(row) -> dict:
+    """Convert an ORM Match row to the dict format all consumers expect."""
+    return {
+        "round": row.round,
+        "match_id": row.match_id,
+        "player1": row.player1,
+        "player2": row.player2,
+        "score1": row.score1,
+        "score2": row.score2,
+        "status": row.status,
+        "winner": row.winner,
+        "is_draw": row.is_draw,
+    }
+
+
+def _load_from_db() -> list[dict]:
+    """Query all matches from the database, return list of dicts."""
+    from database import Match, SessionLocal
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Match).order_by(Match.match_id).all()
+        return [_match_row_to_dict(r) for r in rows]
+    finally:
+        db.close()
+
+
+def seed_matches_from_csv(filepath: str = CSV_PATH):
+    """Load CSV into the matches table if it is empty (idempotent).
+
+    Called once on first deploy. Subsequent deploys skip because rows exist.
+    """
+    from database import Match, SessionLocal
+
+    db = SessionLocal()
+    try:
+        count = db.query(Match).count()
+        if count > 0:
+            return  # Already seeded
+
+        csv_matches = parse_tournament_csv(filepath)
+        for m in csv_matches:
+            db.add(
+                Match(
+                    round=m["round"],
+                    match_id=m["match_id"],
+                    player1=m["player1"],
+                    player2=m["player2"],
+                    score1=m["score1"],
+                    score2=m["score2"],
+                    status=m["status"],
+                    winner=m["winner"],
+                    is_draw=m["is_draw"],
+                )
+            )
+        db.commit()
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# Derived helpers (unchanged signatures — consumers need zero changes)
+# ---------------------------------------------------------------------------
+
+
 def get_completed_matches(matches: list[dict] | None = None) -> list[dict]:
     """Return only completed matches, sorted by match_id."""
     if matches is None:
-        matches = parse_tournament_csv()
+        matches = _load_from_db()
     return sorted(
         [m for m in matches if m["status"] == "Completed"],
         key=lambda m: m["match_id"],
@@ -128,7 +198,7 @@ def get_completed_matches(matches: list[dict] | None = None) -> list[dict]:
 def get_scheduled_matches(matches: list[dict] | None = None) -> list[dict]:
     """Return only scheduled matches, sorted by match_id."""
     if matches is None:
-        matches = parse_tournament_csv()
+        matches = _load_from_db()
     return sorted(
         [m for m in matches if m["status"] == "Scheduled"],
         key=lambda m: m["match_id"],
@@ -191,7 +261,10 @@ def get_standings(completed: list[dict] | None = None) -> list[dict]:
     return records
 
 
-# Module-level cached data (parsed on first access)
+# ---------------------------------------------------------------------------
+# Module-level cache (cleared on every write so next read is fresh from DB)
+# ---------------------------------------------------------------------------
+
 _all_matches: list[dict] | None = None
 _completed: list[dict] | None = None
 _scheduled: list[dict] | None = None
@@ -200,13 +273,13 @@ _scheduled: list[dict] | None = None
 def _ensure_loaded():
     global _all_matches, _completed, _scheduled
     if _all_matches is None:
-        _all_matches = parse_tournament_csv()
+        _all_matches = _load_from_db()
         _completed = get_completed_matches(_all_matches)
         _scheduled = get_scheduled_matches(_all_matches)
 
 
 def invalidate_cache():
-    """Clear cached data so next access re-reads from CSV."""
+    """Clear cached data so next access re-reads from DB."""
     global _all_matches, _completed, _scheduled
     _all_matches = None
     _completed = None
@@ -214,60 +287,46 @@ def invalidate_cache():
 
 
 def write_match_result(
-    match_id: int, score1: int, score2: int, winner: str, filepath: str = CSV_PATH
+    match_id: int, score1: int, score2: int, winner: str, **_kwargs
 ):
-    """Write a match result to the tournament CSV file.
+    """Write a match result to the database.
 
-    Finds the row with matching Match_ID, updates scores/status/winner,
+    Finds the row with matching match_id, updates scores/status/winner,
     then invalidates the module cache.
 
     Raises ValueError if match not found or already completed.
     """
-    with open(filepath, encoding="utf-8") as f:
-        lines = f.readlines()
+    from database import Match, SessionLocal
 
-    found = False
-    new_lines = []
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            new_lines.append(line)
-            continue
+    db = SessionLocal()
+    try:
+        row = db.query(Match).filter(Match.match_id == match_id).first()
+        if row is None:
+            raise ValueError(f"Match {match_id} not found in database")
+        if row.status == "Completed":
+            raise ValueError(f"Match {match_id} is already completed")
+        if winner not in (row.player1, row.player2):
+            raise ValueError(
+                f"Winner '{winner}' must be one of: '{row.player1}' or '{row.player2}'"
+            )
 
-        parts = [p.strip() for p in stripped.split(",")]
-        # Data rows have numeric Round and Match_ID
-        if len(parts) >= 7 and parts[0].isdigit() and parts[1].isdigit():
-            mid = int(parts[1])
-            if mid == match_id:
-                if parts[6] == "Completed":
-                    raise ValueError(f"Match {match_id} is already completed")
-                # Validate winner is one of the players
-                p1 = parts[2].strip()
-                p2 = parts[3].strip()
-                if winner not in (p1, p2):
-                    raise ValueError(f"Winner '{winner}' must be one of: '{p1}' or '{p2}'")
-                parts[4] = str(score1)
-                parts[5] = str(score2)
-                parts[6] = "Completed"
-                while len(parts) < 8:
-                    parts.append("")
-                parts[7] = winner
-                new_lines.append(",".join(parts) + "\n")
-                found = True
-                continue
-
-        new_lines.append(line)
-
-    if not found:
-        raise ValueError(f"Match {match_id} not found in tournament CSV")
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.writelines(new_lines)
+        row.score1 = score1
+        row.score2 = score2
+        row.status = "Completed"
+        row.winner = winner
+        row.is_draw = score1 == score2
+        db.commit()
+    finally:
+        db.close()
 
     invalidate_cache()
 
 
-# Convenience accessors
+# ---------------------------------------------------------------------------
+# Convenience accessors (unchanged signatures)
+# ---------------------------------------------------------------------------
+
+
 def all_matches() -> list[dict]:
     _ensure_loaded()
     return _all_matches
@@ -285,7 +344,7 @@ def scheduled_matches() -> list[dict]:
 
 if __name__ == "__main__":
     _ensure_loaded()
-    print(f"Tournament Database loaded from: {CSV_PATH}")
+    print(f"Tournament Database loaded from DB")
     print(f"Total matches: {len(_all_matches)}")
     print(f"Completed: {len(_completed)}")
     print(f"Scheduled: {len(_scheduled)}")

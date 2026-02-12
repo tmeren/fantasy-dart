@@ -2,6 +2,7 @@ import '@/styles/globals.css';
 import type { AppProps } from 'next/app';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api, User } from '@/lib/api';
+import { LanguageProvider } from '@/lib/LanguageContext';
 
 // Auth Context
 interface AuthContextType {
@@ -67,8 +68,10 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <AuthProvider>
-      <Component {...pageProps} />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Component {...pageProps} />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
