@@ -259,7 +259,7 @@ def migrate_add_columns():
     if "whatsapp_consent" not in existing:
         migrations.append("ALTER TABLE users ADD COLUMN whatsapp_consent BOOLEAN DEFAULT FALSE")
     if "consent_timestamp" not in existing:
-        migrations.append("ALTER TABLE users ADD COLUMN consent_timestamp DATETIME")
+        migrations.append("ALTER TABLE users ADD COLUMN consent_timestamp TIMESTAMP")
 
     if migrations:
         with engine.connect() as conn:
