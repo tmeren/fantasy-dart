@@ -94,13 +94,13 @@ function FormDots({ player, results }: { player: string; results: CompletedMatch
 // ── FormBoxes — W/L letter squares (for standings table) ────────────────────
 function FormBoxes({ player, results }: { player: string; results: CompletedMatch[] }) {
   const form = getPlayerForm(player, results);
-  if (form.length === 0) return <span className="text-dark-600 text-xs">—</span>;
+  if (form.length === 0) return <span className="text-dark-600 text-sm">—</span>;
   return (
-    <div className="flex gap-0.5">
+    <div className="flex gap-1">
       {form.map((r, i) => (
         <span
           key={i}
-          className={`w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-bold text-white ${
+          className={`w-6 h-6 rounded flex items-center justify-center text-xs font-extrabold text-white ${
             r === 'W' ? 'bg-green-500' : 'bg-red-500'
           }`}
         >{r}</span>
@@ -156,13 +156,13 @@ function eloColorClass(elo: number): string {
 // ── TrendArrow ──────────────────────────────────────────────────────────────
 function TrendArrow({ player, history }: { player: string; history: Record<string, number[]> }) {
   const positions = history[player];
-  if (!positions || positions.length < 2) return <span className="text-dark-600 text-xs">—</span>;
+  if (!positions || positions.length < 2) return <span className="text-dark-600 text-sm">—</span>;
   const current = positions[positions.length - 1];
   const previous = positions[positions.length - 2];
   const diff = previous - current;
-  if (diff > 0) return <span className="text-green-400 text-xs font-bold">▲{diff}</span>;
-  if (diff < 0) return <span className="text-red-400 text-xs font-bold">▼{Math.abs(diff)}</span>;
-  return <span className="text-dark-500 text-xs">—</span>;
+  if (diff > 0) return <span className="text-green-400 text-sm font-bold">▲{diff}</span>;
+  if (diff < 0) return <span className="text-red-400 text-sm font-bold">▼{Math.abs(diff)}</span>;
+  return <span className="text-dark-500 text-sm">—</span>;
 }
 
 // ── Standings position chart (SofaScore style) ─────────────────────────────
@@ -188,7 +188,7 @@ function StandingsChart({
 
   return (
     <div className="card mb-6">
-      <h3 className="text-sm font-semibold text-dark-400 mb-3">{t('tournament.positionChart')}</h3>
+      <h3 className="text-base font-bold text-dark-300 mb-4">{t('tournament.positionChart')}</h3>
       <div className="w-full overflow-x-auto">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[500px]" style={{ maxHeight: 400 }}>
           {[1, 5, 10, 15, 20].map(pos => (
@@ -231,7 +231,7 @@ function StandingsChart({
             <button
               key={s.player}
               onClick={() => onTogglePlayer(s.player)}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors border ${
+              className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors border ${
                 isSelected ? 'text-white' : 'bg-dark-800 text-dark-400 hover:text-white border-dark-700'
               }`}
               style={isSelected ? { backgroundColor: color + '20', borderColor: color, color } : undefined}
@@ -253,21 +253,21 @@ function Navbar() {
   const { t } = useLanguage();
   return (
     <nav className="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/dashboard" className="text-xl font-bold text-primary-400">{t('nav.brand')}</Link>
+      <div className="container mx-auto px-4 py-3.5 flex items-center justify-between">
+        <Link href="/dashboard" className="text-2xl font-extrabold text-primary-400">{t('nav.brand')}</Link>
         <div className="flex items-center gap-6">
-          <Link href="/markets" className="text-dark-300 hover:text-white">{t('nav.markets')}</Link>
-          <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
-          <Link href="/tournament" className="text-white font-medium">{t('nav.tournament')}</Link>
-          <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
-          {user?.is_admin && <Link href="/admin" className="text-yellow-400">{t('nav.admin')}</Link>}
+          <Link href="/markets" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.markets')}</Link>
+          <Link href="/leaderboard" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.leaderboard')}</Link>
+          <Link href="/tournament" className="text-white font-bold text-base">{t('nav.tournament')}</Link>
+          <Link href="/activity" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.liveFeed')}</Link>
+          {user?.is_admin && <Link href="/admin" className="text-yellow-400 text-base font-medium">{t('nav.admin')}</Link>}
           <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
             <div className="text-right">
-              <div className="text-sm text-dark-400">{user?.name}</div>
-              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
+              <div className="text-sm text-dark-400 font-medium">{user?.name}</div>
+              <div className="text-primary-400 font-bold text-base">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
             </div>
-            <button onClick={logout} className="text-dark-400 hover:text-red-400">{t('nav.logout')}</button>
+            <button onClick={logout} className="text-dark-400 hover:text-red-400 font-medium">{t('nav.logout')}</button>
           </div>
         </div>
       </div>
@@ -299,6 +299,31 @@ export default function Tournament() {
     if (user) loadAll();
   }, [user]);
 
+  // WebSocket: live auto-refresh when results are entered
+  useEffect(() => {
+    if (!user) return;
+    const connectWebSocket = () => {
+      const wsHost = process.env.NEXT_PUBLIC_WS_HOST;
+      let wsUrl: string;
+      if (wsHost) {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${protocol}//${wsHost}/ws`;
+      } else {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${protocol}//${window.location.host.replace(':3000', ':8000')}/ws`;
+      }
+      try {
+        const ws = new WebSocket(wsUrl);
+        ws.onmessage = () => { loadAllSilent(); };
+        ws.onerror = () => {};
+        ws.onclose = () => { setTimeout(connectWebSocket, 5000); };
+        return ws;
+      } catch { return null; }
+    };
+    const ws = connectWebSocket();
+    return () => { ws?.close(); };
+  }, [user]);
+
   const loadAll = async () => {
     setLoadingData(true);
     try {
@@ -310,6 +335,18 @@ export default function Tournament() {
       setRatings(r); setResults(res); setUpcoming(u);
     } catch (err) { console.error(err); }
     finally { setLoadingData(false); }
+  };
+
+  // Silent reload (no loading spinner — for WebSocket updates)
+  const loadAllSilent = async () => {
+    try {
+      const [r, res, u] = await Promise.all([
+        api.getTournamentRatings(),
+        api.getResults(),
+        api.getUpcomingMatches(),
+      ]);
+      setRatings(r); setResults(res); setUpcoming(u);
+    } catch (err) { console.error(err); }
   };
 
   if (loading || !user) {
@@ -387,22 +424,22 @@ export default function Tournament() {
     <div className="min-h-screen bg-dark-950">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-2">{t('tournament.title')}</h1>
-        <p className="text-dark-400 mb-6">
-          {t('tournament.totalMatches')}: {results.length + upcoming.length} &nbsp;·&nbsp; {t('tournament.completedMatches')}: {results.length} ({t('tournament.throughRound')} {maxRound}) &nbsp;·&nbsp; {t('tournament.remainingMatches')}: {upcoming.length}
+        <h1 className="text-4xl font-extrabold mb-3">{t('tournament.title')}</h1>
+        <p className="text-dark-300 text-lg mb-8">
+          {t('tournament.totalMatches')}: <span className="text-white font-semibold">{results.length + upcoming.length}</span> &nbsp;·&nbsp; {t('tournament.completedMatches')}: <span className="text-white font-semibold">{results.length}</span> ({t('tournament.throughRound')} {maxRound}) &nbsp;·&nbsp; {t('tournament.remainingMatches')}: <span className="text-white font-semibold">{upcoming.length}</span>
         </p>
 
-        <div className="flex gap-1 mb-6 bg-dark-900 rounded-lg p-1 overflow-x-auto">
+        <div className="flex gap-1 mb-8 bg-dark-900 rounded-xl p-1.5 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`px-5 py-2.5 rounded-lg text-base font-semibold whitespace-nowrap transition-colors ${
                 activeTab === tab.key ? 'bg-primary-600 text-white' : 'text-dark-400 hover:text-white hover:bg-dark-800'
               }`}
             >
               {tab.label}
-              {tab.count !== undefined && <span className="ml-1.5 text-xs opacity-70">({tab.count})</span>}
+              {tab.count !== undefined && <span className="ml-2 text-sm opacity-70">({tab.count})</span>}
             </button>
           ))}
         </div>
@@ -428,10 +465,10 @@ export default function Tournament() {
                 )}
 
                 <div className="card overflow-x-auto">
-                  <h2 className="text-lg font-semibold mb-4">{t('tournament.roundRobin')}</h2>
-                  <table className="w-full">
+                  <h2 className="text-xl font-bold mb-5">{t('tournament.roundRobin')}</h2>
+                  <table className="w-full text-base">
                     <thead>
-                      <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
+                      <tr className="text-left text-dark-400 text-sm font-semibold border-b border-dark-700 uppercase tracking-wide">
                         <th className="pb-3 w-12">#</th>
                         <th className="pb-3">{t('tournament.player')}</th>
                         <th className="pb-3 text-center">{t('tournament.last5')}</th>
@@ -463,38 +500,38 @@ export default function Tournament() {
                           : '—';
                         return (
                           <tr key={s.player} className={`border-b border-dark-800 last:border-0 ${s.rank <= 8 ? 'bg-green-900/10' : ''}`}>
-                            <td className="py-3">
-                              <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                            <td className="py-3.5">
+                              <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
                                 s.rank <= 8 ? 'bg-green-500/20 text-green-400' : 'bg-dark-700 text-dark-400'
                               }`}>{s.rank}</span>
                             </td>
-                            <td className="py-3 font-medium">{name}</td>
-                            <td className="py-3">
+                            <td className="py-3.5 font-semibold text-base">{name}</td>
+                            <td className="py-3.5">
                               <div className="flex justify-center">
                                 <FormBoxes player={s.player} results={dateFilteredResults} />
                               </div>
                             </td>
-                            <td className="py-3 text-center">
+                            <td className="py-3.5 text-center">
                               <TrendArrow player={s.player} history={standingsHistory} />
                             </td>
-                            <td className="py-3 text-center text-dark-300">{s.played}</td>
-                            <td className="py-3 text-center text-green-400 font-semibold">{s.wins}</td>
-                            <td className="py-3 text-center text-red-400">{s.losses}</td>
-                            <td className="py-3 text-center text-dark-300 hidden sm:table-cell">{s.legs_for}</td>
-                            <td className="py-3 text-center text-dark-300 hidden sm:table-cell">{s.legs_against}</td>
-                            <td className={`py-3 text-center font-semibold ${
+                            <td className="py-3.5 text-center text-dark-300 font-medium">{s.played}</td>
+                            <td className="py-3.5 text-center text-green-400 font-bold text-lg">{s.wins}</td>
+                            <td className="py-3.5 text-center text-red-400 font-semibold">{s.losses}</td>
+                            <td className="py-3.5 text-center text-dark-300 hidden sm:table-cell">{s.legs_for}</td>
+                            <td className="py-3.5 text-center text-dark-300 hidden sm:table-cell">{s.legs_against}</td>
+                            <td className={`py-3.5 text-center font-bold text-lg ${
                               s.leg_diff > 0 ? 'text-green-400' : s.leg_diff < 0 ? 'text-red-400' : 'text-dark-400'
                             }`}>{s.leg_diff > 0 ? '+' : ''}{s.leg_diff}</td>
-                            <td className="py-3 text-center hidden sm:table-cell">
+                            <td className="py-3.5 text-center hidden sm:table-cell">
                               <Tooltip text={winPctFormula}>
-                                <span className={`px-2 py-0.5 rounded text-xs ${
+                                <span className={`px-2.5 py-1 rounded-md text-sm font-bold ${
                                   Number(winPct) >= 60 ? 'bg-green-500/20 text-green-400' : Number(winPct) >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
                                 }`}>{winPct}%</span>
                               </Tooltip>
                             </td>
-                            <td className="py-3 text-center hidden md:table-cell">
+                            <td className="py-3.5 text-center hidden md:table-cell">
                               <Tooltip text={eloFormula}>
-                                <span className={`font-bold text-sm ${eloColorClass(Number(elo))}`}>{elo}</span>
+                                <span className={`font-extrabold text-lg ${eloColorClass(Number(elo))}`}>{elo}</span>
                               </Tooltip>
                             </td>
                           </tr>
@@ -510,9 +547,9 @@ export default function Tournament() {
                   <div className="mt-4 border-t border-dark-700 pt-4">
                     <button
                       onClick={() => setEloExpanded(!eloExpanded)}
-                      className="flex items-center gap-2 text-sm font-medium text-dark-300 hover:text-white transition-colors w-full text-left"
+                      className="flex items-center gap-2 text-base font-semibold text-dark-300 hover:text-white transition-colors w-full text-left"
                     >
-                      <span className={`transform transition-transform duration-200 text-xs ${eloExpanded ? 'rotate-90' : ''}`}>▶</span>
+                      <span className={`transform transition-transform duration-200 text-sm ${eloExpanded ? 'rotate-90' : ''}`}>▶</span>
                       {t('tournament.eloExplainTitle')}
                     </button>
                     {eloExpanded && (
@@ -542,10 +579,10 @@ export default function Tournament() {
               <div className="space-y-6">
                 {sortedUpcomingRounds.map((round) => (
                   <div key={round} className="card">
-                    <h3 className="text-sm font-semibold text-dark-400 mb-3">
+                    <h3 className="text-base font-bold text-dark-300 mb-4">
                       {t('tournament.round')} {round}
-                      <span className="ml-2 text-xs text-dark-500">({upcomingByRound[round].length} {t('tournament.matches')})</span>
-                      <span className="ml-2 text-xs text-primary-400">{formatGameNight(round, locale)}</span>
+                      <span className="ml-2 text-sm text-dark-500 font-medium">({upcomingByRound[round].length} {t('tournament.matches')})</span>
+                      <span className="ml-2 text-sm text-primary-400 font-semibold">{formatGameNight(round, locale)}</span>
                     </h3>
                     <div className="space-y-2">
                       {upcomingByRound[round].map((m) => {
@@ -559,27 +596,27 @@ export default function Tournament() {
                         const p1WinPct = p1s && p1s.played > 0 ? ((p1s.wins / p1s.played) * 100).toFixed(0) + '%' : '—';
                         const p2WinPct = p2s && p2s.played > 0 ? ((p2s.wins / p2s.played) * 100).toFixed(0) + '%' : '—';
                         return (
-                          <div key={m.match_id} className="flex items-center py-2.5 px-3 rounded-lg bg-dark-800/50 gap-1.5 min-w-0 overflow-x-auto">
-                            {/* P1: Name Elo Win% Dots */}
-                            <span className="font-medium text-sm truncate shrink-0">{shortName(m.player1)}</span>
-                            <span className={`text-xs font-semibold shrink-0 ${eloColorClass(p1Elo)}`}>{p1Elo.toFixed(0)}</span>
-                            <span className="text-xs text-dark-400 shrink-0">{p1WinPct}</span>
-                            <div className="shrink-0"><FormDots player={m.player1} results={dateFilteredResults} /></div>
+                          <div key={m.match_id} className="flex items-center py-3 px-4 rounded-lg bg-dark-800/50 gap-2 min-w-0 overflow-x-auto">
+                            {/* P1: Name Elo Win% Form */}
+                            <span className="font-semibold text-base truncate shrink-0">{shortName(m.player1)}</span>
+                            <span className={`text-sm font-bold shrink-0 ${eloColorClass(p1Elo)}`}>{p1Elo.toFixed(0)}</span>
+                            <span className="text-sm text-dark-400 shrink-0">{p1WinPct}</span>
+                            <div className="shrink-0"><FormBoxes player={m.player1} results={dateFilteredResults} /></div>
 
                             {/* Center: Odds — Date — Odds */}
-                            <div className="flex items-center gap-1.5 mx-auto shrink-0">
-                              <span className="text-primary-400 font-bold text-sm">{odds1}</span>
+                            <div className="flex items-center gap-2 mx-auto shrink-0">
+                              <span className="text-primary-400 font-bold text-base">{odds1}</span>
                               <span className="text-dark-600">—</span>
-                              <span className="text-[10px] text-dark-500 whitespace-nowrap">{formatGameNight(round, locale)}</span>
+                              <span className="text-xs text-dark-500 whitespace-nowrap">{formatGameNight(round, locale)}</span>
                               <span className="text-dark-600">—</span>
-                              <span className="text-primary-400 font-bold text-sm">{odds2}</span>
+                              <span className="text-primary-400 font-bold text-base">{odds2}</span>
                             </div>
 
-                            {/* P2: Dots Win% Elo Name (mirrored) */}
-                            <div className="shrink-0"><FormDots player={m.player2} results={dateFilteredResults} /></div>
-                            <span className="text-xs text-dark-400 shrink-0">{p2WinPct}</span>
-                            <span className={`text-xs font-semibold shrink-0 ${eloColorClass(p2Elo)}`}>{p2Elo.toFixed(0)}</span>
-                            <span className="font-medium text-sm truncate shrink-0 text-right">{shortName(m.player2)}</span>
+                            {/* P2: Form Win% Elo Name (mirrored) */}
+                            <div className="shrink-0"><FormBoxes player={m.player2} results={dateFilteredResults} /></div>
+                            <span className="text-sm text-dark-400 shrink-0">{p2WinPct}</span>
+                            <span className={`text-sm font-bold shrink-0 ${eloColorClass(p2Elo)}`}>{p2Elo.toFixed(0)}</span>
+                            <span className="font-semibold text-base truncate shrink-0 text-right">{shortName(m.player2)}</span>
                           </div>
                         );
                       })}
@@ -597,27 +634,27 @@ export default function Tournament() {
               <div className="space-y-6">
                 {sortedResultRounds.map((round) => (
                   <div key={round} className="card">
-                    <h3 className="text-sm font-semibold text-dark-400 mb-3">
+                    <h3 className="text-base font-bold text-dark-300 mb-4">
                       {t('tournament.round')} {round}
-                      <span className="ml-2 text-xs text-dark-500">{formatGameNight(round, locale)}</span>
+                      <span className="ml-2 text-sm text-dark-500 font-medium">{formatGameNight(round, locale)}</span>
                     </h3>
                     <div className="space-y-2">
                       {resultsByRound[round].map((m) => {
                         const p1IsWinner = m.winner === m.player1;
                         const p2IsWinner = m.winner === m.player2;
                         return (
-                          <div key={m.match_id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-dark-800/50">
+                          <div key={m.match_id} className="flex items-center justify-between py-3 px-4 rounded-lg bg-dark-800/50">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <span className="text-xs text-dark-500 w-8 shrink-0">M{m.match_id}</span>
-                              <span className={`font-medium truncate ${p1IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{shortName(m.player1)}</span>
+                              <span className="text-sm text-dark-500 w-10 shrink-0 font-medium">M{m.match_id}</span>
+                              <span className={`font-semibold text-base truncate ${p1IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{shortName(m.player1)}</span>
                             </div>
-                            <div className="flex items-center gap-2 px-3 shrink-0">
-                              <span className={`text-lg font-bold ${p1IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{m.score1}</span>
-                              <span className="text-dark-600">-</span>
-                              <span className={`text-lg font-bold ${p2IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{m.score2}</span>
+                            <div className="flex items-center gap-3 px-4 shrink-0">
+                              <span className={`text-2xl font-extrabold ${p1IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{m.score1}</span>
+                              <span className="text-dark-600 text-lg">-</span>
+                              <span className={`text-2xl font-extrabold ${p2IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{m.score2}</span>
                             </div>
                             <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
-                              <span className={`font-medium truncate text-right ${p2IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{shortName(m.player2)}</span>
+                              <span className={`font-semibold text-base truncate text-right ${p2IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{shortName(m.player2)}</span>
                             </div>
                           </div>
                         );
