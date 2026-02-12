@@ -78,7 +78,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-" + secrets.token_hex(16))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 MAGIC_LINK_EXPIRE_MINUTES = 15
-STARTING_BALANCE = 100.0
+STARTING_BALANCE = 1000.0
 
 # Email config (Resend)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
@@ -306,7 +306,7 @@ def build_selection_response(
 
 @app.post("/api/auth/register", response_model=TokenResponse)
 async def register(data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user with email and name. Gets 100 tokens to start."""
+    """Register a new user with email and name. Gets 1000 RTB to start."""
     # Check if email exists
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
@@ -734,7 +734,7 @@ async def place_bet(
     await log_activity(
         db,
         "bet_placed",
-        f"{user.name} bet {data.stake} tokens on {selection.name} @ {odds_type}{current_odds:.2f}",
+        f"{user.name} predicted {selection.name} with {data.stake} RTB @ {odds_type}{current_odds:.2f}",
         user_id=user.id,
         data={
             "bet_id": bet.id,

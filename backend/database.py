@@ -61,7 +61,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     name = Column(String(100), nullable=False)
-    balance = Column(Float, default=100.0)  # Starting tokens
+    balance = Column(Float, default=1000.0)  # Starting RTB
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

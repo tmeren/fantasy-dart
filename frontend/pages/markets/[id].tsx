@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
-import { api, Market, Bet } from '@/lib/api';
+import { shortName } from '@/lib/i18n';
+import { api, Market, Bet, PlayerRating } from '@/lib/api';
 import Link from 'next/link';
 
 function Navbar() {
@@ -34,6 +35,28 @@ function Navbar() {
   );
 }
 
+/** Elo bar component for match-type market selections */
+function EloBar({ playerName, ratings }: { playerName: string; ratings: PlayerRating[] }) {
+  const rating = ratings.find((r) => playerName.includes(r.player) || r.player.includes(playerName));
+  if (!rating) return null;
+  const elo = rating.elo;
+  const minElo = 1200;
+  const maxElo = 1800;
+  const pct = Math.max(0, Math.min(100, ((elo - minElo) / (maxElo - minElo)) * 100));
+  const color = elo >= 1600 ? 'bg-yellow-400' : elo >= 1500 ? 'bg-green-400' : elo >= 1400 ? 'bg-blue-400' : 'bg-red-400';
+  return (
+    <div className="flex items-center gap-2 mt-1">
+      <span className="text-xs text-dark-500 w-8">Elo</span>
+      <div className="flex-1 bg-dark-700 rounded-full h-1.5 overflow-hidden">
+        <div className={`${color} h-full transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={`text-xs font-bold ${elo >= 1600 ? 'text-yellow-400' : elo >= 1500 ? 'text-green-400' : elo >= 1400 ? 'text-dark-300' : 'text-red-400'}`}>
+        {elo.toFixed(0)}
+      </span>
+    </div>
+  );
+}
+
 export default function MarketDetail() {
   const { user, loading, refreshUser } = useAuth();
   const { t } = useLanguage();
@@ -42,11 +65,13 @@ export default function MarketDetail() {
 
   const [market, setMarket] = useState<Market | null>(null);
   const [allBets, setAllBets] = useState<Bet[]>([]);
+  const [ratings, setRatings] = useState<PlayerRating[]>([]);
   const [selectedSelection, setSelectedSelection] = useState<number | null>(null);
   const [stake, setStake] = useState<string>('10');
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.push('/');
@@ -58,12 +83,13 @@ export default function MarketDetail() {
 
   const loadData = async () => {
     try {
-      const [marketData, betsData] = await Promise.all([
+      const [marketData, betsData, ratingsData] = await Promise.all([
         api.getMarket(Number(id)),
         api.getAllBets(),
+        api.getTournamentRatings(),
       ]);
       setMarket(marketData);
-      // Filter bets for this market
+      setRatings(ratingsData);
       setAllBets(betsData.filter(b =>
         marketData.selections.some(s => s.id === b.selection_id)
       ));
@@ -102,9 +128,11 @@ export default function MarketDetail() {
 
   const selectedSel = market.selections.find(s => s.id === selectedSelection);
   const isParimutuel = market.betting_type === 'parimutuel';
-  // Use dynamic odds for parimutuel, fixed odds otherwise
+  const isMatch = market.market_type === 'match';
   const selectedOdds = selectedSel ? (isParimutuel ? selectedSel.dynamic_odds : selectedSel.odds) : 0;
-  const potentialWin = parseFloat(stake || '0') * selectedOdds;
+  const stakeNum = parseFloat(stake || '0');
+  const potentialWin = stakeNum * selectedOdds;
+  const returnPct = stakeNum > 0 && selectedOdds > 0 ? ((potentialWin / stakeNum) - 1) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-dark-950">
@@ -153,6 +181,22 @@ export default function MarketDetail() {
                   </p>
                 </div>
               )}
+
+              {/* Rightsmaker Educational View — collapsible */}
+              <div className="mt-3">
+                <button
+                  onClick={() => setShowHowItWorks(!showHowItWorks)}
+                  className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1"
+                >
+                  <span className={`transition-transform ${showHowItWorks ? 'rotate-90' : ''}`}>▶</span>
+                  {t('marketDetail.howItWorks')}
+                </button>
+                {showHowItWorks && (
+                  <div className="mt-2 p-3 bg-dark-800 border border-dark-700 rounded-lg text-sm text-dark-300 leading-relaxed">
+                    {isParimutuel ? t('marketDetail.howItWorksPool') : t('marketDetail.howItWorksFixed')}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Selections */}
@@ -178,7 +222,7 @@ export default function MarketDetail() {
                           {sel.is_winner && (
                             <span className="text-green-400 text-xl">🏆</span>
                           )}
-                          <span className="font-medium text-lg">{sel.name}</span>
+                          <span className="font-medium text-lg">{shortName(sel.name)}</span>
                         </div>
                         <div className="text-right">
                           <span className="odds-badge text-lg px-4 py-2">
@@ -189,6 +233,8 @@ export default function MarketDetail() {
                           )}
                         </div>
                       </div>
+                      {/* Elo bar for match-type markets */}
+                      {isMatch && <EloBar playerName={sel.name} ratings={ratings} />}
                       {isParimutuel && market.total_staked > 0 && (
                         <div className="mt-2 flex items-center gap-4 text-sm">
                           <div className="flex-1 bg-dark-700 rounded-full h-2 overflow-hidden">
@@ -208,7 +254,7 @@ export default function MarketDetail() {
               </div>
             </div>
 
-            {/* Bets on this market */}
+            {/* Predictions on this market */}
             {allBets.length > 0 && (
               <div className="card mt-6">
                 <h2 className="text-xl font-bold mb-4">{t('marketDetail.betsPlaced')}</h2>
@@ -216,9 +262,9 @@ export default function MarketDetail() {
                   {allBets.map((bet) => (
                     <div key={bet.id} className="flex items-center justify-between py-2 border-b border-dark-700 last:border-0">
                       <div>
-                        <span className="font-medium">{bet.user_name}</span>
+                        <span className="font-medium">{shortName(bet.user_name)}</span>
                         <span className="text-dark-400 mx-2">→</span>
-                        <span className="text-primary-400">{bet.selection_name}</span>
+                        <span className="text-primary-400">{shortName(bet.selection_name)}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-dark-300">{bet.stake.toFixed(0)} {t('marketDetail.tokens')}</span>
@@ -232,7 +278,7 @@ export default function MarketDetail() {
             )}
           </div>
 
-          {/* Bet Slip */}
+          {/* Prediction Slip */}
           <div>
             <div className="card sticky top-24">
               <h2 className="text-xl font-bold mb-4">{t('marketDetail.placeBet')}</h2>
@@ -248,7 +294,7 @@ export default function MarketDetail() {
                     <div className="mb-4 p-3 bg-dark-700 rounded-lg">
                       <div className="text-sm text-dark-400">{t('marketDetail.selected')}</div>
                       <div className="font-semibold">
-                        {market.selections.find(s => s.id === selectedSelection)?.name}
+                        {shortName(market.selections.find(s => s.id === selectedSelection)?.name || '')}
                       </div>
                       <div className="text-primary-400">
                         @ {selectedOdds > 0 ? selectedOdds.toFixed(2) : '—'}
@@ -289,11 +335,11 @@ export default function MarketDetail() {
                     </div>
                   </div>
 
-                  {selectedSelection && parseFloat(stake) > 0 && (
+                  {selectedSelection && stakeNum > 0 && (
                     <div className="mb-4 p-3 bg-dark-700 rounded-lg">
                       <div className="flex justify-between mb-1">
                         <span className="text-dark-400">{t('marketDetail.stakeLabel')}</span>
-                        <span>{parseFloat(stake).toFixed(0)} {t('marketDetail.tokens')}</span>
+                        <span>{stakeNum.toFixed(0)} {t('marketDetail.tokens')}</span>
                       </div>
                       <div className="flex justify-between mb-1">
                         <span className="text-dark-400">
@@ -309,6 +355,13 @@ export default function MarketDetail() {
                           {potentialWin > 0 ? `${potentialWin.toFixed(0)} ${t('marketDetail.tokens')}` : '—'}
                         </span>
                       </div>
+                      {/* Return percentage */}
+                      {returnPct > 0 && (
+                        <div className="flex justify-between mt-1">
+                          <span className="text-dark-400 text-sm">{t('marketDetail.returnPct')}</span>
+                          <span className="text-green-400 text-sm font-semibold">+{returnPct.toFixed(0)}%</span>
+                        </div>
+                      )}
                       {isParimutuel && (
                         <p className="text-xs text-dark-500 mt-2">
                           {t('marketDetail.finalPayoutNote')}
@@ -331,7 +384,7 @@ export default function MarketDetail() {
 
                   <button
                     onClick={handlePlaceBet}
-                    disabled={!selectedSelection || !stake || parseFloat(stake) <= 0 || placing}
+                    disabled={!selectedSelection || !stake || stakeNum <= 0 || placing}
                     className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {placing ? t('marketDetail.placing') : t('marketDetail.placeBet')}

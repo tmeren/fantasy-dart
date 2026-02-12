@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
+import { shortName } from '@/lib/i18n';
 import { api, LeaderboardEntry } from '@/lib/api';
 import Link from 'next/link';
 
@@ -44,23 +45,34 @@ function StreakBadge({ streak }: { streak: string }) {
   );
 }
 
-function BadgeList({ badges }: { badges: string[] }) {
+function BadgeList({ badges, showDescriptions }: { badges: string[]; showDescriptions?: boolean }) {
   const { t } = useLanguage();
 
-  const BADGE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-    first_blood: { label: t('badge.firstBlood'), icon: '🎯', color: 'bg-blue-500/20 text-blue-400' },
-    high_roller: { label: t('badge.highRoller'), icon: '💎', color: 'bg-purple-500/20 text-purple-400' },
-    lucky_streak: { label: t('badge.luckyStreak'), icon: '🔥', color: 'bg-orange-500/20 text-orange-400' },
-    whale: { label: t('badge.whale'), icon: '🐋', color: 'bg-cyan-500/20 text-cyan-400' },
-    sharp: { label: t('badge.sharp'), icon: '🧠', color: 'bg-green-500/20 text-green-400' },
+  const BADGE_CONFIG: Record<string, { label: string; desc: string; icon: string; color: string }> = {
+    first_blood: { label: t('badge.firstBlood'), desc: t('badge.firstBlood.desc'), icon: '🎯', color: 'bg-blue-500/20 text-blue-400' },
+    high_roller: { label: t('badge.highRoller'), desc: t('badge.highRoller.desc'), icon: '💎', color: 'bg-purple-500/20 text-purple-400' },
+    lucky_streak: { label: t('badge.luckyStreak'), desc: t('badge.luckyStreak.desc'), icon: '🔥', color: 'bg-orange-500/20 text-orange-400' },
+    whale: { label: t('badge.whale'), desc: t('badge.whale.desc'), icon: '🐋', color: 'bg-cyan-500/20 text-cyan-400' },
+    sharp: { label: t('badge.sharp'), desc: t('badge.sharp.desc'), icon: '🧠', color: 'bg-green-500/20 text-green-400' },
   };
 
   if (!badges || badges.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className={showDescriptions ? 'space-y-2' : 'flex flex-wrap gap-1'}>
       {badges.map((badge) => {
         const config = BADGE_CONFIG[badge];
         if (!config) return null;
+        if (showDescriptions) {
+          return (
+            <div key={badge} className={`flex items-center gap-2 px-2 py-1.5 rounded ${config.color}`}>
+              <span className="text-lg">{config.icon}</span>
+              <div>
+                <div className="font-medium text-sm">{config.label}</div>
+                <div className="text-xs opacity-70">{config.desc}</div>
+              </div>
+            </div>
+          );
+        }
         return (
           <span key={badge} title={config.label} className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs ${config.color}`}>
             {config.icon}
@@ -72,11 +84,79 @@ function BadgeList({ badges }: { badges: string[] }) {
   );
 }
 
+/** Expanded detail panel for a leaderboard entry */
+function ExpandedPanel({ entry }: { entry: LeaderboardEntry }) {
+  const { t } = useLanguage();
+  const maxWinRate = 100;
+  const winRatePct = Math.min(entry.win_rate, maxWinRate);
+
+  return (
+    <tr>
+      <td colSpan={10} className="px-4 pb-4">
+        <div className="bg-dark-800 rounded-lg p-4 mt-1 space-y-4">
+          {/* Win Rate Visual Bar */}
+          <div>
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-dark-400">{t('leaderboard.winRate')}</span>
+              <span className={`font-semibold ${entry.win_rate >= 60 ? 'text-green-400' : entry.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {entry.win_rate.toFixed(0)}%
+              </span>
+            </div>
+            <div className="w-full bg-dark-700 rounded-full h-2.5 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${entry.win_rate >= 60 ? 'bg-green-400' : entry.win_rate >= 40 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                style={{ width: `${winRatePct}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-4 gap-3 text-center">
+            <div className="bg-dark-700 rounded-lg p-2">
+              <div className="text-dark-400 text-xs">{t('leaderboard.bets')}</div>
+              <div className="font-bold">{entry.total_bets}</div>
+            </div>
+            <div className="bg-dark-700 rounded-lg p-2">
+              <div className="text-dark-400 text-xs">{t('leaderboard.staked')}</div>
+              <div className="font-bold">{entry.total_staked.toFixed(0)}</div>
+            </div>
+            <div className="bg-dark-700 rounded-lg p-2">
+              <div className="text-dark-400 text-xs">ROI</div>
+              <div className={`font-bold ${entry.roi_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {entry.roi_pct >= 0 ? '+' : ''}{entry.roi_pct.toFixed(0)}%
+              </div>
+            </div>
+            <div className="bg-dark-700 rounded-lg p-2">
+              <div className="text-dark-400 text-xs">{t('leaderboard.streak')}</div>
+              <div className="font-bold">{entry.streak || '—'}</div>
+            </div>
+          </div>
+
+          {/* Badges with descriptions */}
+          {entry.badges && entry.badges.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-dark-400 mb-2">{t('leaderboard.badgeDetails')}</h4>
+              <BadgeList badges={entry.badges} showDescriptions />
+            </div>
+          )}
+
+          {/* Recent Predictions placeholder */}
+          <div>
+            <h4 className="text-sm font-semibold text-dark-400 mb-2">{t('leaderboard.recentPredictions')}</h4>
+            <p className="text-dark-500 text-sm italic">{t('leaderboard.comingSoon')}</p>
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export default function Leaderboard() {
   const { user, loading } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [expandedUser, setExpandedUser] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push('/');
@@ -93,6 +173,10 @@ export default function Leaderboard() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const toggleExpand = (userId: number) => {
+    setExpandedUser(expandedUser === userId ? null : userId);
   };
 
   if (loading || !user) {
@@ -122,7 +206,7 @@ export default function Leaderboard() {
               }`}
             >
               <div className="text-4xl mb-2">{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</div>
-              <div className="text-2xl font-bold mb-1">{entry.user.name}</div>
+              <div className="text-2xl font-bold mb-1">{shortName(entry.user.name)}</div>
               {entry.streak && <div className="mb-2"><StreakBadge streak={entry.streak} /></div>}
               <div className={`text-3xl font-bold ${entry.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {entry.profit >= 0 ? '+' : ''}{entry.profit.toFixed(0)}
@@ -172,38 +256,50 @@ export default function Leaderboard() {
             </thead>
             <tbody>
               {leaderboard.map((entry) => (
-                <tr key={entry.user.id} className={`border-b border-dark-800 last:border-0 ${entry.user.id === user.id ? 'bg-primary-900/20' : ''}`}>
-                  <td className="py-4">
-                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
-                      entry.rank === 1 ? 'bg-yellow-500 text-black' :
-                      entry.rank === 2 ? 'bg-gray-400 text-black' :
-                      entry.rank === 3 ? 'bg-orange-500 text-black' :
-                      'bg-dark-700 text-dark-300'
-                    }`}>{entry.rank}</span>
-                  </td>
-                  <td className="py-4">
-                    <span className="font-medium">{entry.user.name}</span>
-                    {entry.user.id === user.id && <span className="ml-2 text-xs text-primary-400">{t('leaderboard.you')}</span>}
-                  </td>
-                  <td className="py-4 text-right font-semibold">{entry.user.balance.toFixed(0)}</td>
-                  <td className={`py-4 text-right font-semibold ${entry.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {entry.profit >= 0 ? '+' : ''}{entry.profit.toFixed(0)}
-                  </td>
-                  <td className={`py-4 text-right hidden sm:table-cell ${entry.roi_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {entry.roi_pct >= 0 ? '+' : ''}{entry.roi_pct.toFixed(0)}%
-                  </td>
-                  <td className="py-4 text-right text-dark-300 hidden md:table-cell">{entry.total_staked.toFixed(0)}</td>
-                  <td className="py-4 text-right text-dark-300">{entry.total_bets}</td>
-                  <td className="py-4 text-right">
-                    <span className={`px-2 py-1 rounded text-sm ${
-                      entry.win_rate >= 60 ? 'bg-green-500/20 text-green-400' :
-                      entry.win_rate >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-red-500/20 text-red-400'
-                    }`}>{entry.win_rate.toFixed(0)}%</span>
-                  </td>
-                  <td className="py-4 text-center hidden sm:table-cell"><StreakBadge streak={entry.streak} /></td>
-                  <td className="py-4 hidden lg:table-cell"><BadgeList badges={entry.badges} /></td>
-                </tr>
+                <>
+                  <tr
+                    key={entry.user.id}
+                    onClick={() => toggleExpand(entry.user.id)}
+                    className={`border-b border-dark-800 last:border-0 cursor-pointer hover:bg-dark-800/50 transition-colors ${
+                      entry.user.id === user.id ? 'bg-primary-900/20' : ''
+                    } ${expandedUser === entry.user.id ? 'bg-dark-800/30' : ''}`}
+                  >
+                    <td className="py-4">
+                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                        entry.rank === 1 ? 'bg-yellow-500 text-black' :
+                        entry.rank === 2 ? 'bg-gray-400 text-black' :
+                        entry.rank === 3 ? 'bg-orange-500 text-black' :
+                        'bg-dark-700 text-dark-300'
+                      }`}>{entry.rank}</span>
+                    </td>
+                    <td className="py-4">
+                      <span className="font-medium">{shortName(entry.user.name)}</span>
+                      {entry.user.id === user.id && <span className="ml-2 text-xs text-primary-400">{t('leaderboard.you')}</span>}
+                      <span className="ml-1 text-dark-500 text-xs">{expandedUser === entry.user.id ? '▲' : '▼'}</span>
+                    </td>
+                    <td className="py-4 text-right font-semibold">{entry.user.balance.toFixed(0)}</td>
+                    <td className={`py-4 text-right font-semibold ${entry.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {entry.profit >= 0 ? '+' : ''}{entry.profit.toFixed(0)}
+                    </td>
+                    <td className={`py-4 text-right hidden sm:table-cell ${entry.roi_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {entry.roi_pct >= 0 ? '+' : ''}{entry.roi_pct.toFixed(0)}%
+                    </td>
+                    <td className="py-4 text-right text-dark-300 hidden md:table-cell">{entry.total_staked.toFixed(0)}</td>
+                    <td className="py-4 text-right text-dark-300">{entry.total_bets}</td>
+                    <td className="py-4 text-right">
+                      <span className={`px-2 py-1 rounded text-sm ${
+                        entry.win_rate >= 60 ? 'bg-green-500/20 text-green-400' :
+                        entry.win_rate >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>{entry.win_rate.toFixed(0)}%</span>
+                    </td>
+                    <td className="py-4 text-center hidden sm:table-cell"><StreakBadge streak={entry.streak} /></td>
+                    <td className="py-4 hidden lg:table-cell"><BadgeList badges={entry.badges} /></td>
+                  </tr>
+                  {expandedUser === entry.user.id && (
+                    <ExpandedPanel key={`expanded-${entry.user.id}`} entry={entry} />
+                  )}
+                </>
               ))}
             </tbody>
           </table>

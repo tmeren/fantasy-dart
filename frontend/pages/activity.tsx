@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
+import { shortName } from '@/lib/i18n';
 import { api, Activity, Bet } from '@/lib/api';
 import Link from 'next/link';
 
@@ -161,7 +162,7 @@ export default function ActivityFeed() {
                 {recentBets.slice(0, 15).map((bet) => (
                   <div key={bet.id} className="p-3 bg-dark-800 rounded-lg">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{bet.user_name}</span>
+                      <span className="font-medium">{shortName(bet.user_name)}</span>
                       <span className="text-dark-400 text-sm">{new Date(bet.created_at).toLocaleTimeString()}</span>
                     </div>
                     <div className="text-sm text-dark-300 mb-2">{bet.market_name}</div>
