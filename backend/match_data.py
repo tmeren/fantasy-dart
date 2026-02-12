@@ -8,7 +8,11 @@ import csv
 import os
 
 # Path to tournament data (relative to this file's directory)
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
+# Check for data in same directory first (Railway deployment), then parent (monorepo)
+_here = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(_here, "data")
+if not os.path.isdir(DATA_DIR):
+    DATA_DIR = os.path.join(_here, "..", "data")
 CSV_PATH = os.path.join(DATA_DIR, "tournament_database.csv")
 
 # All 20 tournament players - full name to short key mapping
