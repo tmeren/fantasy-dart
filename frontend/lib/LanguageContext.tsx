@@ -51,9 +51,9 @@ export function LanguageToggle() {
       className="flex items-center gap-1 px-2 py-1 rounded-md bg-dark-700 hover:bg-dark-600 transition-colors text-sm font-medium"
       title={locale === 'en' ? 'Türkçe\'ye geç' : 'Switch to English'}
     >
-      <span className={locale === 'en' ? 'opacity-100' : 'opacity-40'}>EN</span>
-      <span className="text-dark-500">|</span>
-      <span className={locale === 'tr' ? 'opacity-100' : 'opacity-40'}>TR</span>
+      <span className={locale === 'en' ? 'text-primary-400 font-bold' : 'text-dark-500'}>EN</span>
+      <span className="text-dark-600 mx-0.5">/</span>
+      <span className={locale === 'tr' ? 'text-primary-400 font-bold' : 'text-dark-500'}>TR</span>
     </button>
   );
 }

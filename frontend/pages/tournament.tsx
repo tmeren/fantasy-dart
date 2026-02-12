@@ -116,6 +116,34 @@ function FormDots({ player, results }: { player: string; results: CompletedMatch
   );
 }
 
+// ── Tooltip (CSS hover — no state) ──────────────────────────────────────────
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  return (
+    <span className="relative group/tip inline-block cursor-help">
+      {children}
+      <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs text-dark-200 bg-dark-800 border border-dark-600 rounded-lg shadow-xl w-72 text-left pointer-events-none whitespace-normal">
+        {text}
+        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-dark-800" />
+      </span>
+    </span>
+  );
+}
+
+// ── Elo → decimal odds ──────────────────────────────────────────────────────
+function eloToOdds(elo1: number, elo2: number): [string, string] {
+  const e1 = 1 / (1 + Math.pow(10, (elo2 - elo1) / 400));
+  const e2 = 1 - e1;
+  return [(1 / e1).toFixed(2), (1 / e2).toFixed(2)];
+}
+
+// ── Elo color helper ────────────────────────────────────────────────────────
+function eloColorClass(elo: number): string {
+  if (elo >= 1600) return 'text-yellow-400';
+  if (elo >= 1500) return 'text-green-400';
+  if (elo >= 1400) return 'text-dark-300';
+  return 'text-red-400';
+}
+
 // ── Navbar ──────────────────────────────────────────────────────────────────
 function Navbar() {
   const { user, logout } = useAuth();
@@ -158,6 +186,7 @@ export default function Tournament() {
   const [results, setResults] = useState<CompletedMatch[]>([]);
   const [upcoming, setUpcoming] = useState<ScheduledMatch[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [eloExpanded, setEloExpanded] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.push('/');
@@ -202,9 +231,11 @@ export default function Tournament() {
   // Compute standings from date-filtered results (excludes future auto-wins)
   const standings = computeStandings(dateFilteredResults);
 
-  // Build ratings lookup for standings cross-reference
+  // Build lookups for cross-reference
   const ratingsByPlayer: Record<string, PlayerRating> = {};
   ratings.forEach((r) => { ratingsByPlayer[r.player] = r; });
+  const standingsByPlayer: Record<string, StandingEntry> = {};
+  standings.forEach((s) => { standingsByPlayer[s.player] = s; });
 
   // Group results by round (date-filtered)
   const resultsByRound: Record<number, CompletedMatch[]> = {};
@@ -235,7 +266,7 @@ export default function Tournament() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-2">{t('tournament.title')}</h1>
         <p className="text-dark-400 mb-6">
-          {dateFilteredResults.length} {t('tournament.matchesPlayed')} ({t('tournament.throughRound')} {maxRound}) &middot; {upcoming.length} {t('tournament.remaining')}
+          {t('tournament.totalMatches')}: {dateFilteredResults.length + upcoming.length} &nbsp;·&nbsp; {t('tournament.completedMatches')}: {dateFilteredResults.length} ({t('tournament.throughRound')} {maxRound}) &nbsp;·&nbsp; {t('tournament.remainingMatches')}: {upcoming.length}
         </p>
 
         <div className="flex gap-1 mb-6 bg-dark-900 rounded-lg p-1 overflow-x-auto">
@@ -278,8 +309,8 @@ export default function Tournament() {
                       <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsFor')}</th>
                       <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsAgainst')}</th>
                       <th className="pb-3 text-center">{t('tournament.legDiff')}</th>
-                      <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.winRate')}</th>
-                      <th className="pb-3 text-center hidden md:table-cell">{t('tournament.elo')}</th>
+                      <th className="pb-3 text-center hidden sm:table-cell"><Tooltip text={t('tournament.winPctTooltip')}>{t('tournament.winRate')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
+                      <th className="pb-3 text-center hidden md:table-cell"><Tooltip text={t('tournament.eloTooltip')}>{t('tournament.elo')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -309,14 +340,16 @@ export default function Tournament() {
                             s.leg_diff > 0 ? 'text-green-400' : s.leg_diff < 0 ? 'text-red-400' : 'text-dark-400'
                           }`}>{s.leg_diff > 0 ? '+' : ''}{s.leg_diff}</td>
                           <td className="py-3 text-center hidden sm:table-cell">
-                            <span className={`px-2 py-0.5 rounded text-xs ${
-                              Number(winPct) >= 60 ? 'bg-green-500/20 text-green-400' : Number(winPct) >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
-                            }`}>{winPct}%</span>
+                            <Tooltip text={t('tournament.winPctTooltip')}>
+                              <span className={`px-2 py-0.5 rounded text-xs ${
+                                Number(winPct) >= 60 ? 'bg-green-500/20 text-green-400' : Number(winPct) >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
+                              }`}>{winPct}%</span>
+                            </Tooltip>
                           </td>
                           <td className="py-3 text-center hidden md:table-cell">
-                            <span className={`font-bold text-sm ${
-                              Number(elo) >= 1600 ? 'text-yellow-400' : Number(elo) >= 1500 ? 'text-green-400' : Number(elo) >= 1400 ? 'text-dark-300' : 'text-red-400'
-                            }`}>{elo}</span>
+                            <Tooltip text={t('tournament.eloTooltip')}>
+                              <span className={`font-bold text-sm ${eloColorClass(Number(elo))}`}>{elo}</span>
+                            </Tooltip>
                           </td>
                         </tr>
                       );
@@ -378,21 +411,63 @@ export default function Tournament() {
                       <span className="ml-2 text-xs text-dark-500">({upcomingByRound[round].length} {t('tournament.matches')})</span>
                       <span className="ml-2 text-xs text-primary-400">{formatGameNight(round, locale)}</span>
                     </h3>
-                    <div className="space-y-2">
-                      {upcomingByRound[round].map((m) => (
-                        <div key={m.match_id} className="flex items-center justify-between py-3 px-3 rounded-lg bg-dark-800/50">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <span className="text-xs text-dark-500 w-8 shrink-0">M{m.match_id}</span>
-                            <span className="font-medium truncate">{shortName(m.player1)}</span>
+                    <div className="space-y-3">
+                      {upcomingByRound[round].map((m) => {
+                        const p1r = ratingsByPlayer[m.player1];
+                        const p2r = ratingsByPlayer[m.player2];
+                        const p1s = standingsByPlayer[m.player1];
+                        const p2s = standingsByPlayer[m.player2];
+                        const p1Elo = p1r ? p1r.elo : 1500;
+                        const p2Elo = p2r ? p2r.elo : 1500;
+                        const [odds1, odds2] = eloToOdds(p1Elo, p2Elo);
+                        const p1WinPct = p1s && p1s.played > 0 ? ((p1s.wins / p1s.played) * 100).toFixed(0) : '—';
+                        const p2WinPct = p2s && p2s.played > 0 ? ((p2s.wins / p2s.played) * 100).toFixed(0) : '—';
+                        return (
+                          <div key={m.match_id} className="py-3 px-4 rounded-lg bg-dark-800/50">
+                            <div className="flex items-start justify-between gap-2">
+                              {/* P1 side */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium truncate">{shortName(m.player1)}</span>
+                                  <FormDots player={m.player1} results={dateFilteredResults} />
+                                </div>
+                                <div className="flex items-center gap-2 mt-1 text-xs text-dark-400">
+                                  <Tooltip text={t('tournament.eloTooltip')}>
+                                    <span className={`${eloColorClass(p1Elo)} font-semibold`}>{p1Elo.toFixed(0)}</span>
+                                  </Tooltip>
+                                  <Tooltip text={t('tournament.winPctTooltip')}>
+                                    <span>{p1WinPct !== '—' ? `${p1WinPct}%` : '—'}</span>
+                                  </Tooltip>
+                                </div>
+                              </div>
+                              {/* Center: odds + date */}
+                              <div className="flex flex-col items-center shrink-0 px-2">
+                                <div className="flex items-center gap-2 text-sm font-bold">
+                                  <span className="text-primary-400 min-w-[2.5rem] text-right">{odds1}</span>
+                                  <span className="text-dark-600">—</span>
+                                  <span className="text-primary-400 min-w-[2.5rem] text-left">{odds2}</span>
+                                </div>
+                                <span className="text-[10px] text-dark-500 mt-0.5">{formatGameNight(round, locale)}</span>
+                              </div>
+                              {/* P2 side */}
+                              <div className="flex-1 min-w-0 text-right">
+                                <div className="flex items-center gap-1.5 justify-end">
+                                  <FormDots player={m.player2} results={dateFilteredResults} />
+                                  <span className="font-medium truncate">{shortName(m.player2)}</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1 text-xs text-dark-400 justify-end">
+                                  <Tooltip text={t('tournament.winPctTooltip')}>
+                                    <span>{p2WinPct !== '—' ? `${p2WinPct}%` : '—'}</span>
+                                  </Tooltip>
+                                  <Tooltip text={t('tournament.eloTooltip')}>
+                                    <span className={`${eloColorClass(p2Elo)} font-semibold`}>{p2Elo.toFixed(0)}</span>
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 px-3 shrink-0">
-                            <span className="text-dark-500 text-sm">vs</span>
-                          </div>
-                          <div className="flex items-center flex-1 min-w-0 justify-end">
-                            <span className="font-medium truncate text-right">{shortName(m.player2)}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -445,7 +520,33 @@ export default function Tournament() {
                     })}
                   </tbody>
                 </table>
-                <p className="text-xs text-dark-500 mt-3">{t('tournament.eloSystem')}</p>
+                {/* Elo explanation accordion */}
+                <div className="mt-6 border-t border-dark-700 pt-4">
+                  <button
+                    onClick={() => setEloExpanded(!eloExpanded)}
+                    className="flex items-center gap-2 text-sm font-medium text-dark-300 hover:text-white transition-colors w-full text-left"
+                  >
+                    <span className={`transform transition-transform duration-200 text-xs ${eloExpanded ? 'rotate-90' : ''}`}>▶</span>
+                    {t('tournament.eloExplainTitle')}
+                  </button>
+                  {eloExpanded && (
+                    <div className="mt-4 space-y-4 text-sm text-dark-300 animate-in fade-in">
+                      <p>{t('tournament.eloExplainIntro')}</p>
+                      <div className="space-y-1.5 bg-dark-800 rounded-lg p-4 font-mono text-xs">
+                        <p className="text-primary-400">{t('tournament.eloFormula')}</p>
+                        <p className="text-primary-400">{t('tournament.eloKFactor')}</p>
+                        <p className="text-primary-400">{t('tournament.eloChange')}</p>
+                      </div>
+                      <div className="space-y-2 text-xs text-dark-400">
+                        <p>• {t('tournament.initialElo')}</p>
+                        <p>• {t('tournament.kBase')}</p>
+                        <p>• {t('tournament.eloDecay')}</p>
+                        <p>• {t('tournament.eloPhase')}</p>
+                        <p>• {t('tournament.eloMov')}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>

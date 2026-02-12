@@ -328,6 +328,52 @@ export const translations = {
   'marketDetail.est': { en: 'est.', tr: 'thm.' },
   'marketDetail.current': { en: '(current)', tr: '(güncel)' },
   'marketDetail.tokens': { en: 'RTB', tr: 'RTB' },
+
+  // ── Tournament subtitle (structured) ──
+  'tournament.totalMatches': { en: 'Total Matches', tr: 'Toplam Maç' },
+  'tournament.completedMatches': { en: 'Completed Matches', tr: 'Tamamlanan Maç' },
+  'tournament.remainingMatches': { en: 'Remaining Matches', tr: 'Kalan Maç' },
+
+  // ── Elo explanation ──
+  'tournament.eloExplainTitle': { en: 'How Elo Ratings Work', tr: 'Elo Puanları Nasıl Çalışır' },
+  'tournament.eloExplainIntro': {
+    en: 'The Elo rating system measures relative player strength. Every player starts at 1500. After each match, ratings are updated based on the result, opponent strength, and margin of victory.',
+    tr: 'Elo puanlama sistemi oyuncuların göreceli gücünü ölçer. Her oyuncu 1500 puanla başlar. Her maçtan sonra puanlar, sonuca, rakip gücüne ve skor farkına göre güncellenir.',
+  },
+  'tournament.eloFormula': {
+    en: 'Expected Score: E = 1 / (1 + 10^((Elo_opponent − Elo_player) / 400))',
+    tr: 'Beklenen Skor: E = 1 / (1 + 10^((Elo_rakip − Elo_oyuncu) / 400))',
+  },
+  'tournament.eloKFactor': {
+    en: 'Effective K-Factor: K_eff = 32 × games_decay × phase_weight',
+    tr: 'Etkin K-Faktör: K_eff = 32 × maç_azalması × faz_ağırlığı',
+  },
+  'tournament.eloDecay': {
+    en: 'Games-Played Decay: K multiplier starts at 1.5× (volatile early) and linearly decreases to 0.75× over 30 games (stabilizes ratings).',
+    tr: 'Oynanan Maç Azalması: K çarpanı 1.5× (başlangıçta değişken) ile başlar ve 30 maç boyunca lineer olarak 0.75×\'e düşer (puanları stabilize eder).',
+  },
+  'tournament.eloPhase': {
+    en: 'Phase Weighting: Early rounds (1–10) = 1.1×, Mid rounds (11–20) = 1.0×, Late rounds (21–38) = 0.9×',
+    tr: 'Faz Ağırlıklandırma: Erken turlar (1–10) = 1.1×, Orta turlar (11–20) = 1.0×, Geç turlar (21–38) = 0.9×',
+  },
+  'tournament.eloMov': {
+    en: 'Margin of Victory: 3-0 win = 1.30×, 3-1 win = 1.10×, 3-2 win = 0.85×',
+    tr: 'Skor Farkı Çarpanı: 3-0 galibiyet = 1.30×, 3-1 galibiyet = 1.10×, 3-2 galibiyet = 0.85×',
+  },
+  'tournament.eloChange': {
+    en: 'Rating Change: ΔR = K_eff × MOV × (Actual − Expected)',
+    tr: 'Puan Değişimi: ΔR = K_eff × MOV × (Gerçek − Beklenen)',
+  },
+  'tournament.initialElo': { en: 'Initial Rating: 1500', tr: 'Başlangıç Puanı: 1500' },
+  'tournament.kBase': { en: 'Base K-Factor: 32', tr: 'Taban K-Faktör: 32' },
+  'tournament.eloTooltip': {
+    en: 'Elo measures relative player strength. Starts at 1500. Higher = stronger. Updated after every match based on result, opponent strength, and margin of victory. K=32 base with games-played decay (1.5× → 0.75× over 30 games) and phase weighting (early 1.1×, mid 1.0×, late 0.9×).',
+    tr: 'Elo göreceli oyuncu gücünü ölçer. 1500\'den başlar. Yüksek = güçlü. Her maçtan sonra sonuca, rakip gücüne ve skor farkına göre güncellenir. K=32 taban, maç azalması (1.5× → 0.75× / 30 maç) ve faz ağırlıklandırma (erken 1.1×, orta 1.0×, geç 0.9×).',
+  },
+  'tournament.winPctTooltip': {
+    en: 'Win% = (Wins / Matches Played) × 100. Calculated from completed rounds only (excludes auto-wins from forfeits in future rounds).',
+    tr: 'Kazanma% = (Galibiyetler / Oynanan Maçlar) × 100. Sadece tamamlanan turlardan hesaplanır (gelecek turlardaki hükmen galibiyetler hariç).',
+  },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
