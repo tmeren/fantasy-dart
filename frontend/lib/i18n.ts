@@ -370,6 +370,10 @@ export const translations = {
     en: 'Elo measures relative player strength. Starts at 1500. Higher = stronger. Updated after every match based on result, opponent strength, and margin of victory. K=32 base with games-played decay (1.5× → 0.75× over 30 games) and phase weighting (early 1.1×, mid 1.0×, late 0.9×).',
     tr: 'Elo göreceli oyuncu gücünü ölçer. 1500\'den başlar. Yüksek = güçlü. Her maçtan sonra sonuca, rakip gücüne ve skor farkına göre güncellenir. K=32 taban, maç azalması (1.5× → 0.75× / 30 maç) ve faz ağırlıklandırma (erken 1.1×, orta 1.0×, geç 0.9×).',
   },
+  'tournament.positionChart': { en: 'Position Chart', tr: 'Sıralama Grafiği' },
+  'tournament.selectPlayers': { en: 'Select up to 4 players to compare', tr: 'Karşılaştırmak için en fazla 4 oyuncu seç' },
+  'tournament.position': { en: 'Position', tr: 'Sıra' },
+  'tournament.trend': { en: 'Trend', tr: 'Trend' },
   'tournament.winPctTooltip': {
     en: 'Win% = (Wins / Matches Played) × 100. Calculated from completed rounds only (excludes auto-wins from forfeits in future rounds).',
     tr: 'Kazanma% = (Galibiyetler / Oynanan Maçlar) × 100. Sadece tamamlanan turlardan hesaplanır (gelecek turlardaki hükmen galibiyetler hariç).',

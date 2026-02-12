@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
-import { shortName } from '@/lib/i18n';
+import { shortName, TranslationKey } from '@/lib/i18n';
 import { api, StandingEntry, PlayerRating, CompletedMatch, ScheduledMatch } from '@/lib/api';
 import Link from 'next/link';
 
@@ -116,15 +117,30 @@ function FormDots({ player, results }: { player: string; results: CompletedMatch
   );
 }
 
-// ── Tooltip (CSS hover — no state) ──────────────────────────────────────────
+// ── Tooltip (portal-based — escapes overflow clipping) ──────────────────────
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [show, setShow] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const ref = useRef<HTMLSpanElement>(null);
+  const handleEnter = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setPos({ x: rect.left + rect.width / 2, y: rect.top });
+    }
+    setShow(true);
+  };
   return (
-    <span className="relative group/tip inline-block cursor-help">
+    <span ref={ref} className="inline-block cursor-help" onMouseEnter={handleEnter} onMouseLeave={() => setShow(false)}>
       {children}
-      <span className="invisible group-hover/tip:visible opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs text-dark-200 bg-dark-800 border border-dark-600 rounded-lg shadow-xl w-72 text-left pointer-events-none whitespace-normal">
-        {text}
-        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-dark-800" />
-      </span>
+      {show && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{ position: 'fixed', left: pos.x, top: pos.y - 8, transform: 'translate(-50%, -100%)' }}
+          className="z-[9999] px-3 py-2 text-xs text-dark-200 bg-dark-800 border border-dark-600 rounded-lg shadow-xl max-w-[18rem] text-left pointer-events-none whitespace-normal"
+        >
+          {text}
+        </div>,
+        document.body
+      )}
     </span>
   );
 }
@@ -142,6 +158,120 @@ function eloColorClass(elo: number): string {
   if (elo >= 1500) return 'text-green-400';
   if (elo >= 1400) return 'text-dark-300';
   return 'text-red-400';
+}
+
+// ── Standings position chart (SofaScore style) ─────────────────────────────
+const CHART_COLORS = ['#4ade80', '#60a5fa', '#c084fc', '#fb923c'];
+const NUM_PLAYERS = 20;
+
+function TrendArrow({ player, history }: { player: string; history: Record<string, number[]> }) {
+  const positions = history[player];
+  if (!positions || positions.length < 2) return <span className="text-dark-600 text-xs">—</span>;
+  const current = positions[positions.length - 1];
+  const previous = positions[positions.length - 2];
+  const diff = previous - current; // positive = improved
+  if (diff > 0) return <span className="text-green-400 text-xs font-bold">▲{diff}</span>;
+  if (diff < 0) return <span className="text-red-400 text-xs font-bold">▼{Math.abs(diff)}</span>;
+  return <span className="text-dark-500 text-xs">—</span>;
+}
+
+function StandingsChart({
+  history,
+  gameNights,
+  selectedPlayers,
+  onTogglePlayer,
+  allPlayers,
+  locale,
+  t,
+}: {
+  history: Record<string, number[]>;
+  gameNights: number;
+  selectedPlayers: string[];
+  onTogglePlayer: (p: string) => void;
+  allPlayers: StandingEntry[];
+  locale: string;
+  t: (key: TranslationKey) => string;
+}) {
+  const W = 800;
+  const H = 380;
+  const PAD = { top: 30, right: 80, bottom: 50, left: 45 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+  const xScale = (gn: number) => PAD.left + ((gn - 1) / Math.max(gameNights - 1, 1)) * chartW;
+  const yScale = (pos: number) => PAD.top + ((pos - 1) / (NUM_PLAYERS - 1)) * chartH;
+
+  return (
+    <div className="card mb-6">
+      <h3 className="text-sm font-semibold text-dark-400 mb-3">{t('tournament.positionChart')}</h3>
+      <div className="w-full overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[500px]" style={{ maxHeight: 400 }}>
+          {/* Grid lines */}
+          {[1, 5, 10, 15, 20].map(pos => (
+            <g key={pos}>
+              <line x1={PAD.left} y1={yScale(pos)} x2={W - PAD.right} y2={yScale(pos)} stroke="#374151" strokeWidth="1" strokeDasharray="4 4" />
+              <text x={PAD.left - 8} y={yScale(pos) + 4} textAnchor="end" fill="#6b7280" fontSize="11">{pos}</text>
+            </g>
+          ))}
+
+          {/* Top-8 cutoff */}
+          <line x1={PAD.left} y1={yScale(8.5)} x2={W - PAD.right} y2={yScale(8.5)} stroke="#22c55e" strokeWidth="1" strokeDasharray="6 3" opacity="0.25" />
+
+          {/* X-axis labels */}
+          {Array.from({ length: gameNights }, (_, i) => i + 1).map(gn => (
+            <text key={gn} x={xScale(gn)} y={H - PAD.bottom + 18} textAnchor="middle" fill="#6b7280" fontSize="10">{gn}</text>
+          ))}
+          <text x={W / 2} y={H - 5} textAnchor="middle" fill="#9ca3af" fontSize="11">
+            {t('tournament.gameNight')}
+          </text>
+
+          {/* Player lines */}
+          {selectedPlayers.map((player, idx) => {
+            const positions = history[player];
+            if (!positions || positions.length === 0) return null;
+            const color = CHART_COLORS[idx % CHART_COLORS.length];
+            const points = positions.map((pos, i) => `${xScale(i + 1)},${yScale(pos)}`).join(' ');
+            const lastPos = positions[positions.length - 1];
+            return (
+              <g key={player}>
+                <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                {positions.map((pos, i) => (
+                  <circle key={i} cx={xScale(i + 1)} cy={yScale(pos)} r="3" fill={color} stroke="#111827" strokeWidth="1.5" />
+                ))}
+                <text x={xScale(positions.length) + 8} y={yScale(lastPos) + 4} fill={color} fontSize="10" fontWeight="600">
+                  {shortName(player)} ({lastPos})
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* Player selector chips */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {allPlayers.map((s) => {
+          const selIdx = selectedPlayers.indexOf(s.player);
+          const isSelected = selIdx >= 0;
+          const color = isSelected ? CHART_COLORS[selIdx % CHART_COLORS.length] : undefined;
+          return (
+            <button
+              key={s.player}
+              onClick={() => onTogglePlayer(s.player)}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors border ${
+                isSelected
+                  ? 'text-white'
+                  : 'bg-dark-800 text-dark-400 hover:text-white border-dark-700'
+              }`}
+              style={isSelected ? { backgroundColor: color + '20', borderColor: color, color } : undefined}
+              disabled={!isSelected && selectedPlayers.length >= 4}
+            >
+              #{s.rank} {shortName(s.player)}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs text-dark-500 mt-2">{t('tournament.selectPlayers')}</p>
+    </div>
+  );
 }
 
 // ── Navbar ──────────────────────────────────────────────────────────────────
@@ -187,6 +317,7 @@ export default function Tournament() {
   const [upcoming, setUpcoming] = useState<ScheduledMatch[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [eloExpanded, setEloExpanded] = useState(false);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !user) router.push('/');
@@ -236,6 +367,28 @@ export default function Tournament() {
   ratings.forEach((r) => { ratingsByPlayer[r.player] = r; });
   const standingsByPlayer: Record<string, StandingEntry> = {};
   standings.forEach((s) => { standingsByPlayer[s.player] = s; });
+
+  // Compute standings at each game night for position chart
+  const { history: standingsHistory, gameNights: totalGameNights } = useMemo(() => {
+    const maxGN = Math.ceil(maxRound / 2);
+    const hist: Record<string, number[]> = {};
+    for (let gn = 1; gn <= maxGN; gn++) {
+      const throughRound = gn * 2;
+      const filtered = dateFilteredResults.filter(m => m.round <= throughRound);
+      const s = computeStandings(filtered);
+      s.forEach(entry => {
+        if (!hist[entry.player]) hist[entry.player] = [];
+        hist[entry.player].push(entry.rank);
+      });
+    }
+    return { history: hist, gameNights: maxGN };
+  }, [dateFilteredResults, maxRound]);
+
+  const togglePlayer = (player: string) => {
+    setSelectedPlayers(prev =>
+      prev.includes(player) ? prev.filter(p => p !== player) : prev.length < 4 ? [...prev, player] : prev
+    );
+  };
 
   // Group results by round (date-filtered)
   const resultsByRound: Record<number, CompletedMatch[]> = {};
@@ -296,70 +449,90 @@ export default function Tournament() {
           <>
             {/* ── Standings Tab ── */}
             {activeTab === 'standings' && (
-              <div className="card overflow-x-auto">
-                <h2 className="text-lg font-semibold mb-4">{t('tournament.roundRobin')}</h2>
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
-                      <th className="pb-3 w-12">#</th>
-                      <th className="pb-3">{t('tournament.player')}</th>
-                      <th className="pb-3 text-center">{t('tournament.played')}</th>
-                      <th className="pb-3 text-center">{t('tournament.won')}</th>
-                      <th className="pb-3 text-center">{t('tournament.lost')}</th>
-                      <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsFor')}</th>
-                      <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsAgainst')}</th>
-                      <th className="pb-3 text-center">{t('tournament.legDiff')}</th>
-                      <th className="pb-3 text-center hidden sm:table-cell"><Tooltip text={t('tournament.winPctTooltip')}>{t('tournament.winRate')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
-                      <th className="pb-3 text-center hidden md:table-cell"><Tooltip text={t('tournament.eloTooltip')}>{t('tournament.elo')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {standings.map((s) => {
-                      const winPct = s.played > 0 ? ((s.wins / s.played) * 100).toFixed(0) : '0';
-                      const playerRating = ratingsByPlayer[s.player];
-                      const elo = playerRating ? playerRating.elo.toFixed(0) : '—';
-                      return (
-                        <tr key={s.player} className={`border-b border-dark-800 last:border-0 ${s.rank <= 8 ? 'bg-green-900/10' : ''}`}>
-                          <td className="py-3">
-                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
-                              s.rank <= 8 ? 'bg-green-500/20 text-green-400' : 'bg-dark-700 text-dark-400'
-                            }`}>{s.rank}</span>
-                          </td>
-                          <td className="py-3">
-                            <div className="flex items-center">
-                              <span className="font-medium">{shortName(s.player)}</span>
-                              <FormDots player={s.player} results={dateFilteredResults} />
-                            </div>
-                          </td>
-                          <td className="py-3 text-center text-dark-300">{s.played}</td>
-                          <td className="py-3 text-center text-green-400 font-semibold">{s.wins}</td>
-                          <td className="py-3 text-center text-red-400">{s.losses}</td>
-                          <td className="py-3 text-center text-dark-300 hidden sm:table-cell">{s.legs_for}</td>
-                          <td className="py-3 text-center text-dark-300 hidden sm:table-cell">{s.legs_against}</td>
-                          <td className={`py-3 text-center font-semibold ${
-                            s.leg_diff > 0 ? 'text-green-400' : s.leg_diff < 0 ? 'text-red-400' : 'text-dark-400'
-                          }`}>{s.leg_diff > 0 ? '+' : ''}{s.leg_diff}</td>
-                          <td className="py-3 text-center hidden sm:table-cell">
-                            <Tooltip text={t('tournament.winPctTooltip')}>
-                              <span className={`px-2 py-0.5 rounded text-xs ${
-                                Number(winPct) >= 60 ? 'bg-green-500/20 text-green-400' : Number(winPct) >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
-                              }`}>{winPct}%</span>
-                            </Tooltip>
-                          </td>
-                          <td className="py-3 text-center hidden md:table-cell">
-                            <Tooltip text={t('tournament.eloTooltip')}>
-                              <span className={`font-bold text-sm ${eloColorClass(Number(elo))}`}>{elo}</span>
-                            </Tooltip>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {standings.length > 0 && (
-                  <p className="text-xs text-dark-500 mt-3">{t('tournament.top8')}</p>
+              <>
+                {/* Position Chart */}
+                {totalGameNights >= 2 && (
+                  <StandingsChart
+                    history={standingsHistory}
+                    gameNights={totalGameNights}
+                    selectedPlayers={selectedPlayers}
+                    onTogglePlayer={togglePlayer}
+                    allPlayers={standings}
+                    locale={locale}
+                    t={t}
+                  />
                 )}
-              </div>
+
+                {/* Standings Table */}
+                <div className="card overflow-x-auto">
+                  <h2 className="text-lg font-semibold mb-4">{t('tournament.roundRobin')}</h2>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
+                        <th className="pb-3 w-12">#</th>
+                        <th className="pb-3">{t('tournament.player')}</th>
+                        <th className="pb-3 text-center w-10">{t('tournament.trend')}</th>
+                        <th className="pb-3 text-center">{t('tournament.played')}</th>
+                        <th className="pb-3 text-center">{t('tournament.won')}</th>
+                        <th className="pb-3 text-center">{t('tournament.lost')}</th>
+                        <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsFor')}</th>
+                        <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsAgainst')}</th>
+                        <th className="pb-3 text-center">{t('tournament.legDiff')}</th>
+                        <th className="pb-3 text-center hidden sm:table-cell"><Tooltip text={t('tournament.winPctTooltip')}>{t('tournament.winRate')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
+                        <th className="pb-3 text-center hidden md:table-cell"><Tooltip text={t('tournament.eloTooltip')}>{t('tournament.elo')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {standings.map((s) => {
+                        const winPct = s.played > 0 ? ((s.wins / s.played) * 100).toFixed(0) : '0';
+                        const playerRating = ratingsByPlayer[s.player];
+                        const elo = playerRating ? playerRating.elo.toFixed(0) : '—';
+                        return (
+                          <tr key={s.player} className={`border-b border-dark-800 last:border-0 ${s.rank <= 8 ? 'bg-green-900/10' : ''}`}>
+                            <td className="py-3">
+                              <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                                s.rank <= 8 ? 'bg-green-500/20 text-green-400' : 'bg-dark-700 text-dark-400'
+                              }`}>{s.rank}</span>
+                            </td>
+                            <td className="py-3">
+                              <div className="flex items-center">
+                                <span className="font-medium">{shortName(s.player)}</span>
+                                <FormDots player={s.player} results={dateFilteredResults} />
+                              </div>
+                            </td>
+                            <td className="py-3 text-center">
+                              <TrendArrow player={s.player} history={standingsHistory} />
+                            </td>
+                            <td className="py-3 text-center text-dark-300">{s.played}</td>
+                            <td className="py-3 text-center text-green-400 font-semibold">{s.wins}</td>
+                            <td className="py-3 text-center text-red-400">{s.losses}</td>
+                            <td className="py-3 text-center text-dark-300 hidden sm:table-cell">{s.legs_for}</td>
+                            <td className="py-3 text-center text-dark-300 hidden sm:table-cell">{s.legs_against}</td>
+                            <td className={`py-3 text-center font-semibold ${
+                              s.leg_diff > 0 ? 'text-green-400' : s.leg_diff < 0 ? 'text-red-400' : 'text-dark-400'
+                            }`}>{s.leg_diff > 0 ? '+' : ''}{s.leg_diff}</td>
+                            <td className="py-3 text-center hidden sm:table-cell">
+                              <Tooltip text={t('tournament.winPctTooltip')}>
+                                <span className={`px-2 py-0.5 rounded text-xs ${
+                                  Number(winPct) >= 60 ? 'bg-green-500/20 text-green-400' : Number(winPct) >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
+                                }`}>{winPct}%</span>
+                              </Tooltip>
+                            </td>
+                            <td className="py-3 text-center hidden md:table-cell">
+                              <Tooltip text={t('tournament.eloTooltip')}>
+                                <span className={`font-bold text-sm ${eloColorClass(Number(elo))}`}>{elo}</span>
+                              </Tooltip>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {standings.length > 0 && (
+                    <p className="text-xs text-dark-500 mt-3">{t('tournament.top8')}</p>
+                  )}
+                </div>
+              </>
             )}
 
             {/* ── Results Tab ── */}
