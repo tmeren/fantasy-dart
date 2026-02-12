@@ -493,10 +493,14 @@ export default function Tournament() {
                         const winPctFormula = locale === 'tr'
                           ? `${name}: ${s.wins} / ${s.played} × 100 = ${winPct}%\n(Galibiyetler / Oynanan Maçlar × 100)`
                           : `${name}: ${s.wins} / ${s.played} × 100 = ${winPct}%\n(Wins / Matches Played × 100)`;
+                        // Compute actual K-factor decay for this player
+                        const gp = playerRating ? playerRating.games_played : 0;
+                        const decay = gp >= 30 ? 0.75 : +(1.5 + (0.75 - 1.5) * (gp / 30)).toFixed(2);
+                        const kEff = +(32 * decay).toFixed(1);
                         const eloFormula = playerRating
                           ? locale === 'tr'
-                            ? `${name}: ${elo} Elo\n${playerRating.wins}G ${playerRating.losses}M ${playerRating.draws}B (${playerRating.games_played} maç)\nΔR = K_eff × MOV × (S − E)\nK_eff = 32 × azalma(${playerRating.games_played}) × faz(tur)`
-                            : `${name}: ${elo} Elo\n${playerRating.wins}W ${playerRating.losses}L ${playerRating.draws}D (${playerRating.games_played} games)\nΔR = K_eff × MOV × (S − E)\nK_eff = 32 × decay(${playerRating.games_played}) × phase(round)`
+                            ? `${name}: ${elo} Elo (Sıra #${s.rank})\n${playerRating.wins}G ${playerRating.losses}M ${playerRating.draws}B — ${gp} maç\nK azalma: ${decay}× (${gp}/30 maç)\nEtkili K = 32 × ${decay} = ${kEff}\nHer maçta: ΔElo = ${kEff} × faz × MOV × (S−E)\nMOV: 3-0→1.30×, 3-1→1.10×, 3-2→0.85×`
+                            : `${name}: ${elo} Elo (Rank #${s.rank})\n${playerRating.wins}W ${playerRating.losses}L ${playerRating.draws}D — ${gp} games\nK decay: ${decay}× (${gp}/30 games)\nEffective K = 32 × ${decay} = ${kEff}\nPer match: ΔElo = ${kEff} × phase × MOV × (S−E)\nMOV: 3-0→1.30×, 3-1→1.10×, 3-2→0.85×`
                           : '—';
                         return (
                           <tr key={s.player} className={`border-b border-dark-800 last:border-0 ${s.rank <= 8 ? 'bg-green-900/10' : ''}`}>
