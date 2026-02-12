@@ -6,6 +6,117 @@ import { shortName } from '@/lib/i18n';
 import { api, StandingEntry, PlayerRating, CompletedMatch, ScheduledMatch } from '@/lib/api';
 import Link from 'next/link';
 
+// ── Round date mapping ──────────────────────────────────────────────────────
+// First game night: Oct 29 2025. Every Wednesday, 2 rounds are played.
+const TOURNAMENT_START = new Date('2025-10-29T00:00:00');
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+/** Get the game-night date for a given round (1-indexed). */
+function getRoundDate(round: number): Date {
+  const gameNight = Math.ceil(round / 2);
+  return new Date(TOURNAMENT_START.getTime() + (gameNight - 1) * MS_PER_WEEK);
+}
+
+/** Last round whose game-night is on or before today. */
+function getMaxPlayedRound(totalRounds: number = 38): number {
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+  for (let r = totalRounds; r >= 1; r--) {
+    if (getRoundDate(r) <= now) return r;
+  }
+  return 0;
+}
+
+/** Format a game-night date for display. */
+function formatGameNight(round: number, locale: string): string {
+  const date = getRoundDate(round);
+  return date.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+// ── Compute standings from results (frontend, date-filtered) ────────────────
+function computeStandings(filteredResults: CompletedMatch[]): StandingEntry[] {
+  const playerSet = new Set<string>();
+  filteredResults.forEach((m) => {
+    playerSet.add(m.player1);
+    playerSet.add(m.player2);
+  });
+
+  const records: Record<string, { played: number; wins: number; losses: number; legs_for: number; legs_against: number }> = {};
+  playerSet.forEach((p) => {
+    records[p] = { played: 0, wins: 0, losses: 0, legs_for: 0, legs_against: 0 };
+  });
+
+  filteredResults.forEach((m) => {
+    if (m.is_draw) return; // Skip draws (not possible in best-of-5)
+
+    const r1 = records[m.player1];
+    const r2 = records[m.player2];
+    if (r1) {
+      r1.played++;
+      r1.legs_for += m.score1;
+      r1.legs_against += m.score2;
+      if (m.winner === m.player1) r1.wins++;
+      else r1.losses++;
+    }
+    if (r2) {
+      r2.played++;
+      r2.legs_for += m.score2;
+      r2.legs_against += m.score1;
+      if (m.winner === m.player2) r2.wins++;
+      else r2.losses++;
+    }
+  });
+
+  const list: StandingEntry[] = Object.entries(records).map(([player, s]) => ({
+    rank: 0,
+    player,
+    played: s.played,
+    wins: s.wins,
+    losses: s.losses,
+    draws: 0,
+    legs_for: s.legs_for,
+    legs_against: s.legs_against,
+    leg_diff: s.legs_for - s.legs_against,
+  }));
+
+  list.sort((a, b) => b.wins - a.wins || b.leg_diff - a.leg_diff || b.legs_for - a.legs_for);
+  list.forEach((r, i) => { r.rank = i + 1; });
+  return list;
+}
+
+// ── FormDots — last N match results (W=green, L=red) ──────────────────────
+function FormDots({ player, results }: { player: string; results: CompletedMatch[] }) {
+  const form: ('W' | 'L')[] = [];
+  // results are newest-first; collect 5 most recent for this player
+  for (let i = 0; i < results.length && form.length < 5; i++) {
+    const m = results[i];
+    if (m.is_draw) continue; // skip forfeits
+    if (m.player1 === player || m.player2 === player) {
+      if (m.winner === player) form.push('W');
+      else form.push('L');
+    }
+  }
+  if (form.length === 0) return null;
+  return (
+    <div className="flex gap-0.5 ml-2">
+      {form.reverse().map((r, i) => (
+        <span
+          key={i}
+          className={`w-2 h-2 rounded-full ${
+            r === 'W' ? 'bg-green-400' : 'bg-red-400'
+          }`}
+          title={r}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Navbar ──────────────────────────────────────────────────────────────────
 function Navbar() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
@@ -35,42 +146,14 @@ function Navbar() {
   );
 }
 
-/** Colored dots for last N match results (W=green, L=red, D=yellow) */
-function FormDots({ player, results }: { player: string; results: CompletedMatch[] }) {
-  const form: ('W' | 'L' | 'D')[] = [];
-  // results are newest-first from API; collect 5 most recent for this player
-  for (let i = 0; i < results.length && form.length < 5; i++) {
-    const m = results[i];
-    if (m.player1 === player || m.player2 === player) {
-      if (m.is_draw) form.push('D');
-      else if (m.winner === player) form.push('W');
-      else form.push('L');
-    }
-  }
-  if (form.length === 0) return null;
-  return (
-    <div className="flex gap-0.5 ml-2">
-      {form.reverse().map((r, i) => (
-        <span
-          key={i}
-          className={`w-2 h-2 rounded-full ${
-            r === 'W' ? 'bg-green-400' : r === 'L' ? 'bg-red-400' : 'bg-yellow-400'
-          }`}
-          title={r}
-        />
-      ))}
-    </div>
-  );
-}
-
+// ── Main component ──────────────────────────────────────────────────────────
 type Tab = 'standings' | 'results' | 'upcoming' | 'ratings';
 
 export default function Tournament() {
   const { user, loading } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('standings');
-  const [standings, setStandings] = useState<StandingEntry[]>([]);
   const [ratings, setRatings] = useState<PlayerRating[]>([]);
   const [results, setResults] = useState<CompletedMatch[]>([]);
   const [upcoming, setUpcoming] = useState<ScheduledMatch[]>([]);
@@ -87,13 +170,11 @@ export default function Tournament() {
   const loadAll = async () => {
     setLoadingData(true);
     try {
-      const [s, r, res, u] = await Promise.all([
-        api.getStandings(),
+      const [r, res, u] = await Promise.all([
         api.getTournamentRatings(),
         api.getResults(),
         api.getUpcomingMatches(),
       ]);
-      setStandings(s);
       setRatings(r);
       setResults(res);
       setUpcoming(u);
@@ -112,17 +193,28 @@ export default function Tournament() {
     );
   }
 
+  // ── Date-based filtering ──────────────────────────────────────────────────
+  const maxRound = getMaxPlayedRound();
+
+  // Only include results from rounds that have been played by date
+  const dateFilteredResults = results.filter((m) => m.round <= maxRound);
+
+  // Compute standings from date-filtered results (excludes future auto-wins)
+  const standings = computeStandings(dateFilteredResults);
+
   // Build ratings lookup for standings cross-reference
   const ratingsByPlayer: Record<string, PlayerRating> = {};
   ratings.forEach((r) => { ratingsByPlayer[r.player] = r; });
 
+  // Group results by round (date-filtered)
   const resultsByRound: Record<number, CompletedMatch[]> = {};
-  results.forEach((m) => {
+  dateFilteredResults.forEach((m) => {
     if (!resultsByRound[m.round]) resultsByRound[m.round] = [];
     resultsByRound[m.round].push(m);
   });
   const sortedResultRounds = Object.keys(resultsByRound).map(Number).sort((a, b) => b - a);
 
+  // Group upcoming by round
   const upcomingByRound: Record<number, ScheduledMatch[]> = {};
   upcoming.forEach((m) => {
     if (!upcomingByRound[m.round]) upcomingByRound[m.round] = [];
@@ -132,7 +224,7 @@ export default function Tournament() {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'standings', label: t('tournament.standings') },
-    { key: 'results', label: t('tournament.results'), count: results.length },
+    { key: 'results', label: t('tournament.results'), count: dateFilteredResults.length },
     { key: 'upcoming', label: t('tournament.upcoming'), count: upcoming.length },
     { key: 'ratings', label: t('tournament.eloRatings') },
   ];
@@ -143,7 +235,7 @@ export default function Tournament() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-2">{t('tournament.title')}</h1>
         <p className="text-dark-400 mb-6">
-          {results.length} {t('tournament.matchesPlayed')} &middot; {upcoming.length} {t('tournament.remaining')}
+          {dateFilteredResults.length} {t('tournament.matchesPlayed')} ({t('tournament.throughRound')} {maxRound}) &middot; {upcoming.length} {t('tournament.remaining')}
         </p>
 
         <div className="flex gap-1 mb-6 bg-dark-900 rounded-lg p-1 overflow-x-auto">
@@ -171,6 +263,7 @@ export default function Tournament() {
           </div>
         ) : (
           <>
+            {/* ── Standings Tab ── */}
             {activeTab === 'standings' && (
               <div className="card overflow-x-auto">
                 <h2 className="text-lg font-semibold mb-4">{t('tournament.roundRobin')}</h2>
@@ -179,13 +272,12 @@ export default function Tournament() {
                     <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
                       <th className="pb-3 w-12">#</th>
                       <th className="pb-3">{t('tournament.player')}</th>
-                      <th className="pb-3 text-center">P</th>
-                      <th className="pb-3 text-center">W</th>
-                      <th className="pb-3 text-center">L</th>
-                      <th className="pb-3 text-center">D</th>
-                      <th className="pb-3 text-center hidden sm:table-cell">LF</th>
-                      <th className="pb-3 text-center hidden sm:table-cell">LA</th>
-                      <th className="pb-3 text-center">+/-</th>
+                      <th className="pb-3 text-center">{t('tournament.played')}</th>
+                      <th className="pb-3 text-center">{t('tournament.won')}</th>
+                      <th className="pb-3 text-center">{t('tournament.lost')}</th>
+                      <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsFor')}</th>
+                      <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsAgainst')}</th>
+                      <th className="pb-3 text-center">{t('tournament.legDiff')}</th>
                       <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.winRate')}</th>
                       <th className="pb-3 text-center hidden md:table-cell">{t('tournament.elo')}</th>
                     </tr>
@@ -205,13 +297,12 @@ export default function Tournament() {
                           <td className="py-3">
                             <div className="flex items-center">
                               <span className="font-medium">{shortName(s.player)}</span>
-                              <FormDots player={s.player} results={results} />
+                              <FormDots player={s.player} results={dateFilteredResults} />
                             </div>
                           </td>
                           <td className="py-3 text-center text-dark-300">{s.played}</td>
                           <td className="py-3 text-center text-green-400 font-semibold">{s.wins}</td>
                           <td className="py-3 text-center text-red-400">{s.losses}</td>
-                          <td className="py-3 text-center text-yellow-400">{s.draws}</td>
                           <td className="py-3 text-center text-dark-300 hidden sm:table-cell">{s.legs_for}</td>
                           <td className="py-3 text-center text-dark-300 hidden sm:table-cell">{s.legs_against}</td>
                           <td className={`py-3 text-center font-semibold ${
@@ -238,11 +329,15 @@ export default function Tournament() {
               </div>
             )}
 
+            {/* ── Results Tab ── */}
             {activeTab === 'results' && (
               <div className="space-y-6">
                 {sortedResultRounds.map((round) => (
                   <div key={round} className="card">
-                    <h3 className="text-sm font-semibold text-dark-400 mb-3">{t('tournament.round')} {round}</h3>
+                    <h3 className="text-sm font-semibold text-dark-400 mb-3">
+                      {t('tournament.round')} {round}
+                      <span className="ml-2 text-xs text-dark-500">{formatGameNight(round, locale)}</span>
+                    </h3>
                     <div className="space-y-2">
                       {resultsByRound[round].map((m) => {
                         const p1IsWinner = m.winner === m.player1;
@@ -261,21 +356,19 @@ export default function Tournament() {
                             <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
                               <span className={`font-medium truncate text-right ${p2IsWinner ? 'text-green-400' : 'text-red-400/60'}`}>{shortName(m.player2)}</span>
                             </div>
-                            {m.is_draw && (
-                              <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded shrink-0">{t('tournament.draw')}</span>
-                            )}
                           </div>
                         );
                       })}
                     </div>
                   </div>
                 ))}
-                {results.length === 0 && (
+                {dateFilteredResults.length === 0 && (
                   <div className="card text-center py-12"><p className="text-dark-400">{t('tournament.noResults')}</p></div>
                 )}
               </div>
             )}
 
+            {/* ── Upcoming Tab ── */}
             {activeTab === 'upcoming' && (
               <div className="space-y-6">
                 {sortedUpcomingRounds.map((round) => (
@@ -283,6 +376,7 @@ export default function Tournament() {
                     <h3 className="text-sm font-semibold text-dark-400 mb-3">
                       {t('tournament.round')} {round}
                       <span className="ml-2 text-xs text-dark-500">({upcomingByRound[round].length} {t('tournament.matches')})</span>
+                      <span className="ml-2 text-xs text-primary-400">{formatGameNight(round, locale)}</span>
                     </h3>
                     <div className="space-y-2">
                       {upcomingByRound[round].map((m) => (
@@ -293,7 +387,6 @@ export default function Tournament() {
                           </div>
                           <div className="flex items-center gap-2 px-3 shrink-0">
                             <span className="text-dark-500 text-sm">vs</span>
-                            <span className="text-xs text-dark-500 italic">{t('tournament.scheduleTbd')}</span>
                           </div>
                           <div className="flex items-center flex-1 min-w-0 justify-end">
                             <span className="font-medium truncate text-right">{shortName(m.player2)}</span>
@@ -309,6 +402,7 @@ export default function Tournament() {
               </div>
             )}
 
+            {/* ── Elo Ratings Tab ── */}
             {activeTab === 'ratings' && (
               <div className="card overflow-x-auto">
                 <h2 className="text-lg font-semibold mb-4">{t('tournament.eloRatings')}</h2>
@@ -318,11 +412,10 @@ export default function Tournament() {
                       <th className="pb-3 w-12">#</th>
                       <th className="pb-3">{t('tournament.player')}</th>
                       <th className="pb-3 text-right">Elo</th>
-                      <th className="pb-3 text-center">GP</th>
-                      <th className="pb-3 text-center">W</th>
-                      <th className="pb-3 text-center">L</th>
-                      <th className="pb-3 text-center">D</th>
-                      <th className="pb-3 text-right hidden sm:table-cell">Win%</th>
+                      <th className="pb-3 text-center">{t('tournament.played')}</th>
+                      <th className="pb-3 text-center">{t('tournament.won')}</th>
+                      <th className="pb-3 text-center">{t('tournament.lost')}</th>
+                      <th className="pb-3 text-right hidden sm:table-cell">{t('tournament.winRate')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -342,7 +435,6 @@ export default function Tournament() {
                           <td className="py-3 text-center text-dark-300">{r.games_played}</td>
                           <td className="py-3 text-center text-green-400">{r.wins}</td>
                           <td className="py-3 text-center text-red-400">{r.losses}</td>
-                          <td className="py-3 text-center text-yellow-400">{r.draws}</td>
                           <td className="py-3 text-right hidden sm:table-cell">
                             <span className={`px-2 py-0.5 rounded text-xs ${
                               Number(winPct) >= 60 ? 'bg-green-500/20 text-green-400' : Number(winPct) >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'

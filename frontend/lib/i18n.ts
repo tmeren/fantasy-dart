@@ -144,6 +144,14 @@ export const translations = {
   'tournament.winRate': { en: 'Win%', tr: 'Kazanma%' },
   'tournament.elo': { en: 'Elo', tr: 'Elo' },
   'tournament.scheduleTbd': { en: 'Schedule TBD', tr: 'Tarih belirlenecek' },
+  'tournament.played': { en: 'Played', tr: 'Oynanan' },
+  'tournament.won': { en: 'Won', tr: 'Galibiyet' },
+  'tournament.lost': { en: 'Lost', tr: 'Mağlubiyet' },
+  'tournament.legsFor': { en: 'Legs For', tr: 'Alınan Leg' },
+  'tournament.legsAgainst': { en: 'Legs Against', tr: 'Verilen Leg' },
+  'tournament.legDiff': { en: 'Diff', tr: 'Fark' },
+  'tournament.gameNight': { en: 'Game Night', tr: 'Oyun Gecesi' },
+  'tournament.throughRound': { en: 'through Round', tr: 'Tur' },
 
   // ── Leaderboard ──
   'leaderboard.title': { en: 'Bragging Rights', tr: 'Övgü Liderliği' },
