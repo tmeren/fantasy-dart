@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
-import { api, Market, PlayerRating, Selection } from '@/lib/api';
+import { api, Market, PlayerRating, CompletedMatch, Selection } from '@/lib/api';
 import { useBetslip } from '@/lib/BetslipContext';
 import { shortName } from '@/lib/i18n';
-import { eloBgClass, winPctBgClass } from '@/lib/tournament-utils';
+import { eloBgClass, winPctBgClass, FormBoxes } from '@/lib/tournament-utils';
 import Link from 'next/link';
 
 function Navbar() {
@@ -80,8 +80,8 @@ function MarketsOddsList({ market }: { market: Market }) {
   );
 }
 
-/** Head-to-head match card with Elo + Win% badges */
-function MatchCard({ market, ratings }: { market: Market; ratings: PlayerRating[] }) {
+/** Head-to-head match card with Elo + Win% badges + Form */
+function MatchCard({ market, ratings, results }: { market: Market; ratings: PlayerRating[]; results: CompletedMatch[] }) {
   const { addSelection, isSelected } = useBetslip();
   const { t } = useLanguage();
 
@@ -167,6 +167,15 @@ function MatchCard({ market, ratings }: { market: Market; ratings: PlayerRating[
             <span className={`px-2 py-0.5 rounded text-sm font-bold ${eloBgClass(p2Elo)}`}>{p2Elo.toFixed(0)}</span>
             <span className={`px-2 py-0.5 rounded text-sm font-bold ${winPctBgClass(p2WinPct)}`}>{p2WinPct}%</span>
           </div>
+
+          {/* Row 3: Last 5 form */}
+          <div className="flex justify-end">
+            <FormBoxes player={sel1.name} results={results} />
+          </div>
+          <div />
+          <div className="flex justify-start">
+            <FormBoxes player={sel2.name} results={results} />
+          </div>
         </div>
 
         <div className="mt-4 text-dark-500 text-xs text-center">
@@ -183,6 +192,7 @@ export default function Markets() {
   const router = useRouter();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [ratings, setRatings] = useState<PlayerRating[]>([]);
+  const [results, setResults] = useState<CompletedMatch[]>([]);
   const [filter, setFilter] = useState<string>('all');
 
   const filterLabels: Record<string, string> = {
@@ -203,6 +213,7 @@ export default function Markets() {
   useEffect(() => {
     if (user) {
       api.getTournamentRatings().then(setRatings).catch(console.error);
+      api.getResults().then(setResults).catch(console.error);
     }
   }, [user]);
 
@@ -247,7 +258,7 @@ export default function Markets() {
         <div className="grid md:grid-cols-2 gap-6">
           {markets.map((market) =>
             market.market_type === 'match' && market.selections.length >= 2 ? (
-              <MatchCard key={market.id} market={market} ratings={ratings} />
+              <MatchCard key={market.id} market={market} ratings={ratings} results={results} />
             ) : (
               <Link key={market.id} href={`/markets/${market.id}`}>
                 <div className="card hover:border-primary-500/50 cursor-pointer transition-all h-full">

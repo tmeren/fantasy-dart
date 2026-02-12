@@ -3,9 +3,9 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { shortName } from '@/lib/i18n';
-import { api, Market, Bet, PlayerRating } from '@/lib/api';
+import { api, Market, Bet, PlayerRating, CompletedMatch } from '@/lib/api';
 import { useBetslip } from '@/lib/BetslipContext';
-import { eloBgClass, winPctBgClass } from '@/lib/tournament-utils';
+import { eloBgClass, winPctBgClass, FormBoxes } from '@/lib/tournament-utils';
 import Link from 'next/link';
 
 function Navbar() {
@@ -70,6 +70,7 @@ export default function MarketDetail() {
   const [market, setMarket] = useState<Market | null>(null);
   const [allBets, setAllBets] = useState<Bet[]>([]);
   const [ratings, setRatings] = useState<PlayerRating[]>([]);
+  const [results, setResults] = useState<CompletedMatch[]>([]);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   useEffect(() => {
@@ -82,13 +83,15 @@ export default function MarketDetail() {
 
   const loadData = async () => {
     try {
-      const [marketData, betsData, ratingsData] = await Promise.all([
+      const [marketData, betsData, ratingsData, resultsData] = await Promise.all([
         api.getMarket(Number(id)),
         api.getAllBets(),
         api.getTournamentRatings(),
+        api.getResults(),
       ]);
       setMarket(marketData);
       setRatings(ratingsData);
+      setResults(resultsData);
       setAllBets(betsData.filter(b =>
         marketData.selections.some(s => s.id === b.selection_id)
       ));
@@ -203,6 +206,15 @@ export default function MarketDetail() {
                 <div className="col-span-3 grid grid-cols-2 gap-4 mt-2">
                   <EloBar playerName={sel1.name} ratings={ratings} />
                   <EloBar playerName={sel2.name} ratings={ratings} />
+                </div>
+
+                {/* Row 4: Last 5 form */}
+                <div className="flex justify-end">
+                  <FormBoxes player={sel1.name} results={results} />
+                </div>
+                <div className="text-dark-500 text-xs text-center self-center">form</div>
+                <div className="flex justify-start">
+                  <FormBoxes player={sel2.name} results={results} />
                 </div>
               </div>
 
