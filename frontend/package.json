@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public 2>/dev/null; cd .next/standalone && node server.js",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
