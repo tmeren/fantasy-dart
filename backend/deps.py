@@ -16,7 +16,7 @@ from database import (
     User,
     get_db,
 )
-from fastapi import Depends, WebSocket, WebSocketDisconnect
+from fastapi import Depends, WebSocket
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from schemas import SelectionResponse

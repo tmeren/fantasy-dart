@@ -41,8 +41,9 @@ export function useBetslip() {
 export function BetslipProvider({ children }: { children: ReactNode }) {
   const [selections, setSelections] = useState<BetslipSelection[]>([]);
   const [stake, setStakeState] = useState<number>(10);
+  const [mounted, setMounted] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (after hydration)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('betslip');
@@ -52,12 +53,15 @@ export function BetslipProvider({ children }: { children: ReactNode }) {
         if (typeof data.stake === 'number') setStakeState(data.stake);
       }
     } catch { /* ignore corrupt data */ }
+    setMounted(true);
   }, []);
 
-  // Persist to localStorage on change
+  // Persist to localStorage on change (only after hydration to avoid mismatch)
   useEffect(() => {
-    localStorage.setItem('betslip', JSON.stringify({ selections, stake }));
-  }, [selections, stake]);
+    if (mounted) {
+      localStorage.setItem('betslip', JSON.stringify({ selections, stake }));
+    }
+  }, [selections, stake, mounted]);
 
   const addSelection = useCallback((sel: BetslipSelection): { ok: boolean; warning?: string } => {
     // Toggle off if already selected

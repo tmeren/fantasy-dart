@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
-import { api, Market } from '@/lib/api';
+import { api, Market, PlayerRating, Selection } from '@/lib/api';
 import { useBetslip } from '@/lib/BetslipContext';
 import { shortName } from '@/lib/i18n';
+import { eloBgClass, winPctBgClass } from '@/lib/tournament-utils';
 import Link from 'next/link';
 
 function Navbar() {
@@ -79,11 +80,116 @@ function MarketsOddsList({ market }: { market: Market }) {
   );
 }
 
+/** Head-to-head match card with Elo + Win% badges */
+function MatchCard({ market, ratings }: { market: Market; ratings: PlayerRating[] }) {
+  const { addSelection, isSelected } = useBetslip();
+  const { t } = useLanguage();
+
+  const sel1 = market.selections[0];
+  const sel2 = market.selections[1];
+  if (!sel1 || !sel2) return null;
+
+  const p1Rating = ratings.find(r => r.player === sel1.name);
+  const p2Rating = ratings.find(r => r.player === sel2.name);
+  const p1Elo = p1Rating ? p1Rating.elo : 1500;
+  const p2Elo = p2Rating ? p2Rating.elo : 1500;
+  const p1WinPct = p1Rating && p1Rating.games_played > 0 ? Math.round((p1Rating.wins / p1Rating.games_played) * 100) : 0;
+  const p2WinPct = p2Rating && p2Rating.games_played > 0 ? Math.round((p2Rating.wins / p2Rating.games_played) * 100) : 0;
+
+  const displayOdds = (sel: Selection) => market.betting_type === 'parimutuel' ? sel.dynamic_odds : sel.odds;
+
+  const handleClick = (e: React.MouseEvent, sel: Selection) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const odds = displayOdds(sel);
+    if (market.status === 'open' && odds > 0) {
+      addSelection({
+        marketId: market.id,
+        selectionId: sel.id,
+        name: shortName(sel.name),
+        odds,
+        marketName: market.name,
+        marketType: market.market_type,
+      });
+    }
+  };
+
+  return (
+    <Link href={`/markets/${market.id}`}>
+      <div className="card hover:border-primary-500/50 cursor-pointer transition-all h-full">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">match</span>
+            {market.betting_type === 'parimutuel' && (
+              <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400">pool</span>
+            )}
+          </div>
+          <span className={`text-xs px-2 py-1 rounded ${
+            market.status === 'open' ? 'status-open' : market.status === 'closed' ? 'status-closed' : 'status-settled'
+          }`}>{market.status}</span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          {/* P1 side */}
+          <div className="flex-1 text-right">
+            <div className="font-bold text-lg text-white mb-2">{shortName(sel1.name)}</div>
+            <div className="flex items-center justify-end gap-2">
+              <span className={`px-2 py-0.5 rounded text-sm font-bold ${winPctBgClass(p1WinPct)}`}>{p1WinPct}%</span>
+              <span className={`px-2 py-0.5 rounded text-sm font-bold ${eloBgClass(p1Elo)}`}>{p1Elo.toFixed(0)}</span>
+            </div>
+          </div>
+
+          {/* Center: VS + odds */}
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <span className="text-dark-500 text-sm font-bold">VS</span>
+            <div className="flex gap-2">
+              <button
+                onClick={(e) => handleClick(e, sel1)}
+                className={`font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center transition-all ${
+                  isSelected(sel1.id)
+                    ? 'bg-white text-blue-900 ring-2 ring-primary-400'
+                    : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
+                }`}
+              >
+                {displayOdds(sel1) > 0 ? displayOdds(sel1).toFixed(2) : '—'}
+              </button>
+              <button
+                onClick={(e) => handleClick(e, sel2)}
+                className={`font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center transition-all ${
+                  isSelected(sel2.id)
+                    ? 'bg-white text-blue-900 ring-2 ring-primary-400'
+                    : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
+                }`}
+              >
+                {displayOdds(sel2) > 0 ? displayOdds(sel2).toFixed(2) : '—'}
+              </button>
+            </div>
+          </div>
+
+          {/* P2 side */}
+          <div className="flex-1 text-left">
+            <div className="font-bold text-lg text-white mb-2">{shortName(sel2.name)}</div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-0.5 rounded text-sm font-bold ${eloBgClass(p2Elo)}`}>{p2Elo.toFixed(0)}</span>
+              <span className={`px-2 py-0.5 rounded text-sm font-bold ${winPctBgClass(p2WinPct)}`}>{p2WinPct}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 text-dark-500 text-xs text-center">
+          {market.total_staked.toFixed(0)} {t('markets.tokensStaked')}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function Markets() {
   const { user, loading } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
   const [markets, setMarkets] = useState<Market[]>([]);
+  const [ratings, setRatings] = useState<PlayerRating[]>([]);
   const [filter, setFilter] = useState<string>('all');
 
   const filterLabels: Record<string, string> = {
@@ -100,6 +206,12 @@ export default function Markets() {
   useEffect(() => {
     if (user) loadMarkets();
   }, [user, filter]);
+
+  useEffect(() => {
+    if (user) {
+      api.getTournamentRatings().then(setRatings).catch(console.error);
+    }
+  }, [user]);
 
   const loadMarkets = async () => {
     try {
@@ -140,31 +252,34 @@ export default function Markets() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {markets.map((market) => (
-            <Link key={market.id} href={`/markets/${market.id}`}>
-              <div className="card hover:border-primary-500/50 cursor-pointer transition-all h-full">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
+          {markets.map((market) =>
+            market.market_type === 'match' && market.selections.length >= 2 ? (
+              <MatchCard key={market.id} market={market} ratings={ratings} />
+            ) : (
+              <Link key={market.id} href={`/markets/${market.id}`}>
+                <div className="card hover:border-primary-500/50 cursor-pointer transition-all h-full">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        market.market_type === 'outright' ? 'bg-purple-500/20 text-purple-400' :
+                        'bg-orange-500/20 text-orange-400'
+                      }`}>{market.market_type}</span>
+                      {market.betting_type === 'parimutuel' && (
+                        <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400">pool</span>
+                      )}
+                    </div>
                     <span className={`text-xs px-2 py-1 rounded ${
-                      market.market_type === 'outright' ? 'bg-purple-500/20 text-purple-400' :
-                      market.market_type === 'match' ? 'bg-blue-500/20 text-blue-400' :
-                      'bg-orange-500/20 text-orange-400'
-                    }`}>{market.market_type}</span>
-                    {market.betting_type === 'parimutuel' && (
-                      <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400">pool</span>
-                    )}
+                      market.status === 'open' ? 'status-open' : market.status === 'closed' ? 'status-closed' : 'status-settled'
+                    }`}>{market.status}</span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    market.status === 'open' ? 'status-open' : market.status === 'closed' ? 'status-closed' : 'status-settled'
-                  }`}>{market.status}</span>
+                  <h3 className="text-xl font-semibold mb-2">{market.name}</h3>
+                  {market.description && <p className="text-dark-400 text-sm mb-4">{market.description}</p>}
+                  <MarketsOddsList market={market} />
+                  <div className="text-dark-500 text-xs">{market.total_staked.toFixed(0)} {t('markets.tokensStaked')}</div>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">{market.name}</h3>
-                {market.description && <p className="text-dark-400 text-sm mb-4">{market.description}</p>}
-                <MarketsOddsList market={market} />
-                <div className="text-dark-500 text-xs">{market.total_staked.toFixed(0)} {t('markets.tokensStaked')}</div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            )
+          )}
         </div>
 
         {markets.length === 0 && (

@@ -448,7 +448,8 @@ async def list_prop_markets(
 @router.get("/prop-markets/preview/{match_id}", response_model=list[PropMarketPreview])
 async def preview_prop_markets(match_id: int):
     """Preview prop markets for a match using the calculator (no DB write)."""
-    from database import Match as MatchModel, SessionLocal
+    from database import Match as MatchModel
+    from database import SessionLocal
 
     db = SessionLocal()
     try:
@@ -587,7 +588,8 @@ async def update_match_stats(
 @router.get("/tournament/match-stats/{match_id}", response_model=MatchStatsResponse)
 async def get_match_stats(match_id: int):
     """Get prop data stats for a completed match (public)."""
-    from database import Match as MatchModel, SessionLocal
+    from database import Match as MatchModel
+    from database import SessionLocal
 
     db = SessionLocal()
     try:
@@ -684,7 +686,6 @@ async def send_weekly_leaderboard(
 async def send_pub_quiz(user: User = Depends(require_admin), db: Session = Depends(get_db)):
     """Send pub quiz poll to all opted-in users (admin only)."""
     return await _send_whatsapp_to_opted_in(db, "pub_quiz_poll", "pub_quiz_poll", user)
-
 
 
 @router.get("/admin/whatsapp/logs", response_model=list[WhatsAppLogResponse])

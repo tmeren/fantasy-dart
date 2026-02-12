@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from './_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { shortName, TranslationKey } from '@/lib/i18n';
+import { eloToOdds, eloColorClass, eloBgClass, winPctBgClass, FormBoxes } from '@/lib/tournament-utils';
 import { api, StandingEntry, PlayerRating, CompletedMatch, ScheduledMatch } from '@/lib/api';
 import { useBetslip } from '@/lib/BetslipContext';
 import Link from 'next/link';
@@ -76,49 +77,6 @@ function computeStandings(filteredResults: CompletedMatch[]): StandingEntry[] {
   return list;
 }
 
-// ── Helper: get last 5 form ─────────────────────────────────────────────────
-function getPlayerForm(player: string, results: CompletedMatch[]): ('W' | 'L')[] {
-  const form: ('W' | 'L')[] = [];
-  for (let i = 0; i < results.length && form.length < 5; i++) {
-    const m = results[i];
-    if (m.is_draw) continue;
-    if (m.player1 === player || m.player2 === player) {
-      form.push(m.winner === player ? 'W' : 'L');
-    }
-  }
-  return form.reverse(); // oldest → newest for display
-}
-
-// ── FormDots — small colored circles (for upcoming) ─────────────────────────
-function FormDots({ player, results }: { player: string; results: CompletedMatch[] }) {
-  const form = getPlayerForm(player, results);
-  if (form.length === 0) return null;
-  return (
-    <div className="flex gap-0.5">
-      {form.map((r, i) => (
-        <span key={i} className={`w-2 h-2 rounded-full ${r === 'W' ? 'bg-green-400' : 'bg-red-400'}`} title={r} />
-      ))}
-    </div>
-  );
-}
-
-// ── FormBoxes — W/L letter squares (for standings table) ────────────────────
-function FormBoxes({ player, results }: { player: string; results: CompletedMatch[] }) {
-  const form = getPlayerForm(player, results);
-  if (form.length === 0) return <span className="text-dark-600 text-sm">—</span>;
-  return (
-    <div className="flex gap-1">
-      {form.map((r, i) => (
-        <span
-          key={i}
-          className={`w-7 h-7 rounded flex items-center justify-center text-sm font-extrabold text-white ${
-            r === 'W' ? 'bg-green-700' : 'bg-rose-700'
-          }`}
-        >{r}</span>
-      ))}
-    </div>
-  );
-}
 
 // ── Tooltip (portal-based — escapes overflow clipping) ──────────────────────
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
@@ -184,31 +142,6 @@ function OddsButton({ label, player, matchId }: { label: string; player: string;
   );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function eloToOdds(elo1: number, elo2: number): [string, string] {
-  const e1 = 1 / (1 + Math.pow(10, (elo2 - elo1) / 400));
-  return [(1 / e1).toFixed(2), (1 / (1 - e1)).toFixed(2)];
-}
-
-function eloColorClass(elo: number): string {
-  if (elo >= 1600) return 'text-yellow-400';
-  if (elo >= 1500) return 'text-green-400';
-  if (elo >= 1400) return 'text-dark-300';
-  return 'text-red-400';
-}
-
-function eloBgClass(elo: number): string {
-  if (elo >= 1600) return 'bg-yellow-500 text-gray-900';
-  if (elo >= 1500) return 'bg-green-600 text-white';
-  if (elo >= 1400) return 'bg-dark-600 text-white';
-  return 'bg-red-600 text-white';
-}
-
-function winPctBgClass(pct: number): string {
-  if (pct >= 60) return 'bg-green-600 text-white';
-  if (pct >= 40) return 'bg-yellow-500 text-gray-900';
-  return 'bg-red-600 text-white';
-}
 
 // ── TrendArrow ──────────────────────────────────────────────────────────────
 function TrendArrow({ player, history }: { player: string; history: Record<string, number[]> }) {
@@ -534,8 +467,6 @@ export default function Tournament() {
                         <th className="pb-3 text-center">{t('tournament.played')}</th>
                         <th className="pb-3 text-center">{t('tournament.won')}</th>
                         <th className="pb-3 text-center">{t('tournament.lost')}</th>
-                        <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.drawsCol')}</th>
-                        <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.wlt')}</th>
                         <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsFor')}</th>
                         <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsAgainst')}</th>
                         <th className="pb-3 text-center">{t('tournament.legDiff')}</th>
@@ -584,8 +515,6 @@ export default function Tournament() {
                             <td className="py-3.5 text-center text-dark-300 text-base font-semibold">{s.played}</td>
                             <td className="py-3.5 text-center text-green-400 text-base font-semibold">{s.wins}</td>
                             <td className="py-3.5 text-center text-red-400 text-base font-semibold">{s.losses}</td>
-                            <td className="py-3.5 text-center text-dark-400 text-base font-semibold hidden sm:table-cell">{s.draws}</td>
-                            <td className="py-3.5 text-center text-dark-300 text-sm font-medium hidden sm:table-cell">{s.wins}-{s.losses}-{s.draws}</td>
                             <td className="py-3.5 text-center text-dark-300 text-base font-semibold hidden sm:table-cell">{s.legs_for}</td>
                             <td className="py-3.5 text-center text-dark-300 text-base font-semibold hidden sm:table-cell">{s.legs_against}</td>
                             <td className={`py-3.5 text-center text-base font-semibold ${
@@ -656,6 +585,20 @@ export default function Tournament() {
                       <span className="ml-2 text-sm text-dark-500 font-medium">({upcomingByRound[round].length} {t('tournament.matches')})</span>
                       <span className="ml-2 text-sm text-primary-400 font-semibold">{formatGameNight(round, locale)}</span>
                     </h3>
+                    <div
+                      className="grid items-center py-2 mb-1"
+                      style={{ gridTemplateColumns: '1fr 5rem 4rem 10rem 17rem 10rem 4rem 5rem 1fr' }}
+                    >
+                      <div className="text-right pr-4 text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.player')}</div>
+                      <div className="text-center text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.elo')}</div>
+                      <div className="text-center text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.winRate')}</div>
+                      <div className="text-right text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.last5')}</div>
+                      <div></div>
+                      <div className="text-left text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.last5')}</div>
+                      <div className="text-center text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.winRate')}</div>
+                      <div className="text-center text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.elo')}</div>
+                      <div className="pl-4 text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.player')}</div>
+                    </div>
                     <div className="space-y-2">
                       {upcomingByRound[round].map((m) => {
                         const p1r = ratingsByPlayer[m.player1];
