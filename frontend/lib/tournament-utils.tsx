@@ -12,21 +12,22 @@ export function eloToOdds(elo1: number, elo2: number): [string, string] {
 export function eloColorClass(elo: number): string {
   if (elo >= 1600) return 'text-yellow-400';
   if (elo >= 1500) return 'text-green-400';
-  if (elo >= 1400) return 'text-dark-300';
+  if (elo >= 1400) return 'text-blue-400';
   return 'text-red-400';
 }
 
 export function eloBgClass(elo: number): string {
-  if (elo >= 1600) return 'bg-yellow-500 text-gray-900';
-  if (elo >= 1500) return 'bg-green-600 text-white';
-  if (elo >= 1400) return 'bg-dark-600 text-white';
-  return 'bg-red-600 text-white';
+  if (elo >= 1600) return 'bg-yellow-500/90 text-gray-900';
+  if (elo >= 1500) return 'bg-green-600/90 text-white';
+  if (elo >= 1400) return 'bg-blue-600/80 text-white';
+  return 'bg-red-600/80 text-white';
 }
 
 export function winPctBgClass(pct: number): string {
-  if (pct >= 60) return 'bg-green-600 text-white';
-  if (pct >= 40) return 'bg-yellow-500 text-gray-900';
-  return 'bg-red-600 text-white';
+  if (pct >= 65) return 'bg-green-600/90 text-white';
+  if (pct >= 50) return 'bg-yellow-500/90 text-gray-900';
+  if (pct >= 35) return 'bg-orange-500/80 text-white';
+  return 'bg-red-600/80 text-white';
 }
 
 export function getPlayerForm(player: string, results: CompletedMatch[]): ('W' | 'L')[] {
