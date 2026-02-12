@@ -645,36 +645,55 @@ export default function Tournament() {
                             : `${p2Name}: ${p2s.wins} / ${p2s.played} × 100 = ${p2WinPctNum}%\n(Wins / Matches Played × 100)`
                           : '—';
                         return (
-                          <div key={m.match_id} className="grid grid-cols-[1fr_auto_1fr] items-center py-3.5 px-5 rounded-lg bg-dark-800/50 gap-4">
-                            {/* P1: Name Elo Win% Form — left-aligned */}
-                            <div className="flex items-center gap-2.5 min-w-0">
+                          <div key={m.match_id}
+                            className="grid items-center py-3.5 rounded-lg bg-dark-800/50"
+                            style={{ gridTemplateColumns: '1fr 5rem 4rem 10rem 17rem 10rem 4rem 5rem 1fr' }}
+                          >
+                            {/* P1 Name — right-aligned toward center */}
+                            <div className="flex items-center justify-end pl-4 overflow-hidden">
                               <span className="font-bold text-lg truncate">{p1Name}</span>
+                            </div>
+                            {/* P1 Elo */}
+                            <div className="flex items-center justify-center">
                               <Tooltip text={p1EloTip}>
-                                <span className={`px-2.5 py-1 rounded-md text-base font-bold ${eloBgClass(p1Elo)}`}>{p1EloStr}</span>
+                                <span className={`px-2 py-1 rounded-md text-base font-bold ${eloBgClass(p1Elo)}`}>{p1EloStr}</span>
                               </Tooltip>
+                            </div>
+                            {/* P1 Win% */}
+                            <div className="flex items-center justify-center">
                               <Tooltip text={p1WinTip}>
-                                <span className={`px-2 py-1 rounded-md text-base font-bold ${winPctBgClass(p1WinPctNum)}`}>{p1WinPctNum}%</span>
+                                <span className={`px-1.5 py-1 rounded-md text-base font-bold ${winPctBgClass(p1WinPctNum)}`}>{p1WinPctNum}%</span>
                               </Tooltip>
+                            </div>
+                            {/* P1 Form — right-aligned */}
+                            <div className="flex items-center justify-end">
                               <FormBoxes player={m.player1} results={dateFilteredResults} />
                             </div>
-
                             {/* Center: Odds — Date — Odds */}
-                            <div className="flex items-center gap-3 shrink-0">
+                            <div className="flex items-center justify-center gap-2.5">
                               <span className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center">{odds1}</span>
                               <span className="text-dark-400 text-sm whitespace-nowrap font-medium">{formatGameNight(round, locale)}</span>
                               <span className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center">{odds2}</span>
                             </div>
-
-                            {/* P2: Form Win% Elo Name — right-aligned, mirrored */}
-                            <div className="flex items-center gap-2.5 justify-end min-w-0">
+                            {/* P2 Form — left-aligned */}
+                            <div className="flex items-center justify-start">
                               <FormBoxes player={m.player2} results={dateFilteredResults} />
+                            </div>
+                            {/* P2 Win% */}
+                            <div className="flex items-center justify-center">
                               <Tooltip text={p2WinTip}>
-                                <span className={`px-2 py-1 rounded-md text-base font-bold ${winPctBgClass(p2WinPctNum)}`}>{p2WinPctNum}%</span>
+                                <span className={`px-1.5 py-1 rounded-md text-base font-bold ${winPctBgClass(p2WinPctNum)}`}>{p2WinPctNum}%</span>
                               </Tooltip>
+                            </div>
+                            {/* P2 Elo */}
+                            <div className="flex items-center justify-center">
                               <Tooltip text={p2EloTip}>
-                                <span className={`px-2.5 py-1 rounded-md text-base font-bold ${eloBgClass(p2Elo)}`}>{p2EloStr}</span>
+                                <span className={`px-2 py-1 rounded-md text-base font-bold ${eloBgClass(p2Elo)}`}>{p2EloStr}</span>
                               </Tooltip>
-                              <span className="font-bold text-lg truncate text-right">{p2Name}</span>
+                            </div>
+                            {/* P2 Name — left-aligned */}
+                            <div className="flex items-center pr-4 overflow-hidden">
+                              <span className="font-bold text-lg truncate">{p2Name}</span>
                             </div>
                           </div>
                         );
