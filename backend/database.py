@@ -71,8 +71,13 @@ class User(Base):
     magic_token = Column(String(255), nullable=True)
     magic_token_expires = Column(DateTime, nullable=True)
 
+    # WhatsApp fields (S19)
+    phone_number = Column(String(20), nullable=True)
+    whatsapp_opted_in = Column(Boolean, default=False)
+
     # Relationships
     bets = relationship("Bet", back_populates="user")
+    quiz_responses = relationship("QuizResponse", back_populates="user")
 
 
 class Market(Base):
@@ -154,6 +159,14 @@ class Match(Base):
     winner = Column(String(100), nullable=True)
     is_draw = Column(Boolean, default=False)
 
+    # Prop data collection fields (S9)
+    total_180s = Column(Integer, nullable=True)
+    highest_checkout = Column(Integer, nullable=True)
+    p1_180 = Column(Boolean, default=False)
+    p2_180 = Column(Boolean, default=False)
+    p1_ton_checkout = Column(Boolean, default=False)
+    p2_ton_checkout = Column(Boolean, default=False)
+
 
 class Activity(Base):
     """Activity feed for live updates."""
@@ -168,6 +181,51 @@ class Activity(Base):
     message = Column(Text, nullable=False)
     data = Column(Text, nullable=True)  # JSON string for additional data
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WhatsAppLog(Base):
+    """Log of all WhatsApp messages sent (S19)."""
+
+    __tablename__ = "whatsapp_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    message_type = Column(String(50), nullable=False)
+    template_name = Column(String(100), nullable=False)
+    status = Column(String(20), nullable=False, default="sent")
+    meta_message_id = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class QuizQuestion(Base):
+    """Pub quiz questions for WhatsApp polls (S19)."""
+
+    __tablename__ = "quiz_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question = Column(Text, nullable=False)
+    options = Column(Text, nullable=False)  # JSON string of options
+    correct_answer = Column(String(200), nullable=False)
+    category = Column(String(50), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    responses = relationship("QuizResponse", back_populates="question")
+
+
+class QuizResponse(Base):
+    """User quiz answer responses (S19)."""
+
+    __tablename__ = "quiz_responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
+    answer = Column(String(200), nullable=False)
+    is_correct = Column(Boolean, default=False)
+    responded_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="quiz_responses")
+    question = relationship("QuizQuestion", back_populates="responses")
 
 
 def create_tables():

@@ -49,6 +49,18 @@ export const translations = {
   },
   'landing.createAccount': { en: 'Create Account & Get 1000 RTB', tr: 'Hesap Oluştur ve 1000 RTB Al' },
   'landing.alreadyHave': { en: 'Already have an account?', tr: 'Zaten hesabın var mı?' },
+  'landing.back': { en: 'Back', tr: 'Geri' },
+  'landing.joinDesc': { en: 'Get 1,000 RTB to start predicting', tr: '1.000 RTB ile tahmin yapmaya başla' },
+  'landing.tagline': { en: 'Season 1 — Live Now', tr: 'Sezon 1 — Şimdi Canlı' },
+  'landing.statPlayers': { en: 'Players', tr: 'Oyuncular' },
+  'landing.statMatches': { en: 'Matches', tr: 'Maçlar' },
+  'landing.statPropTypes': { en: 'Prop Market Types', tr: 'Prop Piyasa Türleri' },
+  'landing.statStarting': { en: 'Starting RTB', tr: 'Başlangıç RTB' },
+  'landing.howItWorks': { en: 'How It Works', tr: 'Nasıl Çalışır' },
+  'landing.howItWorksDesc': {
+    en: 'Predict match outcomes, track Elo ratings, and climb the leaderboard.',
+    tr: 'Maç sonuçlarını tahmin et, Elo reytinglerini takip et, sıralamada yüksel.',
+  },
 
   // Features
   'feature.placeBets': { en: 'Make Predictions', tr: 'Tahmin Yap' },
@@ -65,6 +77,16 @@ export const translations = {
   'feature.climbLeaderboardDesc': {
     en: 'Compete with friends to earn the most bragging rights.',
     tr: 'Arkadaşlarınla yarışarak en çok övünme hakkını kazan.',
+  },
+  'feature.propMarkets': { en: 'Prop Markets', tr: 'Prop Piyasaları' },
+  'feature.propMarketsDesc': {
+    en: 'Predict 180s, exact scores, first leg winners, and more. 9 unique prop markets per match.',
+    tr: '180\'ler, kesin skorlar, ilk leg kazananları ve dahası. Maç başına 9 benzersiz prop piyasası.',
+  },
+  'feature.accaBuilder': { en: 'Acca Builder', tr: 'Kombine Oluşturucu' },
+  'feature.accaBuilderDesc': {
+    en: 'Build accumulators across multiple markets. Kelly Criterion advisor helps you stake smart.',
+    tr: 'Birden fazla piyasada kombine oluştur. Kelly Kriteri danışmanı akıllı bahis yapmana yardımcı olur.',
   },
 
   // Disclaimer
@@ -108,7 +130,7 @@ export const translations = {
   'dashboard.liveActivity': { en: 'Live Activity', tr: 'Canlı Aktivite' },
   'dashboard.noActivity': { en: 'No activity yet', tr: 'Henüz aktivite yok' },
   'dashboard.myActiveBets': { en: 'My Active Predictions', tr: 'Aktif Tahminlerim' },
-  'dashboard.market': { en: 'Market', tr: 'Piyasa' },
+  'dashboard.market': { en: 'Prediction', tr: 'Tahmin' },
   'dashboard.selection': { en: 'Selection', tr: 'Seçim' },
   'dashboard.stake': { en: 'Committed', tr: 'Taahhüt' },
   'dashboard.odds': { en: 'Odds', tr: 'Oran' },
@@ -188,7 +210,7 @@ export const translations = {
   'badge.sharp.desc': { en: 'Win rate above 60%', tr: '%60 üzeri kazanma oranı' },
 
   // ── Markets ──
-  'markets.title': { en: 'Prediction Markets', tr: 'Tahmin Piyasası' },
+  'markets.title': { en: 'Prediction Corner', tr: 'Tahmin Köşesi' },
   'markets.all': { en: 'all', tr: 'tümü' },
   'markets.open': { en: 'open', tr: 'açık' },
   'markets.closed': { en: 'closed', tr: 'kapalı' },
@@ -197,7 +219,7 @@ export const translations = {
   'markets.tokensStaked': { en: 'RTB committed', tr: 'RTB taahhüt' },
 
   // ── Market Detail ──
-  'marketDetail.backToMarkets': { en: '← Back to Markets', tr: '← Piyasalara Dön' },
+  'marketDetail.backToMarkets': { en: '← Back to Predictions', tr: '← Tahminlere Dön' },
   'marketDetail.totalPool': { en: 'Total pool:', tr: 'Toplam havuz:' },
   'marketDetail.houseCut': { en: 'Platform fee:', tr: 'Platform payı:' },
   'marketDetail.payoutPool': { en: 'Payout pool:', tr: 'Ödeme havuzu:' },
@@ -209,7 +231,7 @@ export const translations = {
   'marketDetail.selections': { en: 'Selections', tr: 'Seçenekler' },
   'marketDetail.betsPlaced': { en: 'Predictions Placed', tr: 'Yapılan Tahminler' },
   'marketDetail.placeBet': { en: 'Make Prediction', tr: 'Tahmin Yap' },
-  'marketDetail.marketIs': { en: 'This market is', tr: 'Bu piyasa' },
+  'marketDetail.marketIs': { en: 'This prediction is', tr: 'Bu tahmin' },
   'marketDetail.bettingNotAvailable': { en: 'Predictions are no longer available', tr: 'Tahmin artık mevcut değil' },
   'marketDetail.selected': { en: 'Selected:', tr: 'Seçilen:' },
   'marketDetail.selectPlayer': { en: 'Select a player above to make a prediction', tr: 'Tahmin yapmak için yukarıdan oyuncu seç' },
@@ -244,9 +266,9 @@ export const translations = {
 
   // ── Admin ──
   'admin.title': { en: 'Rightsmaker Admin', tr: 'Rightsmaker Yönetim' },
-  'admin.subtitle': { en: 'Tournament management, markets, predictions', tr: 'Turnuva yönetimi, piyasalar, tahminler' },
+  'admin.subtitle': { en: 'Tournament management and predictions', tr: 'Turnuva yönetimi ve tahminler' },
   'admin.tournament': { en: 'Tournament', tr: 'Turnuva' },
-  'admin.markets': { en: 'Markets', tr: 'Piyasalar' },
+  'admin.markets': { en: 'Predictions', tr: 'Tahminler' },
   'admin.scheduledMatches': { en: 'Scheduled Matches', tr: 'Planlanmış Maçlar' },
   'admin.refresh': { en: 'Refresh', tr: 'Yenile' },
   'admin.loading': { en: 'Loading...', tr: 'Yükleniyor...' },
@@ -257,19 +279,19 @@ export const translations = {
   'admin.loadingRatings': { en: 'Loading ratings...', tr: 'Puanlar yükleniyor...' },
   'admin.winnerOdds': { en: 'Tournament Winner Odds', tr: 'Turnuva Şampiyon Oranları' },
   'admin.loadingOdds': { en: 'Loading odds...', tr: 'Oranlar yükleniyor...' },
-  'admin.createMarket': { en: '+ Create Market', tr: '+ Piyasa Oluştur' },
+  'admin.createMarket': { en: '+ Create Prediction', tr: '+ Tahmin Oluştur' },
   'admin.close': { en: 'Close', tr: 'Kapat' },
   'admin.settle': { en: 'Settle', tr: 'Sonuçlandır' },
   'admin.winner': { en: 'Winner:', tr: 'Kazanan:' },
-  'admin.noMarkets': { en: 'No markets yet. Create your first!', tr: 'Henüz piyasa yok. İlkini oluştur!' },
+  'admin.noMarkets': { en: 'No predictions yet. Create your first!', tr: 'Henüz tahmin yok. İlkini oluştur!' },
   'admin.enterMatchResult': { en: 'Enter Match Result', tr: 'Maç Sonucu Gir' },
   'admin.winnerPreview': { en: 'Winner:', tr: 'Kazanan:' },
   'admin.invalidScore': { en: 'Invalid: one player must score 3', tr: 'Geçersiz: bir oyuncunun skoru 3 olmalı' },
   'admin.confirmResult': { en: 'Confirm Result', tr: 'Sonucu Onayla' },
   'admin.saving': { en: 'Saving...', tr: 'Kaydediliyor...' },
   'admin.cancel': { en: 'Cancel', tr: 'İptal' },
-  'admin.createNewMarket': { en: 'Create New Market', tr: 'Yeni Piyasa Oluştur' },
-  'admin.marketName': { en: 'Market Name', tr: 'Piyasa Adı' },
+  'admin.createNewMarket': { en: 'Create New Prediction', tr: 'Yeni Tahmin Oluştur' },
+  'admin.marketName': { en: 'Prediction Name', tr: 'Tahmin Adı' },
   'admin.description': { en: 'Description (optional)', tr: 'Açıklama (isteğe bağlı)' },
   'admin.marketType': { en: 'Market Type', tr: 'Piyasa Türü' },
   'admin.bettingType': { en: 'System Type', tr: 'Sistem Türü' },
@@ -297,7 +319,7 @@ export const translations = {
   'bettingType.fixed': { en: 'Fixed Odds - Traditional', tr: 'Sabit Oran - Geleneksel' },
 
   // ── Admin table headers ──
-  'admin.tableMarket': { en: 'Market', tr: 'Piyasa' },
+  'admin.tableMarket': { en: 'Prediction', tr: 'Tahmin' },
   'admin.tableType': { en: 'Type', tr: 'Tür' },
   'admin.tableStatus': { en: 'Status', tr: 'Durum' },
   'admin.tableStaked': { en: 'Committed', tr: 'Taahhüt' },
@@ -316,8 +338,8 @@ export const translations = {
   'admin.initialOdds': { en: 'Initial Odds', tr: 'Başlangıç Oranları' },
   'admin.fixedOdds': { en: 'Fixed Odds', tr: 'Sabit Oranlar' },
   'admin.selectionName': { en: 'Selection name', tr: 'Seçenek adı' },
-  'admin.closeConfirm': { en: 'Close this market? No more predictions will be allowed.', tr: 'Bu piyasayı kapat? Artık tahmin kabul edilmeyecek.' },
-  'admin.settleConfirm': { en: 'Settle this market? Winners will be paid out.', tr: 'Bu piyasayı sonuçlandır? Kazananlara ödeme yapılacak.' },
+  'admin.closeConfirm': { en: 'Close this prediction? No more entries will be allowed.', tr: 'Bu tahmini kapat? Artık giriş kabul edilmeyecek.' },
+  'admin.settleConfirm': { en: 'Settle this prediction? Winners will be paid out.', tr: 'Bu tahmini sonuçlandır? Kazananlara ödeme yapılacak.' },
   'admin.validScores': { en: 'Please enter valid scores', tr: 'Lütfen geçerli skorlar girin' },
   'admin.invalidScoreAlert': { en: 'Invalid score: one player must have 3, other must have 0-2', tr: 'Geçersiz skor: bir oyuncu 3, diğeri 0-2 olmalı' },
   'admin.namePlaceholder': { en: 'e.g., QF1: Berkay vs Ece', tr: 'örn., ÇF1: Berkay vs Ece' },
@@ -383,6 +405,206 @@ export const translations = {
     en: 'Win% = (Wins / Matches Played) × 100. Calculated from completed rounds only (excludes auto-wins from forfeits in future rounds).',
     tr: 'Kazanma% = (Galibiyetler / Oynanan Maçlar) × 100. Sadece tamamlanan turlardan hesaplanır (gelecek turlardaki hükmen galibiyetler hariç).',
   },
+
+  // ── Standings enrichment (S5) ──
+  'tournament.drawsCol': { en: 'T', tr: 'B' },
+  'tournament.wlt': { en: 'W-L-T', tr: 'G-M-B' },
+  'tournament.score': { en: 'Pts', tr: 'Puan' },
+  'tournament.tiebreakerCol': { en: 'TB', tr: 'TB' },
+  'tournament.remainingCol': { en: 'Rem', tr: 'Kal' },
+  'tournament.scoreTooltip': {
+    en: 'Score = Wins × 3 points. Draws = 0 points.',
+    tr: 'Puan = Galibiyet × 3 puan. Beraberlik = 0 puan.',
+  },
+  'tournament.tiebreakerTooltip': {
+    en: 'Tiebreaker: count of deciding-leg (3-2) wins',
+    tr: 'Tiebreaker: beşinci leg (3-2) galibiyet sayısı',
+  },
+  'tournament.remainingTooltip': {
+    en: 'Remaining matches out of 38 total',
+    tr: 'Toplam 38 maçtan kalan',
+  },
+
+  // ── Betslip / Acca Builder (S10, S11, S8) ──
+  'betslip.title': { en: 'Betslip', tr: 'Tahmin Kuponu' },
+  'betslip.acca': { en: 'Acca', tr: 'Kombine' },
+  'betslip.single': { en: 'Single', tr: 'Tekli' },
+  'betslip.totalOdds': { en: 'Total odds', tr: 'Toplam oran' },
+  'betslip.potentialReturn': { en: 'Potential return', tr: 'Potansiyel kazanç' },
+  'betslip.placeAll': { en: 'Place Predictions', tr: 'Tahminleri Yap' },
+  'betslip.placing': { en: 'Placing...', tr: 'Yapılıyor...' },
+  'betslip.clear': { en: 'Clear', tr: 'Temizle' },
+  'betslip.sameMarketWarning': { en: 'You already picked from this prediction', tr: 'Bu tahminden zaten seçim yaptın' },
+  'betslip.successCount': { en: 'prediction(s) placed!', tr: 'tahmin yapıldı!' },
+  'betslip.selections': { en: 'selections', tr: 'seçim' },
+  'betslip.stake': { en: 'Stake', tr: 'Miktar' },
+  'betslip.kelly': { en: 'Kelly suggests', tr: 'Kelly önerisi' },
+
+  // ── Welcome / Onboarding (S14) ──
+  'welcome.title': { en: "Welcome to the Oracle's Arena", tr: "Oracle'ın Arenasına Hoş Geldin" },
+  'welcome.subtitle': {
+    en: 'Your journey to bragging rights begins now. Here\'s how it works:',
+    tr: 'Övünme hakkı yolculuğun şimdi başlıyor. İşte nasıl çalışır:',
+  },
+  'welcome.step1.title': { en: 'Browse Markets', tr: 'Piyasaları Keşfet' },
+  'welcome.step1.desc': {
+    en: 'Explore match predictions and prop markets for every game night.',
+    tr: 'Her oyun gecesi için maç tahminlerini ve prop piyasalarını keşfet.',
+  },
+  'welcome.step2.title': { en: 'Place Predictions', tr: 'Tahmin Yap' },
+  'welcome.step2.desc': {
+    en: 'Use your 1,000 RTB to back your instincts. Singles or accumulators — your call.',
+    tr: '1.000 RTB puanınla içgüdülerinin peşinden git. Tekli veya kombine — senin kararın.',
+  },
+  'welcome.step3.title': { en: 'Track Live', tr: 'Canlı Takip Et' },
+  'welcome.step3.desc': {
+    en: 'Watch odds shift in real-time as other oracles make their moves.',
+    tr: 'Diğer kahinler hamle yaptıkça oranların anlık değişimini izle.',
+  },
+  'welcome.step4.title': { en: 'Climb Rankings', tr: 'Sıralamada Yüksel' },
+  'welcome.step4.desc': {
+    en: 'Earn badges, build streaks, and prove you\'re the sharpest oracle in the arena.',
+    tr: 'Rozet kazan, seri oluştur ve arenadaki en keskin kahin olduğunu kanıtla.',
+  },
+  'welcome.cta': { en: 'Your Quest Begins', tr: 'Görevin Başlıyor' },
+  'welcome.skip': { en: 'Skip to Dashboard', tr: 'Panele Geç' },
+
+  // ── Nav: Academy (S16) ──
+  'nav.academy': { en: 'Academy', tr: 'Akademi' },
+
+  // ── Academy Page (S16 + S17) ──
+  'academy.title': { en: 'Oracle Academy', tr: 'Kahin Akademisi' },
+  'academy.subtitle': {
+    en: 'Master the art of prediction. From basics to advanced strategy.',
+    tr: 'Tahmin sanatında ustalaş. Temelden ileri stratejiye.',
+  },
+  'academy.progress': { en: 'topics explored', tr: 'konu incelendi' },
+  'academy.expandAll': { en: 'Expand All', tr: 'Tümünü Aç' },
+  'academy.collapseAll': { en: 'Collapse All', tr: 'Tümünü Kapat' },
+
+  // Level 1: Rookie Oracle
+  'academy.level1.title': { en: 'Rookie Oracle', tr: 'Çaylak Kahin' },
+  'academy.level1.desc': { en: 'Start here — learn the fundamentals of Fantasy Darts.', tr: 'Buradan başla — Fantazi Dart temellerini öğren.' },
+
+  // T1: What is Fantasy Darts?
+  'academy.t1.title': { en: 'What is Fantasy Darts?', tr: 'Fantazi Dart Nedir?' },
+  'academy.t1.desc': { en: 'Platform overview, RTB points, and the rules of the game.', tr: 'Platform tanıtımı, RTB puanları ve oyun kuralları.' },
+  'academy.t1.content': {
+    en: 'Fantasy Darts is a prediction platform where you compete with friends using RTB (Right to Brag) points — virtual tokens with zero real-money value. Every player starts with 1,000 RTB and uses them to predict match outcomes in a round-robin darts tournament.\n\nThe platform tracks a real tournament among 20 players across 190 matches. You can predict head-to-head match winners, prop markets (180s, checkouts, exact scores), and build accumulators combining multiple predictions.\n\nThis is NOT gambling. RTB points cannot be exchanged for money. The only thing at stake is bragging rights — and a spot at the top of the leaderboard. Think of it as a fantasy sports league for your darts night.',
+    tr: 'Fantazi Dart, arkadaşlarınla RTB (Right to Brag — Övünme Hakkı) puanları kullanarak yarıştığın bir tahmin platformudur. RTB puanlarının gerçek para değeri yoktur. Her oyuncu 1.000 RTB ile başlar ve bunları round-robin dart turnuvasındaki maç sonuçlarını tahmin etmek için kullanır.\n\nPlatform, 20 oyuncu arasındaki 190 maçlık gerçek bir turnuvayı takip eder. Birebir maç kazananlarını, prop piyasalarını (180\'ler, checkout\'lar, kesin skorlar) tahmin edebilir ve birden fazla tahmini birleştiren kombineler oluşturabilirsin.\n\nBu kumar DEĞİLDİR. RTB puanları paraya çevrilemez. Tehlikede olan tek şey övünme hakkı — ve sıralamanın tepesindeki bir yer. Bunu dart geceniz için bir fantazi spor ligi gibi düşün.',
+  },
+
+  // T2: Understanding Odds
+  'academy.t2.title': { en: 'Understanding Odds', tr: 'Oranları Anlamak' },
+  'academy.t2.desc': { en: 'Decimal odds, implied probability, and what the numbers mean.', tr: 'Ondalık oranlar, zımni olasılık ve sayıların anlamı.' },
+  'academy.t2.content': {
+    en: 'Odds represent how likely something is to happen — and how much you\'d win if it does. Fantasy Darts uses decimal odds, which are the simplest format.\n\nA decimal odd of 2.50 means: for every 1 RTB you commit, you get 2.50 back if you\'re right (your 1 RTB stake plus 1.50 profit). Lower odds = more likely outcome but less reward. Higher odds = less likely but bigger payout.\n\nTo convert odds to implied probability: divide 1 by the decimal odd. So 2.50 odds = 1/2.50 = 40% implied chance. Odds of 1.50 = 66.7% chance. If you believe the true probability is higher than the implied one, you\'ve found value — that\'s the key to smart prediction.',
+    tr: 'Oranlar bir şeyin gerçekleşme olasılığını ve doğru tahmin ettiğinde ne kadar kazanacağını gösterir. Fantazi Dart ondalık oran formatını kullanır — en basit format.\n\nOndalık oran 2.50 şu anlama gelir: taahhüt ettiğin her 1 RTB için, doğru tahmin edersen 2.50 RTB geri alırsın (1 RTB taahhütün artı 1.50 kâr). Düşük oran = daha olası sonuç ama daha az kazanç. Yüksek oran = daha az olası ama daha büyük ödeme.\n\nOranları olasılığa çevirmek için: 1\'i ondalık orana böl. Yani 2.50 oran = 1/2.50 = %40 zımni olasılık. 1.50 oran = %66.7 olasılık. Gerçek olasılığın zımni olasılıktan yüksek olduğunu düşünüyorsan, değer buldun demektir — akıllı tahminin anahtarı budur.',
+  },
+
+  // T3: Your First Prediction
+  'academy.t3.title': { en: 'Your First Prediction', tr: 'İlk Tahminin' },
+  'academy.t3.desc': { en: 'Step-by-step guide to browsing markets and placing a bet.', tr: 'Piyasalara göz atma ve tahmin yapma rehberi.' },
+  'academy.t3.content': {
+    en: 'Ready to make your first prediction? Here\'s how:\n\n1. Go to "Predictions" in the navbar. You\'ll see all open markets — match winners, prop markets, and more. Each shows the current odds for every selection.\n2. Click on any odds badge to add it to your betslip (the floating bar at the bottom). You can pick one selection per market.\n3. Enter your stake (how much RTB to commit). The betslip shows your potential return. Click "Place Predictions" to confirm.\n\nTip: Start small! Try 50-100 RTB on your first few predictions to get a feel for how odds move and how the pool system works. You can always increase your stakes as you get more confident.',
+    tr: 'İlk tahminini yapmaya hazır mısın? İşte adımlar:\n\n1. Menüdeki "Tahminler"e git. Tüm açık piyasaları göreceksin — maç kazananları, prop piyasaları ve dahası. Her birinde tüm seçeneklerin güncel oranları gösterilir.\n2. Herhangi bir oran rozetine tıklayarak onu kuponuna (alttaki kayan çubuk) ekle. Her piyasadan bir seçim yapabilirsin.\n3. Taahhüt miktarını (ne kadar RTB yatıracağını) gir. Kupon potansiyel kazancını gösterir. Onaylamak için "Tahminleri Yap"a tıkla.\n\nİpucu: Küçük başla! İlk birkaç tahmininde 50-100 RTB dene, oranların nasıl hareket ettiğini ve havuz sisteminin nasıl çalıştığını anla. Özgüvenin arttıkça miktarını yükseltebilirsin.',
+  },
+
+  // Level 2: Seasoned Seer
+  'academy.level2.title': { en: 'Seasoned Seer', tr: 'Deneyimli Kahin' },
+  'academy.level2.desc': { en: 'Deepen your knowledge — ratings, market types, and form analysis.', tr: 'Bilgini derinleştir — reytingler, piyasa türleri ve form analizi.' },
+
+  // T4: Elo Ratings Explained
+  'academy.t4.title': { en: 'Elo Ratings Explained', tr: 'Elo Puanları Açıklaması' },
+  'academy.t4.desc': { en: 'How player ratings work and what rating changes mean.', tr: 'Oyuncu reytingleri nasıl çalışır ve puan değişimleri ne anlama gelir.' },
+  'academy.t4.content': {
+    en: 'Every player starts the tournament with an Elo rating of 1500. After each match, ratings update based on: who won, how strong the opponent was, and the margin of victory (3-0 vs 3-2).\n\nThe system uses a K-factor of 32 — this controls how much ratings swing after each match. Early in the tournament (rounds 1-10), ratings are more volatile (1.1x multiplier) to quickly find true skill levels. Late rounds (21-38) use a 0.9x multiplier for stability.\n\nA 3-0 win earns a 1.30x rating boost (dominant victory), while a 3-2 win only gets 0.85x (close match). Beating a higher-rated opponent gives more points than beating a lower-rated one. Use Elo ratings to identify form players and spot value in the odds — a player whose Elo is rising fast may be undervalued by the market.',
+    tr: 'Her oyuncu turnuvaya 1500 Elo puanıyla başlar. Her maçtan sonra puanlar güncellenir: kim kazandı, rakip ne kadar güçlüydü ve skor farkı (3-0 vs 3-2) dikkate alınır.\n\nSistem K-faktör 32 kullanır — bu, her maçtan sonra puanların ne kadar değişeceğini kontrol eder. Turnuvanın başında (tur 1-10), gerçek seviyeyi hızla bulmak için puanlar daha değişkendir (1.1x çarpan). Son turlar (21-38) stabilite için 0.9x çarpan kullanır.\n\n3-0 galibiyet 1.30x puan artışı sağlar (baskın zafer), 3-2 galibiyet ise sadece 0.85x alır (yakın maç). Daha yüksek puanlı bir rakibi yenmek, düşük puanlı birini yenmekten daha fazla puan kazandırır. Elo puanlarını formdaki oyuncuları tespit etmek ve oranlarda değer bulmak için kullan — Elo\'su hızla yükselen bir oyuncu piyasa tarafından düşük değerlenmiş olabilir.',
+  },
+
+  // T5: Pool vs Fixed Odds
+  'academy.t5.title': { en: 'Pool vs Fixed Odds', tr: 'Havuz vs Sabit Oranlar' },
+  'academy.t5.desc': { en: 'How parimutuel pools work and the early-bird advantage.', tr: 'Parimütüel havuz sistemi ve erken tahmin avantajı.' },
+  'academy.t5.content': {
+    en: 'Fantasy Darts has two odds systems. Pool (Parimutuel): Everyone\'s RTB goes into a shared pool. Odds change dynamically as more predictions come in. When the market closes, the pool (minus a platform fee) is split among correct predictors proportional to their stake. Early bets lock in better odds.\n\nFixed Odds: The odds are set when the market opens and don\'t change. Your potential return is locked the moment you predict. Simple and predictable.\n\nThe early-bird advantage in pool markets is real: if you predict correctly before others pile in, your locked-in odds will be higher than the final odds. But beware — if the pool shifts heavily against your pick, the payout could be smaller than expected. Fixed odds remove this uncertainty but may offer lower value.',
+    tr: 'Fantazi Dart\'ta iki oran sistemi var. Havuz (Parimütüel): Herkesin RTB\'si ortak bir havuza girer. Yeni tahminler geldikçe oranlar dinamik olarak değişir. Piyasa kapandığında, havuz (platform payı düşüldükten sonra) doğru tahmin edenlere taahhütleriyle orantılı olarak paylaştırılır. Erken tahminler daha iyi oranları kilitler.\n\nSabit Oran: Oranlar piyasa açıldığında belirlenir ve değişmez. Potansiyel kazancın tahmin yaptığın anda kesinleşir. Basit ve öngörülebilir.\n\nHavuz piyasalarındaki erken tahmin avantajı gerçektir: diğerleri yığılmadan önce doğru tahmin edersen, kilitlediğin oranlar son oranlardan yüksek olur. Ama dikkat — havuz seçiminin aleyhine ağır şekilde kayarsa, ödeme beklenenden küçük olabilir. Sabit oranlar bu belirsizliği ortadan kaldırır ama daha düşük değer sunabilir.',
+  },
+
+  // T6: Reading the Form Guide
+  'academy.t6.title': { en: 'Reading the Form Guide', tr: 'Form Rehberini Okumak' },
+  'academy.t6.desc': { en: 'W-L-T records, leg differential, streaks, and last 5 results.', tr: 'G-M-B kayıtları, leg farkı, seriler ve son 5 maç.' },
+  'academy.t6.content': {
+    en: 'The Tournament page shows detailed form data for every player. Here\'s what to look for:\n\nW-L-T (Win-Loss-Tie): Basic record. A player going 8-2-0 is clearly dominant, but context matters — who did they beat? Check the Elo column for opponent quality.\n\nLeg Differential: Total legs won minus lost. A player with +15 leg diff is winning matches convincingly. Negative diff with a decent win record? They\'re grinding out close 3-2 wins — check the TB (tiebreaker) column.\n\nLast 5 & Streak: Recent form often predicts near-future performance better than overall record. A W-W-W-L-W player on a hot streak is momentum pick. An L-L-L player might be tilting. Combine form with Elo movement for the sharpest predictions.',
+    tr: 'Turnuva sayfası her oyuncu için detaylı form verisi gösterir. Nelere bakmalısın:\n\nG-M-B (Galibiyet-Mağlubiyet-Beraberlik): Temel kayıt. 8-2-0 giden bir oyuncu açıkça baskın, ama bağlam önemli — kimleri yendi? Rakip kalitesi için Elo sütununa bak.\n\nLeg Farkı: Kazanılan leglerden kaybedilenlerin çıkarılması. +15 leg farkı olan bir oyuncu maçları ikna edici şekilde kazanıyor. İyi galibiyet kaydına rağmen negatif fark mı? Yakın 3-2 galibiyetler kazanıyor demektir — TB (tiebreaker) sütununa bak.\n\nSon 5 & Seri: Yakın form genellikle yakın geleceği genel kayıttan daha iyi tahmin eder. G-G-G-M-G serisindeki bir oyuncu momentum seçimi. M-M-M olan bir oyuncu bozulmuş olabilir. En keskin tahminler için formu Elo hareketi ile birleştir.',
+  },
+
+  // T7: Prop Markets Deep Dive
+  'academy.t7.title': { en: 'Prop Markets Deep Dive', tr: 'Prop Piyasaları Detaylı İnceleme' },
+  'academy.t7.desc': { en: 'All 9 prop market types and how to approach them.', tr: '9 prop piyasa türünün tamamı ve nasıl yaklaşılacağı.' },
+  'academy.t7.content': {
+    en: 'Each match generates 9 unique prop markets based on the players\' Elo ratings:\n\n1. Total 180s Over/Under 2.5 — Will there be 3+ maximum scores?\n2. Total Legs Over/Under 4.5 — Short match (3-0, 3-1) or long one (3-2)?\n3. Highest Checkout Over/Under 80.5 — Will someone hit a big finish?\n4-5. Player 1/2 Hits 180 (Yes/No) — Individual 180 predictions per player.\n6. First Leg Winner — Who takes the opening leg?\n7. Exact Score — Predict the precise scoreline (6 options).\n8-9. Player 1/2 100+ Checkout (Yes/No) — Century-plus finish predictions.\n\nProp markets are priced using Elo ratings, so a higher-rated player\'s 180 "Yes" will have lower odds. Look for value where you disagree with the Elo assessment — maybe a lower-rated player has been hitting tons of 180s recently.',
+    tr: 'Her maç, oyuncuların Elo puanlarına göre 9 benzersiz prop piyasası oluşturur:\n\n1. Toplam 180 Üst/Alt 2.5 — 3 veya daha fazla maksimum skor olacak mı?\n2. Toplam Leg Üst/Alt 4.5 — Kısa maç (3-0, 3-1) mi yoksa uzun mu (3-2)?\n3. En Yüksek Checkout Üst/Alt 80.5 — Birisi büyük bir finiş yapacak mı?\n4-5. Oyuncu 1/2 180 Atar (Evet/Hayır) — Oyuncu bazında 180 tahminleri.\n6. İlk Leg Kazananı — Açılış legini kim alır?\n7. Kesin Skor — Tam skoru tahmin et (6 seçenek).\n8-9. Oyuncu 1/2 100+ Checkout (Evet/Hayır) — Yüzlük üzeri finiş tahminleri.\n\nProp piyasaları Elo puanları kullanılarak fiyatlandırılır, bu yüzden daha yüksek puanlı oyuncunun 180 "Evet"i daha düşük oranlara sahip olur. Elo değerlendirmesiyle aynı fikirde olmadığın yerlerde değer ara — belki düşük puanlı bir oyuncu son zamanlarda çok sayıda 180 atıyordur.',
+  },
+
+  // Level 3: Grand Oracle
+  'academy.level3.title': { en: 'Grand Oracle', tr: 'Büyük Kahin' },
+  'academy.level3.desc': { en: 'Advanced strategy — staking, accumulators, and the meta-game.', tr: 'İleri strateji — bahis boyutlandırma, kombineler ve meta-oyun.' },
+
+  // T8: Kelly Criterion Staking
+  'academy.t8.title': { en: 'Kelly Criterion Staking', tr: 'Kelly Kriteri ile Bahis Boyutlandırma' },
+  'academy.t8.desc': { en: 'Optimal bet sizing, edge calculation, and bankroll management.', tr: 'Optimum bahis boyutu, avantaj hesaplama ve bakiye yönetimi.' },
+  'academy.t8.content': {
+    en: 'The Kelly Criterion is a mathematical formula that tells you the optimal percentage of your bankroll to stake on a prediction. The formula: Kelly % = (bp - q) / b, where b = decimal odds - 1, p = your estimated true probability, q = 1 - p.\n\nExample: Odds are 3.00 (b=2), you think the true chance is 40% (p=0.4, q=0.6). Kelly % = (2×0.4 - 0.6) / 2 = 10%. So stake 10% of your balance.\n\nIn practice, most sharp predictors use "fractional Kelly" — half or quarter of the suggested amount. Full Kelly is mathematically optimal but assumes your probability estimates are perfect (they\'re not). Quarter Kelly gives slower growth but much less risk of going bust. The betslip shows Kelly suggestions — use them as a guide, not gospel.',
+    tr: 'Kelly Kriteri, bakiyenin yüzde kaçını bir tahmine yatırman gerektiğini söyleyen matematiksel bir formüldür. Formül: Kelly % = (bp - q) / b, burada b = ondalık oran - 1, p = gerçek olasılık tahminin, q = 1 - p.\n\nÖrnek: Oran 3.00 (b=2), gerçek şansın %40 olduğunu düşünüyorsun (p=0.4, q=0.6). Kelly % = (2×0.4 - 0.6) / 2 = %10. Yani bakiyenin %10\'unu yatır.\n\nPratikte, çoğu keskin tahminci "kesirli Kelly" kullanır — önerilen miktarın yarısı veya çeyreği. Tam Kelly matematiksel olarak optimaldir ama olasılık tahminlerinin mükemmel olduğunu varsayar (değildir). Çeyrek Kelly daha yavaş büyüme sağlar ama iflas riski çok daha azdır. Kupon Kelly önerilerini gösterir — rehber olarak kullan, mutlak doğru olarak değil.',
+  },
+
+  // T9: Accumulator Strategy
+  'academy.t9.title': { en: 'Accumulator Strategy', tr: 'Kombine Stratejisi' },
+  'academy.t9.desc': { en: 'Building accas, correlation risk, and expected value.', tr: 'Kombine oluşturma, korelasyon riski ve beklenen değer.' },
+  'academy.t9.content': {
+    en: 'An accumulator (acca) combines multiple selections into a single prediction. The odds multiply: two picks at 2.00 each = 4.00 combined. Higher potential return, but ALL picks must win — one loss and the entire acca fails.\n\nCorrelation matters: picking Player A to win AND "Total Legs Over 4.5" in the same match aren\'t independent events. If Player A is the underdog, both their win AND a long match become more likely together. Smart accas use correlated picks within matches and uncorrelated picks across matches.\n\nExpected Value (EV): If your acca has combined odds of 8.00, it needs to hit more than 12.5% of the time to be profitable. Be honest with yourself — 4-leg accas sound exciting but the hit rate is brutal. Consider mixing: a 2-leg acca with strong conviction picks often beats a 5-leg lottery ticket.',
+    tr: 'Kombine (acca), birden fazla seçimi tek bir tahminde birleştirir. Oranlar çarpılır: her biri 2.00 olan iki seçim = 4.00 kombine oran. Daha yüksek potansiyel kazanç, ama TÜM seçimler kazanmalı — bir kayıp ve tüm kombine batar.\n\nKorelasyon önemlidir: aynı maçta Oyuncu A\'nın kazanması VE "Toplam Leg Üst 4.5" bağımsız olaylar değildir. Oyuncu A zayıf tarafsa, hem galibiyeti HEM de uzun maç birlikte daha olası hale gelir. Akıllı kombineler maç içinde korelasyonlu, maçlar arası korelasyonsuz seçimler kullanır.\n\nBeklenen Değer (BV): Kombinen 8.00 orana sahipse, kârlı olması için %12.5\'ten fazla tutturman gerekir. Kendinle dürüst ol — 4 ayaklı kombineler heyecanlı görünür ama tutma oranı acımasızdır. Karışık düşün: güçlü kanaat seçimleriyle 2 ayaklı bir kombine, genellikle 5 ayaklı bir piyango kuponunu yener.',
+  },
+
+  // T10: The Meta-Game
+  'academy.t10.title': { en: 'The Meta-Game', tr: 'Meta-Oyun' },
+  'academy.t10.desc': { en: 'Leaderboard psychology, badge hunting, and risk-reward.', tr: 'Sıralama psikolojisi, rozet avcılığı ve risk-ödül dengesi.' },
+  'academy.t10.content': {
+    en: 'Fantasy Darts isn\'t just about individual predictions — it\'s about climbing the leaderboard. This creates a meta-game: your strategy should adapt based on your position.\n\nLeading the board? Play conservative. Small stakes on high-probability picks protect your lead. The worst thing a leader can do is make big bets and hand the advantage to chasers.\n\nChasing the leader? You need variance. Bigger stakes on higher odds to close the gap. Accumulators become your friend — high risk, but you need the swings.\n\nBadges add another dimension: "First Blood" (first prediction), "High Roller" (500+ RTB single bet), "Lucky Streak" (3+ consecutive wins), "Whale" (1000+ total committed), and "Sharp" (60%+ win rate). Some badges reward boldness, others reward discipline. Collect them all for ultimate bragging rights.',
+    tr: 'Fantazi Dart sadece bireysel tahminlerle ilgili değil — sıralamada yükselmekle ilgili. Bu bir meta-oyun yaratır: stratejin pozisyonuna göre adapte olmalı.\n\nSıralamada lidersin? Muhafazakâr oyna. Yüksek olasılıklı seçimlere küçük miktarlar liderliğini korur. Bir liderin yapabileceği en kötü şey büyük bahisler yapıp avantajı kovalayanlara vermektir.\n\nLideri kovalıyorsun? Varyansa ihtiyacın var. Farkı kapatmak için yüksek oranlara büyük miktarlar. Kombineler dostun olur — yüksek risk ama salınımlara ihtiyacın var.\n\nRozetler başka bir boyut ekler: "İlk Kan" (ilk tahmin), "Büyük Oyuncu" (500+ RTB tek bahis), "Şanslı Seri" (3+ ardışık galibiyet), "Balina" (1000+ toplam taahhüt) ve "Keskin" (%60+ kazanma oranı). Bazı rozetler cesareti, diğerleri disiplini ödüllendirir. Nihai övünme hakkı için hepsini topla.',
+  },
+
+  // ── Phone / WhatsApp (S19/S20) ──
+  'phone.addTitle': { en: 'Add Your Phone Number', tr: 'Telefon Numaranı Ekle' },
+  'phone.addDesc': {
+    en: 'Get WhatsApp updates for match days, results, and leaderboard standings.',
+    tr: 'Maç günleri, sonuçlar ve sıralama güncellemeleri için WhatsApp bildirimleri al.',
+  },
+  'phone.placeholder': { en: '+90 5XX XXX XXXX', tr: '+90 5XX XXX XXXX' },
+  'phone.save': { en: 'Save', tr: 'Kaydet' },
+  'phone.yourPhone': { en: 'Your phone', tr: 'Telefonun' },
+  'phone.whatsappUpdates': { en: 'WhatsApp updates', tr: 'WhatsApp bildirimleri' },
+  'phone.removeConfirm': { en: 'Remove your phone number?', tr: 'Telefon numaranı kaldır?' },
+  'phone.remove': { en: 'Remove', tr: 'Kaldır' },
+
+  // ── Admin: WhatsApp (S19/S20) ──
+  'admin.whatsapp': { en: 'WhatsApp', tr: 'WhatsApp' },
+  'admin.waSendTitle': { en: 'Send Notifications', tr: 'Bildirim Gönder' },
+  'admin.waSendDesc': {
+    en: 'Send WhatsApp messages to all opted-in users.',
+    tr: 'Tüm onay veren kullanıcılara WhatsApp mesajı gönder.',
+  },
+  'admin.waMatchDay': { en: 'Match Day Reminder', tr: 'Maç Günü Hatırlatması' },
+  'admin.waResults': { en: 'Results Announcement', tr: 'Sonuç Duyurusu' },
+  'admin.waLeaderboard': { en: 'Weekly Leaderboard', tr: 'Haftalık Sıralama' },
+  'admin.waQuiz': { en: 'Pub Quiz Poll', tr: 'Pub Quiz Anketi' },
+  'admin.waSending': { en: 'Sending...', tr: 'Gönderiliyor...' },
+  'admin.waLogsTitle': { en: 'Recent Logs', tr: 'Son Kayıtlar' },
+  'admin.waNoLogs': { en: 'No WhatsApp logs yet.', tr: 'Henüz WhatsApp kaydı yok.' },
+  'admin.waType': { en: 'Type', tr: 'Tür' },
+  'admin.waTemplate': { en: 'Template', tr: 'Şablon' },
+  'admin.waStatus': { en: 'Status', tr: 'Durum' },
+  'admin.waTime': { en: 'Time', tr: 'Zaman' },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

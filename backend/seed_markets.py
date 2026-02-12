@@ -9,6 +9,7 @@ from database import BettingType, Market, Selection, SessionLocal, User, create_
 from elo_engine import get_elo_ratings, get_sorted_ratings
 from match_data import scheduled_matches
 from odds_engine import get_match_odds, get_outright_odds, get_quarterfinal_matchup_odds
+from prop_odds_calculator import get_all_prop_markets, short_name
 
 
 def seed_database():
@@ -83,8 +84,8 @@ def seed_database():
             seed_l = current_top8.index(qf["lower_seed"]) + 1
 
             market = Market(
-                name=f"{qf['label']}: #{seed_h} {qf['higher_seed']} vs "
-                f"#{seed_l} {qf['lower_seed']}",
+                name=f"{qf['label']}: #{seed_h} {short_name(qf['higher_seed'])} vs "
+                f"#{seed_l} {short_name(qf['lower_seed'])}",
                 description=(
                     "Quarterfinal match winner. "
                     "Pool betting — odds change with bets. "
@@ -117,7 +118,8 @@ def seed_database():
         # --- 3. Upcoming Round-Robin Match Markets (next 10 scheduled) ---
         for mo in match_odds_list[:10]:
             market = Market(
-                name=f"R{mo['round']} M{mo['match_id']}: " f"{mo['player1']} vs {mo['player2']}",
+                name=f"R{mo['round']} M{mo['match_id']}: "
+                f"{short_name(mo['player1'])} vs {short_name(mo['player2'])}",
                 description=(
                     f"Round {mo['round']} match winner. "
                     f"Elo: {mo['elo1']} vs {mo['elo2']}. "
@@ -147,6 +149,38 @@ def seed_database():
 
             print(f"Created market: {market.name} (PARIMUTUEL)")
 
+        # --- 4. Prop Markets for next 5 scheduled matches ---
+        print("\nGenerating prop markets...")
+        prop_count = 0
+        prop_sel_count = 0
+        for match_dict in sched[:5]:
+            prop_markets = get_all_prop_markets(ratings, match_dict)
+            for pm in prop_markets:
+                prop_market = Market(
+                    name=pm["name"],
+                    description=pm["description"],
+                    market_type="prop",
+                    betting_type=BettingType.PARIMUTUEL,
+                    house_cut=0.10,
+                )
+                db.add(prop_market)
+                db.flush()
+
+                for sel_data in pm["selections"]:
+                    sel = Selection(
+                        market_id=prop_market.id,
+                        name=sel_data["name"],
+                        odds=sel_data["odds"],
+                        pool_total=0.0,
+                    )
+                    db.add(sel)
+                    prop_sel_count += 1
+
+                prop_count += 1
+            print(
+                f"  Created {len(prop_markets)} props for R{match_dict['round']} M{match_dict['match_id']}"
+            )
+
         db.commit()
 
         total_markets = db.query(Market).count()
@@ -161,6 +195,7 @@ def seed_database():
             f"  {min(10, len(match_odds_list))} Round-robin matches — "
             f"{min(10, len(match_odds_list)) * 2} selections"
         )
+        print(f"  {prop_count} Prop markets — {prop_sel_count} selections")
 
     finally:
         db.close()

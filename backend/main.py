@@ -19,13 +19,14 @@ from database import (
     MarketStatus,
     Selection,
     User,
+    WhatsAppLog,
     create_tables,
     get_db,
 )
 from elo_engine import get_elo_ratings, get_sorted_ratings
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
@@ -39,6 +40,7 @@ from match_data import (
     write_match_result,
 )
 from odds_engine import get_outright_odds
+from prop_odds_calculator import get_all_prop_markets
 from schemas import (
     ActivityResponse,
     BalanceHistoryEntry,
@@ -48,6 +50,7 @@ from schemas import (
     CompletedMatchResponse,
     EnterResultRequest,
     EnterResultResponse,
+    GeneratePropMarketsRequest,
     LeaderboardEntry,
     LiabilityMarket,
     LiabilitySelection,
@@ -56,19 +59,27 @@ from schemas import (
     MarketCreate,
     MarketResponse,
     MarketSettle,
+    MatchStatsResponse,
     OutrightOddsEntry,
+    PhoneUpdateRequest,
+    PhoneUpdateResponse,
     PlayerRatingResponse,
+    PropMarketPreview,
     ScheduledMatchResponse,
     SelectionResponse,
     StandingEntry,
     TokenResponse,
+    UpdateMatchStats,
     UserCreate,
     UserLogin,
     UserPublic,
     UserResponse,
+    WhatsAppLogResponse,
+    WhatsAppOptInRequest,
 )
 from sqlalchemy import case, func, text
 from sqlalchemy.orm import Session
+from whatsapp_client import whatsapp_client
 
 # ============================================================================
 # Configuration
@@ -1143,11 +1154,25 @@ async def admin_enter_result(
             detail="Invalid score: one player must have 3, other must have 0-2",
         )
 
-    # Write result to CSV (validates match_id, status, winner)
+    # Write result to database (validates match_id, status, winner)
     try:
-        write_match_result(data.match_id, data.score1, data.score2, data.winner)
+        write_match_result(
+            data.match_id,
+            data.score1,
+            data.score2,
+            data.winner,
+            total_180s=data.total_180s,
+            highest_checkout=data.highest_checkout,
+            p1_180=data.p1_180,
+            p2_180=data.p2_180,
+            p1_ton_checkout=data.p1_ton_checkout,
+            p2_ton_checkout=data.p2_ton_checkout,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    # Auto-settle prop markets for this match
+    _settle_prop_markets(db, data)
 
     # Recalculate Elo ratings
     ratings = get_elo_ratings()
@@ -1255,6 +1280,119 @@ def _refresh_market_elo_odds(db: Session, ratings: dict, sched: list[dict]):
     db.commit()
 
 
+def _settle_prop_markets(db: Session, data):
+    """Auto-settle prop markets based on match result data (S9).
+
+    Finds open prop markets whose name contains the match players,
+    determines the winning selection, and settles using parimutuel logic.
+    """
+    # We need to find the match in DB to get player names
+    from database import Match as MatchModel
+    from prop_odds_calculator import short_name
+
+    match_row = db.query(MatchModel).filter(MatchModel.match_id == data.match_id).first()
+    if not match_row:
+        return
+
+    sn1 = short_name(match_row.player1)
+    sn2 = short_name(match_row.player2)
+    total_legs = data.score1 + data.score2
+
+    # Find all open prop markets for this match
+    prop_markets = (
+        db.query(Market)
+        .filter(Market.market_type == "prop", Market.status == MarketStatus.OPEN)
+        .all()
+    )
+
+    settled_count = 0
+    for market in prop_markets:
+        # Match by player short names in market name
+        if sn1 not in market.name and sn2 not in market.name:
+            continue
+
+        winner_name = None
+
+        # Determine winner based on market type
+        if "Total 180s" in market.name:
+            if data.total_180s is not None:
+                winner_name = "Over 2.5" if data.total_180s > 2.5 else "Under 2.5"
+        elif "Total Legs" in market.name:
+            winner_name = "Over 4.5" if total_legs > 4.5 else "Under 4.5"
+        elif "Highest Checkout" in market.name:
+            if data.highest_checkout is not None:
+                winner_name = "Over 80.5" if data.highest_checkout > 80.5 else "Under 80.5"
+        elif "to hit a 180" in market.name:
+            if sn1 in market.name:
+                winner_name = "Yes" if data.p1_180 else "No"
+            elif sn2 in market.name:
+                winner_name = "Yes" if data.p2_180 else "No"
+        elif "First Leg Winner" in market.name:
+            winner_name = short_name(data.winner)
+        elif "Exact Score" in market.name:
+            score_str = (
+                f"{short_name(data.winner)} {data.score1}-{data.score2}"
+                if data.winner == match_row.player1
+                else f"{short_name(data.winner)} {data.score2}-{data.score1}"
+            )
+            winner_name = score_str
+        elif "100+ checkout" in market.name:
+            if sn1 in market.name:
+                winner_name = "Yes" if data.p1_ton_checkout else "No"
+            elif sn2 in market.name:
+                winner_name = "Yes" if data.p2_ton_checkout else "No"
+
+        if winner_name is None:
+            continue
+
+        # Find the winning selection
+        winning_sel = None
+        for sel in market.selections:
+            if sel.name == winner_name:
+                winning_sel = sel
+                break
+
+        if winning_sel is None:
+            continue
+
+        # Settle the market using parimutuel logic
+        winning_sel.is_winner = True
+        market.status = MarketStatus.SETTLED
+        market.settled_at = datetime.utcnow()
+
+        bets = (
+            db.query(Bet)
+            .filter(
+                Bet.selection_id.in_([s.id for s in market.selections]),
+                Bet.status == BetStatus.ACTIVE,
+            )
+            .all()
+        )
+
+        total_pool = sum(s.pool_total for s in market.selections)
+        house_cut = market.house_cut or 0.10
+        pool_after_cut = total_pool * (1 - house_cut)
+        winning_pool = winning_sel.pool_total
+        final_odds = pool_after_cut / winning_pool if winning_pool > 0 else 0
+
+        for bet in bets:
+            if bet.selection_id == winning_sel.id:
+                actual_payout = bet.stake * final_odds
+                bet.status = BetStatus.WON
+                bet.settled_at = datetime.utcnow()
+                bet.actual_payout = actual_payout
+                bet.user.balance += actual_payout
+            else:
+                bet.status = BetStatus.LOST
+                bet.settled_at = datetime.utcnow()
+                bet.actual_payout = 0
+
+        settled_count += 1
+
+    if settled_count > 0:
+        db.commit()
+
+
 @app.get("/api/admin/current-ratings", response_model=list[PlayerRatingResponse])
 async def admin_current_ratings(user: User = Depends(require_admin)):
     """Get current Elo ratings for all players."""
@@ -1339,6 +1477,438 @@ async def admin_liability(user: User = Depends(require_admin), db: Session = Dep
         )
 
     return result
+
+
+# ============================================================================
+# Prop Market Routes (S7)
+# ============================================================================
+
+
+@app.get("/api/prop-markets", response_model=list[MarketResponse])
+async def list_prop_markets(
+    match_id: int | None = None,
+    status: MarketStatus | None = None,
+    db: Session = Depends(get_db),
+):
+    """List prop markets from the database, optionally filtered by match_id and status."""
+    query = db.query(Market).filter(Market.market_type == "prop")
+
+    if status:
+        query = query.filter(Market.status == status)
+
+    if match_id:
+        # Prop market names contain the short player names from the match
+        from database import Match as MatchModel
+
+        match_row = db.query(MatchModel).filter(MatchModel.match_id == match_id).first()
+        if match_row:
+            from prop_odds_calculator import short_name
+
+            sn1 = short_name(match_row.player1)
+            sn2 = short_name(match_row.player2)
+            query = query.filter(Market.name.contains(sn1) | Market.name.contains(sn2))
+
+    markets = query.order_by(Market.created_at.desc()).all()
+
+    result = []
+    for market in markets:
+        total_staked = sum(s.pool_total for s in market.selections)
+        house_cut = market.house_cut or 0.10
+        pool_after_cut = total_staked * (1 - house_cut)
+
+        parimutuel_data = None
+        if market.betting_type == BettingType.PARIMUTUEL:
+            parimutuel_data = calculate_parimutuel_odds(market, db)
+
+        selections = [
+            build_selection_response(s, market, parimutuel_data) for s in market.selections
+        ]
+
+        result.append(
+            MarketResponse(
+                id=market.id,
+                name=market.name,
+                description=market.description,
+                market_type=market.market_type,
+                betting_type=market.betting_type,
+                house_cut=market.house_cut,
+                status=market.status,
+                created_at=market.created_at,
+                closes_at=market.closes_at,
+                selections=selections,
+                total_staked=total_staked,
+                pool_after_cut=pool_after_cut,
+            )
+        )
+
+    return result
+
+
+@app.get("/api/prop-markets/preview/{match_id}", response_model=list[PropMarketPreview])
+async def preview_prop_markets(match_id: int):
+    """Preview prop markets for a match using the calculator (no DB write).
+
+    Returns the 9 prop market types with Elo-calibrated odds.
+    Useful for displaying what prop markets would look like before creating them.
+    """
+    from database import Match as MatchModel
+    from database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        match_row = db.query(MatchModel).filter(MatchModel.match_id == match_id).first()
+    finally:
+        db.close()
+
+    if not match_row:
+        raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
+    if match_row.status == "Completed":
+        raise HTTPException(status_code=400, detail="Match already completed")
+
+    invalidate_cache()
+    ratings = get_elo_ratings()
+
+    match_dict = {
+        "player1": match_row.player1,
+        "player2": match_row.player2,
+        "round": match_row.round,
+        "match_id": match_row.match_id,
+    }
+
+    prop_markets = get_all_prop_markets(ratings, match_dict)
+    return prop_markets
+
+
+@app.post("/api/admin/prop-markets/generate", response_model=list[MarketResponse])
+async def generate_prop_markets(
+    data: GeneratePropMarketsRequest,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Generate and persist all 9 prop markets for a match (admin only).
+
+    Creates parimutuel prop markets in the database with Elo-seeded initial odds.
+    """
+    from database import Match as MatchModel
+
+    match_row = db.query(MatchModel).filter(MatchModel.match_id == data.match_id).first()
+    if not match_row:
+        raise HTTPException(status_code=404, detail=f"Match {data.match_id} not found")
+    if match_row.status == "Completed":
+        raise HTTPException(status_code=400, detail="Match already completed")
+
+    invalidate_cache()
+    ratings = get_elo_ratings()
+
+    match_dict = {
+        "player1": match_row.player1,
+        "player2": match_row.player2,
+        "round": match_row.round,
+        "match_id": match_row.match_id,
+    }
+
+    prop_markets = get_all_prop_markets(ratings, match_dict)
+
+    created_ids = []
+    for pm in prop_markets:
+        market = Market(
+            name=pm["name"],
+            description=pm["description"],
+            market_type="prop",
+            betting_type=BettingType.PARIMUTUEL,
+            house_cut=0.10,
+        )
+        db.add(market)
+        db.flush()
+
+        for sel in pm["selections"]:
+            selection = Selection(
+                market_id=market.id,
+                name=sel["name"],
+                odds=sel["odds"],
+                pool_total=0.0,
+            )
+            db.add(selection)
+
+        created_ids.append(market.id)
+
+    db.commit()
+
+    await log_activity(
+        db,
+        "prop_markets_created",
+        f"9 prop markets created for Match M{data.match_id}: "
+        f"{match_row.player1} vs {match_row.player2}",
+        user_id=user.id,
+        data={"match_id": data.match_id, "market_count": len(created_ids)},
+    )
+
+    # Return the created markets via the standard get_market function
+    result = []
+    for mid in created_ids:
+        m = await get_market(mid, db)
+        result.append(m)
+    return result
+
+
+# ============================================================================
+# Match Stats Routes (S9)
+# ============================================================================
+
+
+@app.put("/api/admin/match-stats/{match_id}", response_model=MatchStatsResponse)
+async def update_match_stats(
+    match_id: int,
+    data: UpdateMatchStats,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Update prop data collection fields for a match (admin only).
+
+    Allows updating 180s, checkout%, and per-player stats after a match is completed.
+    """
+    from database import Match as MatchModel
+
+    match_row = db.query(MatchModel).filter(MatchModel.match_id == match_id).first()
+    if not match_row:
+        raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
+
+    # Update only provided fields
+    if data.total_180s is not None:
+        match_row.total_180s = data.total_180s
+    if data.highest_checkout is not None:
+        match_row.highest_checkout = data.highest_checkout
+    if data.p1_180 is not None:
+        match_row.p1_180 = data.p1_180
+    if data.p2_180 is not None:
+        match_row.p2_180 = data.p2_180
+    if data.p1_ton_checkout is not None:
+        match_row.p1_ton_checkout = data.p1_ton_checkout
+    if data.p2_ton_checkout is not None:
+        match_row.p2_ton_checkout = data.p2_ton_checkout
+
+    db.commit()
+    db.refresh(match_row)
+
+    return MatchStatsResponse(
+        match_id=match_row.match_id,
+        player1=match_row.player1,
+        player2=match_row.player2,
+        total_180s=match_row.total_180s,
+        highest_checkout=match_row.highest_checkout,
+        p1_180=match_row.p1_180,
+        p2_180=match_row.p2_180,
+        p1_ton_checkout=match_row.p1_ton_checkout,
+        p2_ton_checkout=match_row.p2_ton_checkout,
+    )
+
+
+@app.get("/api/tournament/match-stats/{match_id}", response_model=MatchStatsResponse)
+async def get_match_stats(match_id: int):
+    """Get prop data stats for a completed match (public)."""
+    from database import Match as MatchModel
+    from database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        match_row = db.query(MatchModel).filter(MatchModel.match_id == match_id).first()
+    finally:
+        db.close()
+
+    if not match_row:
+        raise HTTPException(status_code=404, detail=f"Match {match_id} not found")
+
+    return MatchStatsResponse(
+        match_id=match_row.match_id,
+        player1=match_row.player1,
+        player2=match_row.player2,
+        total_180s=match_row.total_180s,
+        highest_checkout=match_row.highest_checkout,
+        p1_180=match_row.p1_180,
+        p2_180=match_row.p2_180,
+        p1_ton_checkout=match_row.p1_ton_checkout,
+        p2_ton_checkout=match_row.p2_ton_checkout,
+    )
+
+
+# ============================================================================
+# WhatsApp / Phone Routes (S19)
+# ============================================================================
+
+
+@app.put("/api/auth/phone", response_model=PhoneUpdateResponse)
+async def update_phone(
+    data: PhoneUpdateRequest,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Update current user's phone number."""
+    user.phone_number = data.phone_number
+    db.commit()
+    return PhoneUpdateResponse(
+        message="Phone number updated",
+        phone_number=user.phone_number,
+        whatsapp_opted_in=user.whatsapp_opted_in,
+    )
+
+
+@app.delete("/api/auth/phone")
+async def remove_phone(
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Remove current user's phone number and opt out of WhatsApp."""
+    user.phone_number = None
+    user.whatsapp_opted_in = False
+    db.commit()
+    return {"message": "Phone number removed and WhatsApp opted out"}
+
+
+@app.put("/api/auth/whatsapp-opt-in", response_model=PhoneUpdateResponse)
+async def toggle_whatsapp_opt_in(
+    data: WhatsAppOptInRequest,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Toggle WhatsApp opt-in for current user. Requires phone number."""
+    if data.opted_in and not user.phone_number:
+        raise HTTPException(
+            status_code=400, detail="Add a phone number before opting in to WhatsApp"
+        )
+    user.whatsapp_opted_in = data.opted_in
+    db.commit()
+    return PhoneUpdateResponse(
+        message=f"WhatsApp {'enabled' if data.opted_in else 'disabled'}",
+        phone_number=user.phone_number or "",
+        whatsapp_opted_in=user.whatsapp_opted_in,
+    )
+
+
+async def _send_whatsapp_to_opted_in(
+    db: Session, template_name: str, message_type: str, admin_user: User
+) -> dict:
+    """Send a WhatsApp template to all opted-in users. Returns summary."""
+    opted_in_users = (
+        db.query(User).filter(User.whatsapp_opted_in.is_(True), User.phone_number.isnot(None)).all()
+    )
+
+    sent = 0
+    failed = 0
+    for u in opted_in_users:
+        result = await whatsapp_client.send_template(u.phone_number, template_name)
+
+        log = WhatsAppLog(
+            user_id=u.id,
+            message_type=message_type,
+            template_name=template_name,
+            status="sent" if result["success"] else "failed",
+            meta_message_id=result.get("meta_message_id"),
+        )
+        db.add(log)
+
+        if result["success"]:
+            sent += 1
+        else:
+            failed += 1
+
+    db.commit()
+
+    await log_activity(
+        db,
+        "whatsapp_sent",
+        f"WhatsApp {message_type}: {sent} sent, {failed} failed",
+        user_id=admin_user.id,
+        data={"template": template_name, "sent": sent, "failed": failed},
+    )
+
+    return {"message": f"{message_type} sent", "sent": sent, "failed": failed}
+
+
+@app.post("/api/admin/whatsapp/send-match-day")
+async def send_match_day_reminders(
+    user: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    """Send match day reminder to all opted-in users (admin only)."""
+    return await _send_whatsapp_to_opted_in(db, "match_day_reminder", "match_day_reminder", user)
+
+
+@app.post("/api/admin/whatsapp/send-results")
+async def send_results_announcement(
+    user: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    """Send results announcement to all opted-in users (admin only)."""
+    return await _send_whatsapp_to_opted_in(
+        db, "results_announcement", "results_announcement", user
+    )
+
+
+@app.post("/api/admin/whatsapp/send-leaderboard")
+async def send_weekly_leaderboard(
+    user: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    """Send weekly leaderboard to all opted-in users (admin only)."""
+    return await _send_whatsapp_to_opted_in(db, "weekly_leaderboard", "weekly_leaderboard", user)
+
+
+@app.post("/api/admin/whatsapp/send-quiz")
+async def send_pub_quiz(user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Send pub quiz poll to all opted-in users (admin only)."""
+    return await _send_whatsapp_to_opted_in(db, "pub_quiz_poll", "pub_quiz_poll", user)
+
+
+@app.get("/api/webhooks/whatsapp")
+async def whatsapp_webhook_verify(
+    request: Request,
+):
+    """WhatsApp webhook verification (GET). Returns hub.challenge if token matches."""
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    if mode == "subscribe" and token == whatsapp_client.verify_token:
+        return PlainTextResponse(content=challenge or "")
+
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+
+@app.post("/api/webhooks/whatsapp")
+async def whatsapp_webhook_incoming(request: Request, db: Session = Depends(get_db)):
+    """Handle incoming WhatsApp webhook events (message status updates)."""
+    body = await request.body()
+    signature = request.headers.get("X-Hub-Signature-256", "")
+
+    if not whatsapp_client.verify_webhook_signature(body, signature):
+        raise HTTPException(status_code=403, detail="Invalid signature")
+
+    payload = await request.json()
+
+    # Process status updates
+    for entry in payload.get("entry", []):
+        for change in entry.get("changes", []):
+            value = change.get("value", {})
+            for status_update in value.get("statuses", []):
+                meta_id = status_update.get("id")
+                new_status = status_update.get("status", "")  # sent, delivered, read, failed
+                if meta_id:
+                    log = (
+                        db.query(WhatsAppLog).filter(WhatsAppLog.meta_message_id == meta_id).first()
+                    )
+                    if log:
+                        log.status = new_status
+
+    db.commit()
+    return {"status": "ok"}
+
+
+@app.get("/api/admin/whatsapp/logs", response_model=list[WhatsAppLogResponse])
+async def get_whatsapp_logs(
+    limit: int = 50,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Get recent WhatsApp message logs (admin only)."""
+    logs = db.query(WhatsAppLog).order_by(WhatsAppLog.created_at.desc()).limit(limit).all()
+    return logs
 
 
 # ============================================================================

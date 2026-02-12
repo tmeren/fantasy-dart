@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { api, Market } from '@/lib/api';
+import { useBetslip } from '@/lib/BetslipContext';
+import { shortName } from '@/lib/i18n';
 import Link from 'next/link';
 
 function Navbar() {
@@ -17,6 +19,7 @@ function Navbar() {
           <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
           <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
           <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
+          <Link href="/academy" className="text-dark-300 hover:text-white">{t('nav.academy')}</Link>
           {user?.is_admin && <Link href="/admin" className="text-yellow-400">{t('nav.admin')}</Link>}
           <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
@@ -29,6 +32,50 @@ function Navbar() {
         </div>
       </div>
     </nav>
+  );
+}
+
+/** Clickable odds in market cards — adds to betslip (S3+S12) */
+function MarketsOddsList({ market }: { market: Market }) {
+  const { addSelection, isSelected } = useBetslip();
+  const { t } = useLanguage();
+
+  return (
+    <div className="flex flex-wrap gap-2 mb-3">
+      {market.selections.slice(0, 3).map((sel) => {
+        const displayOdds = market.betting_type === 'parimutuel' ? sel.dynamic_odds : sel.odds;
+        const selected = isSelected(sel.id);
+        return (
+          <button
+            key={sel.id}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (market.status === 'open' && displayOdds > 0) {
+                addSelection({
+                  marketId: market.id,
+                  selectionId: sel.id,
+                  name: shortName(sel.name),
+                  odds: displayOdds,
+                  marketName: market.name,
+                  marketType: market.market_type,
+                });
+              }
+            }}
+            className="flex items-center gap-2 bg-dark-700 rounded px-2 py-1 hover:bg-dark-600 transition-colors"
+          >
+            <span className="text-sm">{shortName(sel.name)}</span>
+            <span className={selected ? 'odds-badge-selected text-xs' : 'odds-badge text-xs'}>
+              {displayOdds > 0 ? displayOdds.toFixed(2) : '—'}
+            </span>
+            {sel.is_winner && <span className="text-green-400 text-xs">✓</span>}
+          </button>
+        );
+      })}
+      {market.selections.length > 3 && (
+        <span className="text-dark-400 text-sm self-center">+{market.selections.length - 3} {t('dashboard.more')}</span>
+      )}
+    </div>
   );
 }
 
@@ -113,21 +160,7 @@ export default function Markets() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">{market.name}</h3>
                 {market.description && <p className="text-dark-400 text-sm mb-4">{market.description}</p>}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {market.selections.slice(0, 3).map((sel) => {
-                    const displayOdds = market.betting_type === 'parimutuel' ? sel.dynamic_odds : sel.odds;
-                    return (
-                      <div key={sel.id} className="flex items-center gap-2 bg-dark-700 rounded px-2 py-1">
-                        <span className="text-sm">{sel.name}</span>
-                        <span className="odds-badge text-xs">{displayOdds > 0 ? displayOdds.toFixed(2) : '—'}</span>
-                        {sel.is_winner && <span className="text-green-400 text-xs">✓</span>}
-                      </div>
-                    );
-                  })}
-                  {market.selections.length > 3 && (
-                    <span className="text-dark-400 text-sm self-center">+{market.selections.length - 3} {t('dashboard.more')}</span>
-                  )}
-                </div>
+                <MarketsOddsList market={market} />
                 <div className="text-dark-500 text-xs">{market.total_staked.toFixed(0)} {t('markets.tokensStaked')}</div>
               </div>
             </Link>

@@ -287,12 +287,21 @@ def invalidate_cache():
 
 
 def write_match_result(
-    match_id: int, score1: int, score2: int, winner: str, **_kwargs
+    match_id: int,
+    score1: int,
+    score2: int,
+    winner: str,
+    total_180s: int | None = None,
+    highest_checkout: int | None = None,
+    p1_180: bool = False,
+    p2_180: bool = False,
+    p1_ton_checkout: bool = False,
+    p2_ton_checkout: bool = False,
 ):
     """Write a match result to the database.
 
-    Finds the row with matching match_id, updates scores/status/winner,
-    then invalidates the module cache.
+    Finds the row with matching match_id, updates scores/status/winner
+    and prop data fields, then invalidates the module cache.
 
     Raises ValueError if match not found or already completed.
     """
@@ -315,6 +324,14 @@ def write_match_result(
         row.status = "Completed"
         row.winner = winner
         row.is_draw = score1 == score2
+
+        # Prop data fields (S9)
+        row.total_180s = total_180s
+        row.highest_checkout = highest_checkout
+        row.p1_180 = p1_180
+        row.p2_180 = p2_180
+        row.p1_ton_checkout = p1_ton_checkout
+        row.p2_ton_checkout = p2_ton_checkout
         db.commit()
     finally:
         db.close()
@@ -344,7 +361,7 @@ def scheduled_matches() -> list[dict]:
 
 if __name__ == "__main__":
     _ensure_loaded()
-    print(f"Tournament Database loaded from DB")
+    print("Tournament Database loaded from DB")
     print(f"Total matches: {len(_all_matches)}")
     print(f"Completed: {len(_completed)}")
     print(f"Scheduled: {len(_scheduled)}")

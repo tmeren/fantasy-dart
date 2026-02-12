@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
-import { api, Market, ScheduledMatch, PlayerRating, OutrightOdds } from '@/lib/api';
+import { api, Market, ScheduledMatch, PlayerRating, OutrightOdds, WhatsAppLog } from '@/lib/api';
+import { shortName } from '@/lib/i18n';
 import Link from 'next/link';
 
 function Navbar() {
@@ -19,6 +20,7 @@ function Navbar() {
           <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
           <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
           <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
+          <Link href="/academy" className="text-dark-300 hover:text-white">{t('nav.academy')}</Link>
           <Link href="/admin" className="text-yellow-400 font-medium">{t('nav.admin')}</Link>
           <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
@@ -34,7 +36,7 @@ function Navbar() {
   );
 }
 
-type AdminTab = 'tournament' | 'markets';
+type AdminTab = 'tournament' | 'markets' | 'whatsapp';
 
 export default function Admin() {
   const { user, loading } = useAuth();
@@ -54,6 +56,10 @@ export default function Admin() {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [loadingTournament, setLoadingTournament] = useState(false);
+
+  // WhatsApp state
+  const [waLogs, setWaLogs] = useState<WhatsAppLog[]>([]);
+  const [waSending, setWaSending] = useState('');
 
   // Create market form
   const [newMarket, setNewMarket] = useState({
@@ -269,6 +275,16 @@ export default function Admin() {
             }`}
           >
             {t('admin.markets')}
+          </button>
+          <button
+            onClick={() => { setActiveTab('whatsapp'); api.getWhatsAppLogs().then(setWaLogs).catch(console.error); }}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'whatsapp'
+                ? 'bg-primary-500 text-white'
+                : 'text-dark-400 hover:text-white'
+            }`}
+          >
+            {t('admin.whatsapp')}
           </button>
         </div>
 
@@ -496,7 +512,7 @@ export default function Admin() {
                           )}
                           {market.status === 'settled' && (
                             <span className="text-dark-500 text-sm">
-                              {t('admin.winner')} {market.selections.find(s => s.is_winner)?.name}
+                              {t('admin.winner')} {shortName(market.selections.find(s => s.is_winner)?.name || '')}
                             </span>
                           )}
                         </div>
@@ -512,6 +528,101 @@ export default function Admin() {
                 <p className="text-dark-400">{t('admin.noMarkets')}</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ========== WHATSAPP TAB ========== */}
+        {activeTab === 'whatsapp' && (
+          <div className="space-y-6">
+            {/* Send Templates */}
+            <div className="card">
+              <h2 className="text-xl font-bold mb-4">{t('admin.waSendTitle')}</h2>
+              <p className="text-dark-400 text-sm mb-4">{t('admin.waSendDesc')}</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { key: 'match-day', label: t('admin.waMatchDay'), icon: '📅' },
+                  { key: 'results', label: t('admin.waResults'), icon: '🏆' },
+                  { key: 'leaderboard', label: t('admin.waLeaderboard'), icon: '📊' },
+                  { key: 'quiz', label: t('admin.waQuiz'), icon: '🧠' },
+                ].map((tmpl) => (
+                  <button
+                    key={tmpl.key}
+                    onClick={async () => {
+                      if (!confirm(`Send "${tmpl.label}" to all opted-in users?`)) return;
+                      setWaSending(tmpl.key);
+                      try {
+                        const result = await api.sendWhatsApp(tmpl.key);
+                        setSuccessMsg(`${tmpl.label}: ${result.sent} sent, ${result.failed} failed`);
+                        api.getWhatsAppLogs().then(setWaLogs).catch(console.error);
+                        setTimeout(() => setSuccessMsg(''), 5000);
+                      } catch (err: any) {
+                        alert(err.message);
+                      } finally {
+                        setWaSending('');
+                      }
+                    }}
+                    disabled={waSending === tmpl.key}
+                    className="flex items-center gap-3 p-4 bg-dark-800 rounded-lg hover:bg-dark-700 transition-colors text-left"
+                  >
+                    <span className="text-2xl">{tmpl.icon}</span>
+                    <div>
+                      <div className="font-medium text-sm">{tmpl.label}</div>
+                      {waSending === tmpl.key && <div className="text-xs text-primary-400">{t('admin.waSending')}</div>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Logs */}
+            <div className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">{t('admin.waLogsTitle')}</h2>
+                <button
+                  onClick={() => api.getWhatsAppLogs().then(setWaLogs).catch(console.error)}
+                  className="btn-secondary text-sm"
+                >
+                  {t('admin.refresh')}
+                </button>
+              </div>
+              {waLogs.length === 0 ? (
+                <p className="text-dark-400 text-center py-4">{t('admin.waNoLogs')}</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
+                        <th className="pb-2">{t('admin.waType')}</th>
+                        <th className="pb-2">{t('admin.waTemplate')}</th>
+                        <th className="pb-2">{t('admin.waStatus')}</th>
+                        <th className="pb-2">{t('admin.waTime')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {waLogs.slice(0, 20).map((log) => (
+                        <tr key={log.id} className="border-b border-dark-800/50 last:border-0">
+                          <td className="py-2 text-sm">{log.message_type}</td>
+                          <td className="py-2 text-sm text-dark-300">{log.template_name}</td>
+                          <td className="py-2">
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              log.status === 'read' ? 'bg-green-500/20 text-green-400' :
+                              log.status === 'delivered' ? 'bg-blue-500/20 text-blue-400' :
+                              log.status === 'sent' ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-red-500/20 text-red-400'
+                            }`}>
+                              {log.status}
+                            </span>
+                          </td>
+                          <td className="py-2 text-xs text-dark-500">
+                            {new Date(log.created_at).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -757,7 +868,7 @@ export default function Admin() {
                     onClick={() => handleSettleMarket(settleModal.id, sel.id)}
                     className="w-full flex items-center justify-between p-4 bg-dark-700 rounded-lg hover:bg-dark-600 transition-colors"
                   >
-                    <span className="font-medium">{sel.name}</span>
+                    <span className="font-medium">{shortName(sel.name)}</span>
                     <span className="odds-badge">{sel.odds.toFixed(2)}</span>
                   </button>
                 ))}

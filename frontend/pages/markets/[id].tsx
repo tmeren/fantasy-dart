@@ -4,6 +4,7 @@ import { useAuth } from '../_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { shortName } from '@/lib/i18n';
 import { api, Market, Bet, PlayerRating } from '@/lib/api';
+import { useBetslip } from '@/lib/BetslipContext';
 import Link from 'next/link';
 
 function Navbar() {
@@ -20,6 +21,7 @@ function Navbar() {
           <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
           <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
           <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
+          <Link href="/academy" className="text-dark-300 hover:text-white">{t('nav.academy')}</Link>
           {user?.is_admin && <Link href="/admin" className="text-yellow-400">{t('nav.admin')}</Link>}
           <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
@@ -62,6 +64,7 @@ export default function MarketDetail() {
   const { t } = useLanguage();
   const router = useRouter();
   const { id } = router.query;
+  const { addSelection, isSelected, kellyStake } = useBetslip();
 
   const [market, setMarket] = useState<Market | null>(null);
   const [allBets, setAllBets] = useState<Bet[]>([]);
@@ -224,12 +227,27 @@ export default function MarketDetail() {
                           )}
                           <span className="font-medium text-lg">{shortName(sel.name)}</span>
                         </div>
-                        <div className="text-right">
-                          <span className="odds-badge text-lg px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (market.status === 'open' && displayOdds > 0) {
+                                addSelection({
+                                  marketId: market.id,
+                                  selectionId: sel.id,
+                                  name: shortName(sel.name),
+                                  odds: displayOdds,
+                                  marketName: market.name,
+                                  marketType: market.market_type,
+                                });
+                              }
+                            }}
+                            className={`${isSelected(sel.id) ? 'odds-badge-selected' : 'odds-badge'} text-lg px-4 py-2 cursor-pointer`}
+                          >
                             {displayOdds > 0 ? displayOdds.toFixed(2) : '—'}
-                          </span>
+                          </button>
                           {isParimutuel && displayOdds > 0 && (
-                            <span className="text-xs text-dark-500 ml-1">{t('marketDetail.est')}</span>
+                            <span className="text-xs text-dark-500">{t('marketDetail.est')}</span>
                           )}
                         </div>
                       </div>
@@ -362,6 +380,23 @@ export default function MarketDetail() {
                           <span className="text-green-400 text-sm font-semibold">+{returnPct.toFixed(0)}%</span>
                         </div>
                       )}
+                      {/* Kelly Criterion suggestion (S8) */}
+                      {selectedOdds > 1 && user.balance > 0 && (() => {
+                        const impliedProb = 1 / selectedOdds;
+                        const perceivedProb = Math.min(0.95, impliedProb * 1.10);
+                        const kelly = kellyStake(user.balance, perceivedProb, selectedOdds);
+                        return kelly > 0 ? (
+                          <div className="flex justify-between mt-1 pt-1 border-t border-dark-600">
+                            <span className="text-dark-400 text-sm">{t('betslip.kelly')}</span>
+                            <button
+                              onClick={() => setStake(String(kelly))}
+                              className="text-primary-400 text-sm font-semibold hover:text-primary-300 cursor-pointer"
+                            >
+                              {kelly} {t('marketDetail.tokens')}
+                            </button>
+                          </div>
+                        ) : null;
+                      })()}
                       {isParimutuel && (
                         <p className="text-xs text-dark-500 mt-2">
                           {t('marketDetail.finalPayoutNote')}

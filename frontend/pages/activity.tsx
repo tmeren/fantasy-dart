@@ -18,6 +18,7 @@ function Navbar() {
           <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
           <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
           <Link href="/activity" className="text-white font-medium">{t('nav.liveFeed')}</Link>
+          <Link href="/academy" className="text-dark-300 hover:text-white">{t('nav.academy')}</Link>
           {user?.is_admin && <Link href="/admin" className="text-yellow-400">{t('nav.admin')}</Link>}
           <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
@@ -167,7 +168,7 @@ export default function ActivityFeed() {
                     </div>
                     <div className="text-sm text-dark-300 mb-2">{bet.market_name}</div>
                     <div className="flex items-center justify-between">
-                      <span className="text-primary-400">{bet.selection_name}</span>
+                      <span className="text-primary-400">{shortName(bet.selection_name)}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-dark-300">{bet.stake.toFixed(0)}</span>
                         <span className="odds-badge">{bet.odds_at_time.toFixed(2)}</span>

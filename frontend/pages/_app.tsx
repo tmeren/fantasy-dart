@@ -3,6 +3,8 @@ import type { AppProps } from 'next/app';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api, User } from '@/lib/api';
 import { LanguageProvider } from '@/lib/LanguageContext';
+import { BetslipProvider } from '@/lib/BetslipContext';
+import BetslipBar from '@/components/BetslipBar';
 
 // Auth Context
 interface AuthContextType {
@@ -70,7 +72,10 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <Component {...pageProps} />
+        <BetslipProvider>
+          <Component {...pageProps} />
+          <BetslipBar />
+        </BetslipProvider>
       </AuthProvider>
     </LanguageProvider>
   );

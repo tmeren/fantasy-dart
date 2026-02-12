@@ -18,6 +18,7 @@ function Navbar() {
           <Link href="/leaderboard" className="text-white font-medium">{t('nav.leaderboard')}</Link>
           <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
           <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
+          <Link href="/academy" className="text-dark-300 hover:text-white">{t('nav.academy')}</Link>
           {user?.is_admin && <Link href="/admin" className="text-yellow-400">{t('nav.admin')}</Link>}
           <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">

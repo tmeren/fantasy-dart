@@ -5,6 +5,7 @@ import { useAuth } from './_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { shortName, TranslationKey } from '@/lib/i18n';
 import { api, StandingEntry, PlayerRating, CompletedMatch, ScheduledMatch } from '@/lib/api';
+import { useBetslip } from '@/lib/BetslipContext';
 import Link from 'next/link';
 
 // ── Round date mapping ──────────────────────────────────────────────────────
@@ -39,28 +40,38 @@ function computeStandings(filteredResults: CompletedMatch[]): StandingEntry[] {
   const playerSet = new Set<string>();
   filteredResults.forEach((m) => { playerSet.add(m.player1); playerSet.add(m.player2); });
 
-  const records: Record<string, { played: number; wins: number; losses: number; legs_for: number; legs_against: number }> = {};
-  playerSet.forEach((p) => { records[p] = { played: 0, wins: 0, losses: 0, legs_for: 0, legs_against: 0 }; });
+  const records: Record<string, { played: number; wins: number; losses: number; draws: number; legs_for: number; legs_against: number; tiebreaks: number }> = {};
+  playerSet.forEach((p) => { records[p] = { played: 0, wins: 0, losses: 0, draws: 0, legs_for: 0, legs_against: 0, tiebreaks: 0 }; });
 
   filteredResults.forEach((m) => {
-    if (m.is_draw) return;
     const r1 = records[m.player1];
     const r2 = records[m.player2];
     if (r1) {
       r1.played++; r1.legs_for += m.score1; r1.legs_against += m.score2;
-      if (m.winner === m.player1) r1.wins++; else r1.losses++;
+      if (m.is_draw) { r1.draws++; }
+      else if (m.winner === m.player1) { r1.wins++; if (m.score1 === 3 && m.score2 === 2) r1.tiebreaks++; }
+      else r1.losses++;
     }
     if (r2) {
       r2.played++; r2.legs_for += m.score2; r2.legs_against += m.score1;
-      if (m.winner === m.player2) r2.wins++; else r2.losses++;
+      if (m.is_draw) { r2.draws++; }
+      else if (m.winner === m.player2) { r2.wins++; if (m.score2 === 3 && m.score1 === 2) r2.tiebreaks++; }
+      else r2.losses++;
     }
   });
 
   const list: StandingEntry[] = Object.entries(records).map(([player, s]) => ({
-    rank: 0, player, played: s.played, wins: s.wins, losses: s.losses, draws: 0,
+    rank: 0, player, played: s.played, wins: s.wins, losses: s.losses, draws: s.draws,
     legs_for: s.legs_for, legs_against: s.legs_against, leg_diff: s.legs_for - s.legs_against,
+    remaining: 38 - s.played, score: s.wins * 3, tiebreaks: s.tiebreaks,
   }));
-  list.sort((a, b) => b.wins - a.wins || b.leg_diff - a.leg_diff || b.legs_for - a.legs_for);
+  // Sort: Score (desc) → TB (desc) → Leg Diff (desc) → Legs For (desc)
+  list.sort((a, b) =>
+    (b.score ?? 0) - (a.score ?? 0) ||
+    (b.tiebreaks ?? 0) - (a.tiebreaks ?? 0) ||
+    b.leg_diff - a.leg_diff ||
+    b.legs_for - a.legs_for
+  );
   list.forEach((r, i) => { r.rank = i + 1; });
   return list;
 }
@@ -137,6 +148,39 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
         document.body
       )}
     </span>
+  );
+}
+
+// ── OddsButton — clickable odds badge → adds to betslip (S3+S12) ─────────
+function OddsButton({ label, player, matchId }: { label: string; player: string; matchId: number }) {
+  const { addSelection, isSelected } = useBetslip();
+  // Use negative matchId as pseudo-market ID for upcoming matches (no real market yet)
+  const pseudoMarketId = -matchId;
+  const selectionId = -(matchId * 1000 + player.charCodeAt(0));
+  const selected = isSelected(selectionId);
+
+  const handleClick = () => {
+    addSelection({
+      marketId: pseudoMarketId,
+      selectionId,
+      name: shortName(player),
+      odds: parseFloat(label),
+      marketName: `M${matchId}`,
+      marketType: 'match',
+    });
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className={`font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center transition-all ${
+        selected
+          ? 'bg-white text-blue-900 ring-2 ring-primary-400'
+          : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -273,6 +317,7 @@ function Navbar() {
           <Link href="/leaderboard" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.leaderboard')}</Link>
           <Link href="/tournament" className="text-white font-bold text-base">{t('nav.tournament')}</Link>
           <Link href="/activity" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.liveFeed')}</Link>
+          <Link href="/academy" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.academy')}</Link>
           {user?.is_admin && <Link href="/admin" className="text-yellow-400 text-base font-medium">{t('nav.admin')}</Link>}
           <LanguageToggle />
           <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
@@ -489,9 +534,14 @@ export default function Tournament() {
                         <th className="pb-3 text-center">{t('tournament.played')}</th>
                         <th className="pb-3 text-center">{t('tournament.won')}</th>
                         <th className="pb-3 text-center">{t('tournament.lost')}</th>
+                        <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.drawsCol')}</th>
+                        <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.wlt')}</th>
                         <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsFor')}</th>
                         <th className="pb-3 text-center hidden sm:table-cell">{t('tournament.legsAgainst')}</th>
                         <th className="pb-3 text-center">{t('tournament.legDiff')}</th>
+                        <th className="pb-3 text-center"><Tooltip text={t('tournament.scoreTooltip')}>{t('tournament.score')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
+                        <th className="pb-3 text-center hidden sm:table-cell"><Tooltip text={t('tournament.tiebreakerTooltip')}>{t('tournament.tiebreakerCol')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
+                        <th className="pb-3 text-center hidden sm:table-cell"><Tooltip text={t('tournament.remainingTooltip')}>{t('tournament.remainingCol')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
                         <th className="pb-3 text-center hidden sm:table-cell"><Tooltip text={t('tournament.winPctTooltip')}>{t('tournament.winRate')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
                         <th className="pb-3 text-center hidden md:table-cell"><Tooltip text={t('tournament.eloTooltip')}>{t('tournament.elo')} <span className="text-dark-500 text-xs">ⓘ</span></Tooltip></th>
                       </tr>
@@ -522,7 +572,7 @@ export default function Tournament() {
                                 s.rank <= 8 ? 'bg-green-500/20 text-green-400' : 'bg-dark-700 text-dark-400'
                               }`}>{s.rank}</span>
                             </td>
-                            <td className="py-3.5 font-semibold text-base">{name}</td>
+                            <td className="py-3.5 font-bold text-lg">{name}</td>
                             <td className="py-3.5">
                               <div className="flex justify-center">
                                 <FormBoxes player={s.player} results={dateFilteredResults} />
@@ -531,14 +581,21 @@ export default function Tournament() {
                             <td className="py-3.5 text-center">
                               <TrendArrow player={s.player} history={standingsHistory} />
                             </td>
-                            <td className="py-3.5 text-center text-dark-300 font-medium">{s.played}</td>
-                            <td className="py-3.5 text-center text-green-400 font-bold text-lg">{s.wins}</td>
-                            <td className="py-3.5 text-center text-red-400 font-semibold">{s.losses}</td>
-                            <td className="py-3.5 text-center text-dark-300 hidden sm:table-cell">{s.legs_for}</td>
-                            <td className="py-3.5 text-center text-dark-300 hidden sm:table-cell">{s.legs_against}</td>
-                            <td className={`py-3.5 text-center font-bold text-lg ${
+                            <td className="py-3.5 text-center text-dark-300 text-base font-semibold">{s.played}</td>
+                            <td className="py-3.5 text-center text-green-400 text-base font-semibold">{s.wins}</td>
+                            <td className="py-3.5 text-center text-red-400 text-base font-semibold">{s.losses}</td>
+                            <td className="py-3.5 text-center text-dark-400 text-base font-semibold hidden sm:table-cell">{s.draws}</td>
+                            <td className="py-3.5 text-center text-dark-300 text-sm font-medium hidden sm:table-cell">{s.wins}-{s.losses}-{s.draws}</td>
+                            <td className="py-3.5 text-center text-dark-300 text-base font-semibold hidden sm:table-cell">{s.legs_for}</td>
+                            <td className="py-3.5 text-center text-dark-300 text-base font-semibold hidden sm:table-cell">{s.legs_against}</td>
+                            <td className={`py-3.5 text-center text-base font-semibold ${
                               s.leg_diff > 0 ? 'text-green-400' : s.leg_diff < 0 ? 'text-red-400' : 'text-dark-400'
                             }`}>{s.leg_diff > 0 ? '+' : ''}{s.leg_diff}</td>
+                            <td className="py-3.5 text-center">
+                              <span className="px-2.5 py-1 rounded-md text-base font-semibold bg-primary-600/20 text-primary-400">{s.score ?? 0}</span>
+                            </td>
+                            <td className="py-3.5 text-center text-dark-300 text-base font-semibold hidden sm:table-cell">{s.tiebreaks ?? 0}</td>
+                            <td className="py-3.5 text-center text-dark-400 text-base font-semibold hidden sm:table-cell">{s.remaining ?? 0}</td>
                             <td className="py-3.5 text-center hidden sm:table-cell">
                               <Tooltip text={winPctFormula}>
                                 <span className={`px-2.5 py-1 rounded-md text-sm font-bold ${winPctBgClass(Number(winPct))}`}>{winPct}%</span>
@@ -546,7 +603,7 @@ export default function Tournament() {
                             </td>
                             <td className="py-3.5 text-center hidden md:table-cell">
                               <Tooltip text={eloFormula}>
-                                <span className={`px-2.5 py-1 rounded-md font-extrabold text-lg ${eloBgClass(Number(elo))}`}>{elo}</span>
+                                <span className={`px-2.5 py-1 rounded-md text-base font-bold ${eloBgClass(Number(elo))}`}>{elo}</span>
                               </Tooltip>
                             </td>
                           </tr>
@@ -669,11 +726,11 @@ export default function Tournament() {
                             <div className="flex items-center justify-end">
                               <FormBoxes player={m.player1} results={dateFilteredResults} />
                             </div>
-                            {/* Center: Odds — Date — Odds */}
+                            {/* Center: Odds — Date — Odds (clickable → betslip) */}
                             <div className="flex items-center justify-center gap-2.5">
-                              <span className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center">{odds1}</span>
+                              <OddsButton label={odds1} player={m.player1} matchId={m.match_id} />
                               <span className="text-dark-400 text-sm whitespace-nowrap font-medium">{formatGameNight(round, locale)}</span>
-                              <span className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center">{odds2}</span>
+                              <OddsButton label={odds2} player={m.player2} matchId={m.match_id} />
                             </div>
                             {/* P2 Form — left-aligned */}
                             <div className="flex items-center justify-start">

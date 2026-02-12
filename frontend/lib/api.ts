@@ -12,6 +12,8 @@ export interface User {
   balance: number;
   is_admin: boolean;
   created_at: string;
+  phone_number: string | null;
+  whatsapp_opted_in: boolean;
 }
 
 export interface Selection {
@@ -96,6 +98,9 @@ export interface StandingEntry {
   legs_for: number;
   legs_against: number;
   leg_diff: number;
+  remaining?: number;
+  score?: number;
+  tiebreaks?: number;
 }
 
 export interface CompletedMatch {
@@ -142,6 +147,51 @@ export interface EnterResultResponse {
   score: string;
   updated_ratings: PlayerRating[];
   updated_outright_odds: OutrightOdds[];
+}
+
+// Prop Market types (S7)
+export interface PropMarketPreview {
+  name: string;
+  description: string;
+  selections: { name: string; odds: number }[];
+  match_round: number;
+  match_id: number;
+}
+
+// WhatsApp types (S19)
+export interface PhoneUpdateResponse {
+  message: string;
+  phone_number: string;
+  whatsapp_opted_in: boolean;
+}
+
+export interface WhatsAppLog {
+  id: number;
+  user_id: number | null;
+  message_type: string;
+  template_name: string;
+  status: string;
+  meta_message_id: string | null;
+  created_at: string;
+}
+
+export interface WhatsAppSendResult {
+  message: string;
+  sent: number;
+  failed: number;
+}
+
+// Match Stats types (S9)
+export interface MatchStats {
+  match_id: number;
+  player1: string;
+  player2: string;
+  total_180s: number | null;
+  highest_checkout: number | null;
+  p1_180: boolean;
+  p2_180: boolean;
+  p1_ton_checkout: boolean;
+  p2_ton_checkout: boolean;
 }
 
 class ApiClient {
@@ -301,10 +351,13 @@ class ApiClient {
     return this.fetch<ScheduledMatch[]>('/admin/scheduled-matches');
   }
 
-  async enterResult(matchId: number, score1: number, score2: number, winner: string): Promise<EnterResultResponse> {
+  async enterResult(
+    matchId: number, score1: number, score2: number, winner: string,
+    propData?: { total_180s?: number; highest_checkout?: number; p1_180?: boolean; p2_180?: boolean; p1_ton_checkout?: boolean; p2_ton_checkout?: boolean }
+  ): Promise<EnterResultResponse> {
     return this.fetch<EnterResultResponse>('/admin/enter-result', {
       method: 'POST',
-      body: JSON.stringify({ match_id: matchId, score1, score2, winner }),
+      body: JSON.stringify({ match_id: matchId, score1, score2, winner, ...propData }),
     });
   }
 
@@ -314,6 +367,67 @@ class ApiClient {
 
   async getCurrentOdds(): Promise<OutrightOdds[]> {
     return this.fetch<OutrightOdds[]>('/admin/current-odds');
+  }
+
+  // Prop Markets (S7)
+  async getPropMarkets(matchId?: number, status?: string): Promise<Market[]> {
+    const params = new URLSearchParams();
+    if (matchId) params.append('match_id', matchId.toString());
+    if (status) params.append('status', status);
+    const qs = params.toString();
+    return this.fetch<Market[]>(`/prop-markets${qs ? '?' + qs : ''}`);
+  }
+
+  async previewPropMarkets(matchId: number): Promise<PropMarketPreview[]> {
+    return this.fetch<PropMarketPreview[]>(`/prop-markets/preview/${matchId}`);
+  }
+
+  async generatePropMarkets(matchId: number): Promise<Market[]> {
+    return this.fetch<Market[]>('/admin/prop-markets/generate', {
+      method: 'POST',
+      body: JSON.stringify({ match_id: matchId }),
+    });
+  }
+
+  // Match Stats (S9)
+  async getMatchStats(matchId: number): Promise<MatchStats> {
+    return this.fetch<MatchStats>(`/tournament/match-stats/${matchId}`);
+  }
+
+  async updateMatchStats(matchId: number, data: Partial<MatchStats>): Promise<MatchStats> {
+    return this.fetch<MatchStats>(`/admin/match-stats/${matchId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Phone / WhatsApp (S19)
+  async updatePhone(phoneNumber: string): Promise<PhoneUpdateResponse> {
+    return this.fetch<PhoneUpdateResponse>('/auth/phone', {
+      method: 'PUT',
+      body: JSON.stringify({ phone_number: phoneNumber }),
+    });
+  }
+
+  async removePhone(): Promise<void> {
+    await this.fetch('/auth/phone', { method: 'DELETE' });
+  }
+
+  async setWhatsAppOptIn(optedIn: boolean): Promise<PhoneUpdateResponse> {
+    return this.fetch<PhoneUpdateResponse>('/auth/whatsapp-opt-in', {
+      method: 'PUT',
+      body: JSON.stringify({ opted_in: optedIn }),
+    });
+  }
+
+  async sendWhatsApp(template: string): Promise<WhatsAppSendResult> {
+    return this.fetch<WhatsAppSendResult>(`/admin/whatsapp/send-${template}`, {
+      method: 'POST',
+    });
+  }
+
+  async getWhatsAppLogs(limit: number = 50): Promise<WhatsAppLog[]> {
+    return this.fetch<WhatsAppLog[]>(`/admin/whatsapp/logs?limit=${limit}`);
   }
 }
 
