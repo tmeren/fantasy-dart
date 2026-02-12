@@ -121,15 +121,18 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
     }
     setShow(true);
   };
+  const lines = text.split('\n');
   return (
     <span ref={ref} className="inline-block cursor-help" onMouseEnter={handleEnter} onMouseLeave={() => setShow(false)}>
       {children}
       {show && typeof document !== 'undefined' && createPortal(
         <div
           style={{ position: 'fixed', left: pos.x, top: pos.y - 8, transform: 'translate(-50%, -100%)' }}
-          className="z-[9999] px-3 py-2 text-xs text-dark-200 bg-dark-800 border border-dark-600 rounded-lg shadow-xl max-w-[18rem] text-left pointer-events-none whitespace-normal"
+          className="z-[9999] px-3 py-2 text-xs text-dark-200 bg-dark-800 border border-dark-600 rounded-lg shadow-xl max-w-[20rem] text-left pointer-events-none whitespace-normal"
         >
-          {text}
+          {lines.length > 1 ? lines.map((line, i) => (
+            <div key={i} className={i === 0 ? 'font-semibold text-white' : 'text-dark-300 mt-0.5'}>{line}</div>
+          )) : text}
         </div>,
         document.body
       )}
@@ -448,6 +451,16 @@ export default function Tournament() {
                         const winPct = s.played > 0 ? ((s.wins / s.played) * 100).toFixed(0) : '0';
                         const playerRating = ratingsByPlayer[s.player];
                         const elo = playerRating ? playerRating.elo.toFixed(0) : '—';
+                        const name = shortName(s.player);
+                        // Per-player formula tooltips with actual data
+                        const winPctFormula = locale === 'tr'
+                          ? `${name}: ${s.wins} / ${s.played} × 100 = ${winPct}%\n(Galibiyetler / Oynanan Maçlar × 100)`
+                          : `${name}: ${s.wins} / ${s.played} × 100 = ${winPct}%\n(Wins / Matches Played × 100)`;
+                        const eloFormula = playerRating
+                          ? locale === 'tr'
+                            ? `${name}: ${elo} Elo\n${playerRating.wins}G ${playerRating.losses}M ${playerRating.draws}B (${playerRating.games_played} maç)\nΔR = K_eff × MOV × (S − E)\nK_eff = 32 × azalma(${playerRating.games_played}) × faz(tur)`
+                            : `${name}: ${elo} Elo\n${playerRating.wins}W ${playerRating.losses}L ${playerRating.draws}D (${playerRating.games_played} games)\nΔR = K_eff × MOV × (S − E)\nK_eff = 32 × decay(${playerRating.games_played}) × phase(round)`
+                          : '—';
                         return (
                           <tr key={s.player} className={`border-b border-dark-800 last:border-0 ${s.rank <= 8 ? 'bg-green-900/10' : ''}`}>
                             <td className="py-3">
@@ -455,7 +468,7 @@ export default function Tournament() {
                                 s.rank <= 8 ? 'bg-green-500/20 text-green-400' : 'bg-dark-700 text-dark-400'
                               }`}>{s.rank}</span>
                             </td>
-                            <td className="py-3 font-medium">{shortName(s.player)}</td>
+                            <td className="py-3 font-medium">{name}</td>
                             <td className="py-3">
                               <div className="flex justify-center">
                                 <FormBoxes player={s.player} results={dateFilteredResults} />
@@ -473,14 +486,14 @@ export default function Tournament() {
                               s.leg_diff > 0 ? 'text-green-400' : s.leg_diff < 0 ? 'text-red-400' : 'text-dark-400'
                             }`}>{s.leg_diff > 0 ? '+' : ''}{s.leg_diff}</td>
                             <td className="py-3 text-center hidden sm:table-cell">
-                              <Tooltip text={t('tournament.winPctTooltip')}>
+                              <Tooltip text={winPctFormula}>
                                 <span className={`px-2 py-0.5 rounded text-xs ${
                                   Number(winPct) >= 60 ? 'bg-green-500/20 text-green-400' : Number(winPct) >= 40 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
                                 }`}>{winPct}%</span>
                               </Tooltip>
                             </td>
                             <td className="py-3 text-center hidden md:table-cell">
-                              <Tooltip text={t('tournament.eloTooltip')}>
+                              <Tooltip text={eloFormula}>
                                 <span className={`font-bold text-sm ${eloColorClass(Number(elo))}`}>{elo}</span>
                               </Tooltip>
                             </td>
