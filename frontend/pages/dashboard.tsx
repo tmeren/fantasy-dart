@@ -1,59 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
-import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
+import { useLanguage } from '@/lib/LanguageContext';
 import { api, Market, Bet, Activity } from '@/lib/api';
 import { useBetslip } from '@/lib/BetslipContext';
 import { shortName } from '@/lib/i18n';
+import Navbar from '@/components/Navbar';
 import Link from 'next/link';
-
-function Navbar() {
-  const { user, logout } = useAuth();
-  const { t } = useLanguage();
-  const router = useRouter();
-
-  return (
-    <nav className="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/dashboard" className="text-xl font-bold text-primary-400">
-          {t('nav.brand')}
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link href="/markets" className="text-dark-300 hover:text-white transition-colors">
-            {t('nav.markets')}
-          </Link>
-          <Link href="/leaderboard" className="text-dark-300 hover:text-white transition-colors">
-            {t('nav.leaderboard')}
-          </Link>
-          <Link href="/tournament" className="text-dark-300 hover:text-white transition-colors">
-            {t('nav.tournament')}
-          </Link>
-          <Link href="/activity" className="text-dark-300 hover:text-white transition-colors">
-            {t('nav.liveFeed')}
-          </Link>
-          <Link href="/academy" className="text-dark-300 hover:text-white transition-colors">
-            {t('nav.academy')}
-          </Link>
-          {user?.is_admin && (
-            <Link href="/admin" className="text-yellow-400 hover:text-yellow-300 transition-colors">
-              {t('nav.admin')}
-            </Link>
-          )}
-          <LanguageToggle />
-          <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
-            <div className="text-right">
-              <div className="text-sm text-dark-400">{user?.name}</div>
-              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
-            </div>
-            <button onClick={logout} className="text-dark-400 hover:text-red-400 transition-colors">
-              {t('nav.logout')}
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 /** Clickable odds for dashboard market cards (S3+S12) */
 function DashboardOdds({ market }: { market: Market }) {
@@ -182,7 +135,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-dark-950">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full px-4 py-6 max-w-7xl mx-auto">
         {error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-between">
             <span className="text-red-400">{error}</span>
@@ -197,7 +150,7 @@ export default function Dashboard() {
           <p className="text-dark-400">{t('dashboard.subtitle')}</p>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
           <div className="card">
             <div className="text-dark-400 text-sm">{t('dashboard.balance')}</div>
             <div className="text-3xl font-bold text-primary-400">{user.balance.toFixed(0)}</div>

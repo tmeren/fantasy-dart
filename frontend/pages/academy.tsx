@@ -1,43 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
-import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
+import { useLanguage } from '@/lib/LanguageContext';
 import { TranslationKey } from '@/lib/i18n';
+import Navbar from '@/components/Navbar';
 import Link from 'next/link';
-
-/* ── Navbar (consistent with other pages) ── */
-function Navbar() {
-  const { user, logout } = useAuth();
-  const { t } = useLanguage();
-
-  return (
-    <nav className="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/dashboard" className="text-xl font-bold text-primary-400">
-          {t('nav.brand')}
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link href="/markets" className="text-dark-300 hover:text-white">{t('nav.markets')}</Link>
-          <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
-          <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
-          <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
-          <Link href="/academy" className="text-white font-medium">{t('nav.academy')}</Link>
-          {user?.is_admin && <Link href="/admin" className="text-yellow-400">{t('nav.admin')}</Link>}
-          <LanguageToggle />
-          <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
-            <div className="text-right">
-              <div className="text-sm text-dark-400">{user?.name}</div>
-              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
-            </div>
-            <button onClick={logout} className="text-dark-400 hover:text-red-400 transition-colors">
-              {t('nav.logout')}
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 /* ── Topic data ── */
 interface Topic {
@@ -165,7 +132,7 @@ export default function Academy() {
         <div className="absolute top-1/3 -right-32 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px]" />
       </div>
 
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
+      <div className="w-full px-4 py-6 sm:py-12 max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-black mb-4">

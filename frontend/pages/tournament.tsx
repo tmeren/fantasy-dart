@@ -7,6 +7,7 @@ import { shortName, TranslationKey } from '@/lib/i18n';
 import { eloToOdds, eloColorClass, eloBgClass, winPctBgClass, FormBoxes } from '@/lib/tournament-utils';
 import { api, StandingEntry, PlayerRating, CompletedMatch, ScheduledMatch } from '@/lib/api';
 import { useBetslip } from '@/lib/BetslipContext';
+import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 
 // ── Round date mapping ──────────────────────────────────────────────────────
@@ -237,34 +238,7 @@ function StandingsChart({
   );
 }
 
-// ── Navbar ──────────────────────────────────────────────────────────────────
-function Navbar() {
-  const { user, logout } = useAuth();
-  const { t } = useLanguage();
-  return (
-    <nav className="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3.5 flex items-center justify-between">
-        <Link href="/dashboard" className="text-2xl font-extrabold text-primary-400">{t('nav.brand')}</Link>
-        <div className="flex items-center gap-6">
-          <Link href="/markets" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.markets')}</Link>
-          <Link href="/leaderboard" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.leaderboard')}</Link>
-          <Link href="/tournament" className="text-white font-bold text-base">{t('nav.tournament')}</Link>
-          <Link href="/activity" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.liveFeed')}</Link>
-          <Link href="/academy" className="text-dark-300 hover:text-white text-base font-medium">{t('nav.academy')}</Link>
-          {user?.is_admin && <Link href="/admin" className="text-yellow-400 text-base font-medium">{t('nav.admin')}</Link>}
-          <LanguageToggle />
-          <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
-            <div className="text-right">
-              <div className="text-sm text-dark-400 font-medium">{user?.name}</div>
-              <div className="text-primary-400 font-bold text-base">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
-            </div>
-            <button onClick={logout} className="text-dark-400 hover:text-red-400 font-medium">{t('nav.logout')}</button>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-}
+// ── Navbar (shared component) ───────────────────────────────────────────────
 
 // ── Main component ──────────────────────────────────────────────────────────
 type Tab = 'standings' | 'upcoming' | 'results';
@@ -414,9 +388,9 @@ export default function Tournament() {
   return (
     <div className="min-h-screen bg-dark-950">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-extrabold mb-3">{t('tournament.title')}</h1>
-        <p className="text-dark-300 text-lg mb-8">
+      <div className="w-full px-4 py-6 max-w-7xl mx-auto">
+        <h1 className="text-2xl sm:text-4xl font-extrabold mb-3">{t('tournament.title')}</h1>
+        <p className="text-dark-300 text-sm sm:text-lg mb-6 sm:mb-8">
           {t('tournament.totalMatches')}: <span className="text-white font-semibold">{results.length + upcoming.length}</span> &nbsp;·&nbsp; {t('tournament.completedMatches')}: <span className="text-white font-semibold">{results.length}</span> ({t('tournament.throughRound')} {maxRound}) &nbsp;·&nbsp; {t('tournament.remainingMatches')}: <span className="text-white font-semibold">{upcoming.length}</span>
         </p>
 
@@ -586,7 +560,7 @@ export default function Tournament() {
                       <span className="ml-2 text-sm text-primary-400 font-semibold">{formatGameNight(round, locale)}</span>
                     </h3>
                     <div
-                      className="grid items-center py-2 mb-1"
+                      className="hidden lg:grid items-center py-2 mb-1"
                       style={{ gridTemplateColumns: '1fr 5rem 4rem 10rem 17rem 10rem 4rem 5rem 1fr' }}
                     >
                       <div className="text-right pr-4 text-xs uppercase tracking-wide text-dark-500 font-semibold">{t('tournament.player')}</div>
@@ -645,55 +619,76 @@ export default function Tournament() {
                             : `${p2Name}: ${p2s.wins} / ${p2s.played} × 100 = ${p2WinPctNum}%\n(Wins / Matches Played × 100)`
                           : '—';
                         return (
-                          <div key={m.match_id}
-                            className="grid items-center py-3.5 rounded-lg bg-dark-800/50"
-                            style={{ gridTemplateColumns: '1fr 5rem 4rem 10rem 17rem 10rem 4rem 5rem 1fr' }}
-                          >
-                            {/* P1 Name — right-aligned toward center */}
-                            <div className="flex items-center justify-end pl-4 overflow-hidden">
-                              <span className="font-bold text-lg truncate">{p1Name}</span>
+                          <div key={m.match_id}>
+                            {/* Desktop: full 9-column grid */}
+                            <div
+                              className="hidden lg:grid items-center py-3.5 rounded-lg bg-dark-800/50"
+                              style={{ gridTemplateColumns: '1fr 5rem 4rem 10rem 17rem 10rem 4rem 5rem 1fr' }}
+                            >
+                              <div className="flex items-center justify-end pl-4 overflow-hidden">
+                                <span className="font-bold text-lg truncate">{p1Name}</span>
+                              </div>
+                              <div className="flex items-center justify-center">
+                                <Tooltip text={p1EloTip}>
+                                  <span className={`px-2 py-1 rounded-md text-base font-bold ${eloBgClass(p1Elo)}`}>{p1EloStr}</span>
+                                </Tooltip>
+                              </div>
+                              <div className="flex items-center justify-center">
+                                <Tooltip text={p1WinTip}>
+                                  <span className={`px-1.5 py-1 rounded-md text-base font-bold ${winPctBgClass(p1WinPctNum)}`}>{p1WinPctNum}%</span>
+                                </Tooltip>
+                              </div>
+                              <div className="flex items-center justify-end">
+                                <FormBoxes player={m.player1} results={dateFilteredResults} />
+                              </div>
+                              <div className="flex items-center justify-center gap-2.5">
+                                <OddsButton label={odds1} player={m.player1} matchId={m.match_id} />
+                                <span className="text-dark-400 text-sm whitespace-nowrap font-medium">{formatGameNight(round, locale)}</span>
+                                <OddsButton label={odds2} player={m.player2} matchId={m.match_id} />
+                              </div>
+                              <div className="flex items-center justify-start">
+                                <FormBoxes player={m.player2} results={dateFilteredResults} />
+                              </div>
+                              <div className="flex items-center justify-center">
+                                <Tooltip text={p2WinTip}>
+                                  <span className={`px-1.5 py-1 rounded-md text-base font-bold ${winPctBgClass(p2WinPctNum)}`}>{p2WinPctNum}%</span>
+                                </Tooltip>
+                              </div>
+                              <div className="flex items-center justify-center">
+                                <Tooltip text={p2EloTip}>
+                                  <span className={`px-2 py-1 rounded-md text-base font-bold ${eloBgClass(p2Elo)}`}>{p2EloStr}</span>
+                                </Tooltip>
+                              </div>
+                              <div className="flex items-center pr-4 overflow-hidden">
+                                <span className="font-bold text-lg truncate">{p2Name}</span>
+                              </div>
                             </div>
-                            {/* P1 Elo */}
-                            <div className="flex items-center justify-center">
-                              <Tooltip text={p1EloTip}>
-                                <span className={`px-2 py-1 rounded-md text-base font-bold ${eloBgClass(p1Elo)}`}>{p1EloStr}</span>
-                              </Tooltip>
-                            </div>
-                            {/* P1 Win% */}
-                            <div className="flex items-center justify-center">
-                              <Tooltip text={p1WinTip}>
-                                <span className={`px-1.5 py-1 rounded-md text-base font-bold ${winPctBgClass(p1WinPctNum)}`}>{p1WinPctNum}%</span>
-                              </Tooltip>
-                            </div>
-                            {/* P1 Form — right-aligned */}
-                            <div className="flex items-center justify-end">
-                              <FormBoxes player={m.player1} results={dateFilteredResults} />
-                            </div>
-                            {/* Center: Odds — Date — Odds (clickable → betslip) */}
-                            <div className="flex items-center justify-center gap-2.5">
-                              <OddsButton label={odds1} player={m.player1} matchId={m.match_id} />
-                              <span className="text-dark-400 text-sm whitespace-nowrap font-medium">{formatGameNight(round, locale)}</span>
-                              <OddsButton label={odds2} player={m.player2} matchId={m.match_id} />
-                            </div>
-                            {/* P2 Form — left-aligned */}
-                            <div className="flex items-center justify-start">
-                              <FormBoxes player={m.player2} results={dateFilteredResults} />
-                            </div>
-                            {/* P2 Win% */}
-                            <div className="flex items-center justify-center">
-                              <Tooltip text={p2WinTip}>
-                                <span className={`px-1.5 py-1 rounded-md text-base font-bold ${winPctBgClass(p2WinPctNum)}`}>{p2WinPctNum}%</span>
-                              </Tooltip>
-                            </div>
-                            {/* P2 Elo */}
-                            <div className="flex items-center justify-center">
-                              <Tooltip text={p2EloTip}>
-                                <span className={`px-2 py-1 rounded-md text-base font-bold ${eloBgClass(p2Elo)}`}>{p2EloStr}</span>
-                              </Tooltip>
-                            </div>
-                            {/* P2 Name — left-aligned */}
-                            <div className="flex items-center pr-4 overflow-hidden">
-                              <span className="font-bold text-lg truncate">{p2Name}</span>
+                            {/* Mobile: compact card */}
+                            <div className="lg:hidden p-3 rounded-lg bg-dark-800/50 space-y-2">
+                              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3">
+                                <div className="text-right font-bold text-base">{p1Name}</div>
+                                <div className="text-dark-500 text-xs font-bold">VS</div>
+                                <div className="text-left font-bold text-base">{p2Name}</div>
+                              </div>
+                              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3">
+                                <div className="flex items-center justify-end gap-1">
+                                  <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${winPctBgClass(p1WinPctNum)}`}>{p1WinPctNum}%</span>
+                                  <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${eloBgClass(p1Elo)}`}>{p1EloStr}</span>
+                                </div>
+                                <div className="flex gap-1.5 justify-center">
+                                  <OddsButton label={odds1} player={m.player1} matchId={m.match_id} />
+                                  <OddsButton label={odds2} player={m.player2} matchId={m.match_id} />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${eloBgClass(p2Elo)}`}>{p2EloStr}</span>
+                                  <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${winPctBgClass(p2WinPctNum)}`}>{p2WinPctNum}%</span>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3">
+                                <div className="flex justify-end"><FormBoxes player={m.player1} results={dateFilteredResults} /></div>
+                                <div />
+                                <div className="flex justify-start"><FormBoxes player={m.player2} results={dateFilteredResults} /></div>
+                              </div>
                             </div>
                           </div>
                         );

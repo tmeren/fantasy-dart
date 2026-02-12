@@ -1,42 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
-import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
+import { useLanguage } from '@/lib/LanguageContext';
 import { shortName } from '@/lib/i18n';
 import { api, Market, Bet, PlayerRating, CompletedMatch } from '@/lib/api';
 import { useBetslip } from '@/lib/BetslipContext';
 import { eloBgClass, winPctBgClass, FormBoxes } from '@/lib/tournament-utils';
+import Navbar from '@/components/Navbar';
 import Link from 'next/link';
-
-function Navbar() {
-  const { user, logout } = useAuth();
-  const { t } = useLanguage();
-  return (
-    <nav className="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/dashboard" className="text-xl font-bold text-primary-400">
-          {t('nav.brand')}
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link href="/markets" className="text-dark-300 hover:text-white">{t('nav.markets')}</Link>
-          <Link href="/leaderboard" className="text-dark-300 hover:text-white">{t('nav.leaderboard')}</Link>
-          <Link href="/tournament" className="text-dark-300 hover:text-white">{t('nav.tournament')}</Link>
-          <Link href="/activity" className="text-dark-300 hover:text-white">{t('nav.liveFeed')}</Link>
-          <Link href="/academy" className="text-dark-300 hover:text-white">{t('nav.academy')}</Link>
-          {user?.is_admin && <Link href="/admin" className="text-yellow-400">{t('nav.admin')}</Link>}
-          <LanguageToggle />
-          <div className="flex items-center gap-3 pl-4 border-l border-dark-700">
-            <div className="text-right">
-              <div className="text-sm text-dark-400">{user?.name}</div>
-              <div className="text-primary-400 font-bold">{user?.balance.toFixed(0)} {t('nav.tokens')}</div>
-            </div>
-            <button onClick={logout} className="text-dark-400 hover:text-red-400">{t('nav.logout')}</button>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 /** Elo bar component for match-type market selections */
 function EloBar({ playerName, ratings }: { playerName: string; ratings: PlayerRating[] }) {
@@ -128,7 +99,7 @@ export default function MarketDetail() {
   return (
     <div className="min-h-screen bg-dark-950">
       <Navbar />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="w-full px-4 py-6 max-w-4xl mx-auto">
         <Link href="/markets" className="text-primary-400 hover:underline mb-4 inline-block">
           {t('marketDetail.backToMarkets')}
         </Link>
