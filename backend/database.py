@@ -261,6 +261,24 @@ def migrate_add_columns():
     if "consent_timestamp" not in existing:
         migrations.append("ALTER TABLE users ADD COLUMN consent_timestamp TIMESTAMP")
 
+    # Matches table — prop data collection columns (S9)
+    if inspector.has_table("matches"):
+        match_cols = {c["name"] for c in inspector.get_columns("matches")}
+        if "total_180s" not in match_cols:
+            migrations.append("ALTER TABLE matches ADD COLUMN total_180s INTEGER")
+        if "highest_checkout" not in match_cols:
+            migrations.append("ALTER TABLE matches ADD COLUMN highest_checkout INTEGER")
+        if "p1_180" not in match_cols:
+            migrations.append("ALTER TABLE matches ADD COLUMN p1_180 BOOLEAN DEFAULT FALSE")
+        if "p2_180" not in match_cols:
+            migrations.append("ALTER TABLE matches ADD COLUMN p2_180 BOOLEAN DEFAULT FALSE")
+        if "p1_ton_checkout" not in match_cols:
+            migrations.append("ALTER TABLE matches ADD COLUMN p1_ton_checkout BOOLEAN DEFAULT FALSE")
+        if "p2_ton_checkout" not in match_cols:
+            migrations.append("ALTER TABLE matches ADD COLUMN p2_ton_checkout BOOLEAN DEFAULT FALSE")
+        if "is_draw" not in match_cols:
+            migrations.append("ALTER TABLE matches ADD COLUMN is_draw BOOLEAN DEFAULT FALSE")
+
     if migrations:
         with engine.connect() as conn:
             for sql in migrations:
