@@ -260,6 +260,10 @@ def migrate_add_columns():
         migrations.append("ALTER TABLE users ADD COLUMN whatsapp_consent BOOLEAN DEFAULT FALSE")
     if "consent_timestamp" not in existing:
         migrations.append("ALTER TABLE users ADD COLUMN consent_timestamp TIMESTAMP")
+    if "phone_number" not in existing:
+        migrations.append("ALTER TABLE users ADD COLUMN phone_number VARCHAR(255)")
+    if "whatsapp_opted_in" not in existing:
+        migrations.append("ALTER TABLE users ADD COLUMN whatsapp_opted_in BOOLEAN DEFAULT FALSE")
 
     # Matches table — prop data collection columns (S9)
     if inspector.has_table("matches"):
