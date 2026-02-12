@@ -71,8 +71,15 @@ class User(Base):
     magic_token = Column(String(255), nullable=True)
     magic_token_expires = Column(DateTime, nullable=True)
 
+    # Consent fields (GDPR/KVKK — S18)
+    privacy_consent = Column(Boolean, default=False)
+    terms_consent = Column(Boolean, default=False)
+    age_confirmed = Column(Boolean, default=False)
+    whatsapp_consent = Column(Boolean, default=False)
+    consent_timestamp = Column(DateTime, nullable=True)
+
     # WhatsApp fields (S19)
-    phone_number = Column(String(20), nullable=True)
+    phone_number = Column(String(255), nullable=True)  # Fernet-encrypted (S18)
     whatsapp_opted_in = Column(Boolean, default=False)
 
     # Relationships
@@ -126,7 +133,9 @@ class Bet(Base):
     __tablename__ = "bets"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )  # nullable for GDPR anonymization
     selection_id = Column(Integer, ForeignKey("selections.id"), nullable=False)
     stake = Column(Float, nullable=False)
     odds_at_time = Column(
@@ -231,6 +240,32 @@ class QuizResponse(Base):
 def create_tables():
     """Create all database tables."""
     Base.metadata.create_all(bind=engine)
+
+
+def migrate_add_columns():
+    """Add missing columns to existing tables (lightweight migration for side-project)."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    existing = {c["name"] for c in inspector.get_columns("users")}
+
+    migrations = []
+    if "privacy_consent" not in existing:
+        migrations.append("ALTER TABLE users ADD COLUMN privacy_consent BOOLEAN DEFAULT 0")
+    if "terms_consent" not in existing:
+        migrations.append("ALTER TABLE users ADD COLUMN terms_consent BOOLEAN DEFAULT 0")
+    if "age_confirmed" not in existing:
+        migrations.append("ALTER TABLE users ADD COLUMN age_confirmed BOOLEAN DEFAULT 0")
+    if "whatsapp_consent" not in existing:
+        migrations.append("ALTER TABLE users ADD COLUMN whatsapp_consent BOOLEAN DEFAULT 0")
+    if "consent_timestamp" not in existing:
+        migrations.append("ALTER TABLE users ADD COLUMN consent_timestamp DATETIME")
+
+    if migrations:
+        with engine.connect() as conn:
+            for sql in migrations:
+                conn.execute(text(sql))
+            conn.commit()
 
 
 def get_db():

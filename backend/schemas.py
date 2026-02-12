@@ -13,6 +13,10 @@ from pydantic import BaseModel, EmailStr
 class UserCreate(BaseModel):
     email: EmailStr
     name: str
+    privacy_consent: bool = False
+    terms_consent: bool = False
+    age_confirmed: bool = False
+    whatsapp_consent: bool = False
 
 
 class UserLogin(BaseModel):
@@ -28,6 +32,10 @@ class UserResponse(BaseModel):
     created_at: datetime
     phone_number: str | None = None
     whatsapp_opted_in: bool = False
+    privacy_consent: bool = False
+    terms_consent: bool = False
+    age_confirmed: bool = False
+    whatsapp_consent: bool = False
 
     class Config:
         from_attributes = True

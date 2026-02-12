@@ -1,7 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { useAuth } from './_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
+
+/** Parse i18n strings containing <link>...</link> and render as Next.js Link */
+function renderLinked(text: string, href: string): ReactNode {
+  const match = text.match(/^(.*?)<link>(.*?)<\/link>(.*)$/);
+  if (!match) return text;
+  const [, before, linkText, after] = match;
+  return (
+    <>
+      {before}
+      <Link href={href} className="text-primary-400 hover:underline" target="_blank" onClick={(e) => e.stopPropagation()}>
+        {linkText}
+      </Link>
+      {after}
+    </>
+  );
+}
 
 /** Generate deterministic star positions (CSS-only twinkle via globals.css) */
 function useStars(count: number) {
@@ -28,6 +45,9 @@ export default function Home() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [termsConsent, setTermsConsent] = useState(false);
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
   const stars = useStars(40);
 
   // Scroll-reveal observer
@@ -65,12 +85,21 @@ export default function Home() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ageConfirmed) {
-      setError('You must confirm you are 18+ to continue');
+      setError(t('landing.ageRequired'));
+      return;
+    }
+    if (!privacyConsent || !termsConsent) {
+      setError(t('landing.consentRequired'));
       return;
     }
     setError('');
     try {
-      await register(email, name);
+      await register(email, name, {
+        privacy_consent: privacyConsent,
+        terms_consent: termsConsent,
+        age_confirmed: ageConfirmed,
+        whatsapp_consent: whatsappConsent,
+      });
       router.push('/welcome');
     } catch (err: any) {
       setError(err.message);
@@ -229,7 +258,7 @@ export default function Home() {
                     className="input mb-4"
                     required
                   />
-                  <label className="flex items-start gap-3 mb-4 text-left cursor-pointer">
+                  <label className="flex items-start gap-3 mb-3 text-left cursor-pointer">
                     <input
                       type="checkbox"
                       checked={ageConfirmed}
@@ -238,6 +267,39 @@ export default function Home() {
                     />
                     <span className="text-sm text-dark-300">
                       {t('landing.ageConfirm')}
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 mb-3 text-left cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={privacyConsent}
+                      onChange={(e) => setPrivacyConsent(e.target.checked)}
+                      className="mt-1 accent-primary-500"
+                    />
+                    <span className="text-sm text-dark-300">
+                      {renderLinked(t('landing.agreePrivacy'), '/privacy')}
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 mb-3 text-left cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={termsConsent}
+                      onChange={(e) => setTermsConsent(e.target.checked)}
+                      className="mt-1 accent-primary-500"
+                    />
+                    <span className="text-sm text-dark-300">
+                      {renderLinked(t('landing.agreeTerms'), '/terms')}
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 mb-4 text-left cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={whatsappConsent}
+                      onChange={(e) => setWhatsappConsent(e.target.checked)}
+                      className="mt-1 accent-primary-500"
+                    />
+                    <span className="text-sm text-dark-400">
+                      {t('landing.agreeWhatsapp')}
                     </span>
                   </label>
                   {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
@@ -362,7 +424,7 @@ export default function Home() {
       )}
 
       {/* Disclaimer */}
-      <div className="relative container mx-auto px-4 pb-20">
+      <div className="relative container mx-auto px-4 pb-12">
         <div className="max-w-3xl mx-auto bg-amber-950/20 border border-amber-500/20 rounded-2xl p-6">
           <div className="flex items-start gap-3">
             <span className="text-amber-400 text-lg mt-0.5">⚠</span>
@@ -379,6 +441,21 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="relative border-t border-dark-700/50 py-6">
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-dark-500">
+          <span>{t('footer.copyright')}</span>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:text-primary-400 transition-colors">
+              {t('footer.privacy')}
+            </Link>
+            <Link href="/terms" className="hover:text-primary-400 transition-colors">
+              {t('footer.terms')}
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

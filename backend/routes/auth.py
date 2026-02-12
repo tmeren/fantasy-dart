@@ -1,11 +1,18 @@
-"""Auth routes — registration, login, magic link, profile."""
+"""Auth routes — registration, login, magic link, profile, GDPR endpoints."""
 
 import os
 import secrets
 from datetime import datetime, timedelta
 
-from database import User, get_db
-from deps import create_access_token, log_activity, require_user, STARTING_BALANCE, MAGIC_LINK_EXPIRE_MINUTES
+from crypto import decrypt_phone, encrypt_phone
+from database import Activity, Bet, Market, QuizResponse, Selection, User, WhatsAppLog, get_db
+from deps import (
+    MAGIC_LINK_EXPIRE_MINUTES,
+    STARTING_BALANCE,
+    create_access_token,
+    log_activity,
+    require_user,
+)
 from fastapi import APIRouter, Depends, HTTPException
 from phone_utils import validate_e164
 from schemas import (
@@ -39,6 +46,13 @@ async def register(data: UserCreate, db: Session = Depends(get_db)):
         name=data.name,
         balance=STARTING_BALANCE,
         is_admin=db.query(User).count() == 0,
+        privacy_consent=data.privacy_consent,
+        terms_consent=data.terms_consent,
+        age_confirmed=data.age_confirmed,
+        whatsapp_consent=data.whatsapp_consent,
+        consent_timestamp=datetime.utcnow()
+        if (data.privacy_consent or data.terms_consent)
+        else None,
     )
     db.add(user)
     db.commit()
@@ -130,8 +144,11 @@ async def verify_magic_link(data: MagicLinkVerify, db: Session = Depends(get_db)
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(user: User = Depends(require_user)):
-    """Get current user info."""
-    return user
+    """Get current user info (phone number decrypted for display)."""
+    # Decrypt phone number for the response
+    response = UserResponse.model_validate(user)
+    response.phone_number = decrypt_phone(user.phone_number) if user.phone_number else None
+    return response
 
 
 # ---- Phone / WhatsApp opt-in ----
@@ -143,13 +160,13 @@ async def update_phone(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    """Update current user's phone number (E.164 validated)."""
+    """Update current user's phone number (E.164 validated, encrypted at rest)."""
     phone = validate_e164(data.phone_number)
-    user.phone_number = phone
+    user.phone_number = encrypt_phone(phone)
     db.commit()
     return PhoneUpdateResponse(
         message="Phone number updated",
-        phone_number=user.phone_number,
+        phone_number=phone,  # Return plaintext to the user
         whatsapp_opted_in=user.whatsapp_opted_in,
     )
 
@@ -181,6 +198,127 @@ async def toggle_whatsapp_opt_in(
     db.commit()
     return PhoneUpdateResponse(
         message=f"WhatsApp {'enabled' if data.opted_in else 'disabled'}",
-        phone_number=user.phone_number or "",
+        phone_number=decrypt_phone(user.phone_number) if user.phone_number else "",
         whatsapp_opted_in=user.whatsapp_opted_in,
     )
+
+
+# ---- GDPR / KVKK Endpoints (S18) ----
+
+
+@router.get("/me/export", tags=["gdpr"])
+async def export_my_data(
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Export all personal data (GDPR Article 20 — data portability).
+
+    Returns a JSON object containing all data categories associated with the user.
+    """
+    # Collect bets with market context
+    bets_data = []
+    for bet in db.query(Bet).filter(Bet.user_id == user.id).all():
+        selection = db.query(Selection).filter(Selection.id == bet.selection_id).first()
+        market = (
+            db.query(Market).filter(Market.id == selection.market_id).first() if selection else None
+        )
+        bets_data.append(
+            {
+                "id": bet.id,
+                "market": market.name if market else "Unknown",
+                "selection": selection.name if selection else "Unknown",
+                "stake": bet.stake,
+                "odds_at_time": bet.odds_at_time,
+                "potential_win": bet.potential_win,
+                "actual_payout": bet.actual_payout,
+                "status": bet.status.value if bet.status else None,
+                "created_at": bet.created_at.isoformat() if bet.created_at else None,
+            }
+        )
+
+    # Collect activities
+    activities_data = []
+    for act in db.query(Activity).filter(Activity.user_id == user.id).all():
+        activities_data.append(
+            {
+                "type": act.activity_type,
+                "message": act.message,
+                "created_at": act.created_at.isoformat() if act.created_at else None,
+            }
+        )
+
+    # Collect WhatsApp logs
+    wa_logs = []
+    for log in db.query(WhatsAppLog).filter(WhatsAppLog.user_id == user.id).all():
+        wa_logs.append(
+            {
+                "message_type": log.message_type,
+                "template_name": log.template_name,
+                "status": log.status,
+                "created_at": log.created_at.isoformat() if log.created_at else None,
+            }
+        )
+
+    return {
+        "export_format": "GDPR Article 20 — Personal Data Export",
+        "exported_at": datetime.utcnow().isoformat(),
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "balance": user.balance,
+            "is_admin": user.is_admin,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "last_login": user.last_login.isoformat() if user.last_login else None,
+            "phone_number": decrypt_phone(user.phone_number) if user.phone_number else None,
+            "whatsapp_opted_in": user.whatsapp_opted_in,
+            "privacy_consent": user.privacy_consent,
+            "terms_consent": user.terms_consent,
+            "age_confirmed": user.age_confirmed,
+            "whatsapp_consent": user.whatsapp_consent,
+            "consent_timestamp": user.consent_timestamp.isoformat()
+            if user.consent_timestamp
+            else None,
+        },
+        "predictions": bets_data,
+        "activity_log": activities_data,
+        "whatsapp_logs": wa_logs,
+    }
+
+
+@router.delete("/me", tags=["gdpr"])
+async def delete_my_account(
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """Delete account and personal data (GDPR Article 17 — right to erasure).
+
+    Anonymizes bet history to preserve game integrity, then deletes the user account.
+    """
+    user_id = user.id
+    user_name = user.name
+
+    # Anonymize bets (keep for game integrity, remove personal identifiers)
+    db.query(Bet).filter(Bet.user_id == user_id).update(
+        {Bet.user_id: None}, synchronize_session="fetch"
+    )
+
+    # Delete activities referencing this user
+    db.query(Activity).filter(Activity.user_id == user_id).delete(synchronize_session="fetch")
+
+    # Delete WhatsApp logs
+    db.query(WhatsAppLog).filter(WhatsAppLog.user_id == user_id).delete(synchronize_session="fetch")
+
+    # Delete quiz responses
+    db.query(QuizResponse).filter(QuizResponse.user_id == user_id).delete(
+        synchronize_session="fetch"
+    )
+
+    # Delete the user
+    db.delete(user)
+    db.commit()
+
+    return {
+        "message": "Account deleted successfully",
+        "detail": f"All personal data for '{user_name}' has been removed. Prediction history has been anonymized.",
+    }

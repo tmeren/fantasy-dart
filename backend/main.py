@@ -7,7 +7,7 @@ Tokens have no cash value.
 
 import os
 
-from database import Activity, WhatsAppLog, create_tables, get_db
+from database import Activity, WhatsAppLog, create_tables, get_db, migrate_add_columns
 from deps import manager
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -87,6 +87,7 @@ app.include_router(admin_router)
 @app.on_event("startup")
 async def startup():
     create_tables()
+    migrate_add_columns()
     seed_matches_from_csv()
 
 

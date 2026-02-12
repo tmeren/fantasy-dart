@@ -605,6 +605,156 @@ export const translations = {
   'admin.waTemplate': { en: 'Template', tr: 'Şablon' },
   'admin.waStatus': { en: 'Status', tr: 'Durum' },
   'admin.waTime': { en: 'Time', tr: 'Zaman' },
+
+  // ── Privacy Policy Page ──
+  'privacy.title': { en: 'Privacy Policy', tr: 'Gizlilik Politikası' },
+  'privacy.lastUpdated': { en: 'Last updated: February 2026', tr: 'Son güncelleme: Şubat 2026' },
+  'privacy.backHome': { en: '← Back to Home', tr: '← Ana Sayfaya Dön' },
+
+  'privacy.s1.title': { en: '1. Data Controller', tr: '1. Veri Sorumlusu' },
+  'privacy.s1.content': {
+    en: 'Fantasy Darts is a private, non-commercial fantasy prediction platform operated for a friend group. The platform operator ("we", "us") acts as the data controller under GDPR (EU 2016/679) and KVKK (Turkish Law No. 6698). For contact details, see Section 9 below.',
+    tr: 'Fantazi Dart, bir arkadaş grubu için işletilen özel, ticari olmayan bir fantazi tahmin platformudur. Platform operatörü ("biz") GDPR (AB 2016/679) ve KVKK (6698 sayılı Kanun) kapsamında veri sorumlusu olarak hareket eder. İletişim bilgileri için aşağıdaki Bölüm 9\'a bakın.',
+  },
+
+  'privacy.s2.title': { en: '2. Data We Collect', tr: '2. Topladığımız Veriler' },
+  'privacy.s2.content': {
+    en: 'We collect and process the following personal data:\n\n• Name — to identify you on the leaderboard and in predictions\n• Email address — for authentication (login)\n• Phone number (optional) — if you opt in to WhatsApp notifications\n• Prediction activity — your RTB stakes, selections, and results\n• Technical data — browser type, IP address (server logs only, not stored long-term)',
+    tr: 'Aşağıdaki kişisel verileri topluyoruz ve işliyoruz:\n\n• İsim — sıralamada ve tahminlerde sizi tanımlamak için\n• E-posta adresi — kimlik doğrulama (giriş) için\n• Telefon numarası (isteğe bağlı) — WhatsApp bildirimlerine onay verirseniz\n• Tahmin aktivitesi — RTB taahhütleriniz, seçimleriniz ve sonuçlarınız\n• Teknik veriler — tarayıcı türü, IP adresi (sadece sunucu logları, uzun süreli saklanmaz)',
+  },
+
+  'privacy.s3.title': { en: '3. Purpose & Legal Basis', tr: '3. Amaç ve Hukuki Dayanak' },
+  'privacy.s3.content': {
+    en: 'We process your data for these purposes:\n\n• Platform operation — to run the prediction game, track scores, and display leaderboards (legal basis: legitimate interest / KVKK Art. 5(2)(f))\n• Authentication — to let you log in securely (legal basis: contract performance / KVKK Art. 5(2)(c))\n• WhatsApp notifications — match reminders, results, leaderboard updates (legal basis: your explicit consent / KVKK Art. 5(1))\n• Platform improvement — aggregate, anonymized usage analytics (legal basis: legitimate interest)',
+    tr: 'Verilerinizi şu amaçlarla işliyoruz:\n\n• Platform işletimi — tahmin oyununu yürütmek, puanları takip etmek ve sıralamayı göstermek için (hukuki dayanak: meşru menfaat / KVKK m. 5(2)(f))\n• Kimlik doğrulama — güvenli giriş yapmanız için (hukuki dayanak: sözleşmenin ifası / KVKK m. 5(2)(c))\n• WhatsApp bildirimleri — maç hatırlatmaları, sonuçlar, sıralama güncellemeleri (hukuki dayanak: açık rızanız / KVKK m. 5(1))\n• Platform iyileştirme — toplu, anonimleştirilmiş kullanım analitiği (hukuki dayanak: meşru menfaat)',
+  },
+
+  'privacy.s4.title': { en: '4. Data Retention', tr: '4. Veri Saklama Süresi' },
+  'privacy.s4.content': {
+    en: 'Your personal data is retained for the duration of the tournament season. After the season ends, account data is retained for up to 12 months to allow returning players to see historical results. You may request deletion at any time (see Section 5). Server logs containing IP addresses are automatically purged after 30 days.',
+    tr: 'Kişisel verileriniz turnuva sezonu süresince saklanır. Sezon sona erdikten sonra, geri dönen oyuncuların geçmiş sonuçları görmesine izin vermek için hesap verileri 12 aya kadar tutulur. İstediğiniz zaman silme talep edebilirsiniz (Bölüm 5\'e bakın). IP adresi içeren sunucu logları 30 gün sonra otomatik olarak silinir.',
+  },
+
+  'privacy.s5.title': { en: '5. Your Rights', tr: '5. Haklarınız' },
+  'privacy.s5.content': {
+    en: 'Under GDPR and KVKK, you have the right to:\n\n• Access — request a copy of your personal data (GDPR Art. 15 / KVKK Art. 11(b))\n• Rectification — correct inaccurate data (GDPR Art. 16 / KVKK Art. 11(c))\n• Erasure — request deletion of your data (GDPR Art. 17 / KVKK Art. 11(e))\n• Data portability — receive your data in a machine-readable format (GDPR Art. 20)\n• Withdraw consent — revoke WhatsApp notification consent at any time (GDPR Art. 7(3) / KVKK Art. 11(a))\n• Object — object to processing based on legitimate interest (GDPR Art. 21 / KVKK Art. 11(d))\n• Lodge a complaint — with the Turkish KVKK Board (kvkk.gov.tr) or your local EU Data Protection Authority\n\nTo exercise any right, contact us at the email in Section 9.',
+    tr: 'GDPR ve KVKK kapsamında şu haklara sahipsiniz:\n\n• Erişim — kişisel verilerinizin bir kopyasını talep etme (GDPR m. 15 / KVKK m. 11(b))\n• Düzeltme — yanlış verileri düzeltme (GDPR m. 16 / KVKK m. 11(c))\n• Silme — verilerinizin silinmesini talep etme (GDPR m. 17 / KVKK m. 11(e))\n• Taşınabilirlik — verilerinizi makine okunabilir formatta alma (GDPR m. 20)\n• Rızayı geri çekme — WhatsApp bildirim onayını istediğiniz zaman geri çekme (GDPR m. 7(3) / KVKK m. 11(a))\n• İtiraz — meşru menfaate dayalı işlemeye itiraz etme (GDPR m. 21 / KVKK m. 11(d))\n• Şikayet — Kişisel Verileri Koruma Kurulu\'na (kvkk.gov.tr) veya yerel AB Veri Koruma Otoritenize başvurma\n\nHerhangi bir hakkınızı kullanmak için Bölüm 9\'daki e-posta ile iletişime geçin.',
+  },
+
+  'privacy.s6.title': { en: '6. Cookies & Local Storage', tr: '6. Çerezler ve Yerel Depolama' },
+  'privacy.s6.content': {
+    en: 'We use browser local storage to store your authentication token and language preference. We do not use third-party tracking cookies, analytics scripts, or advertising trackers. No data is shared with ad networks.',
+    tr: 'Kimlik doğrulama tokeninizi ve dil tercihinizi saklamak için tarayıcı yerel depolamasını kullanıyoruz. Üçüncü taraf takip çerezleri, analitik komut dosyaları veya reklam izleyicileri kullanmıyoruz. Reklam ağlarıyla veri paylaşılmaz.',
+  },
+
+  'privacy.s7.title': { en: '7. Cross-Border Data Transfers', tr: '7. Sınır Ötesi Veri Aktarımları' },
+  'privacy.s7.content': {
+    en: 'The platform is hosted on Railway (servers in the US/EU). If you opt in to WhatsApp notifications, your phone number is transmitted to WhatsApp (Meta Platforms, Inc.) which processes data in the US and other countries under Standard Contractual Clauses. By consenting to WhatsApp notifications, you acknowledge this cross-border transfer.',
+    tr: 'Platform Railway üzerinde barındırılmaktadır (ABD/AB sunucuları). WhatsApp bildirimlerine onay verirseniz, telefon numaranız Standart Sözleşme Hükümleri kapsamında ABD ve diğer ülkelerde veri işleyen WhatsApp\'a (Meta Platforms, Inc.) iletilir. WhatsApp bildirimlerine onay vererek bu sınır ötesi aktarımı kabul etmiş olursunuz.',
+  },
+
+  'privacy.s8.title': { en: '8. Changes to This Policy', tr: '8. Bu Politikadaki Değişiklikler' },
+  'privacy.s8.content': {
+    en: 'We may update this privacy policy from time to time. Changes will be posted on this page with an updated "Last updated" date. Continued use of the platform after changes constitutes acceptance.',
+    tr: 'Bu gizlilik politikasını zaman zaman güncelleyebiliriz. Değişiklikler bu sayfada güncellenmiş "Son güncelleme" tarihi ile yayınlanacaktır. Değişikliklerden sonra platformu kullanmaya devam etmek kabul anlamına gelir.',
+  },
+
+  'privacy.s9.title': { en: '9. Contact', tr: '9. İletişim' },
+  'privacy.s9.content': {
+    en: 'For privacy-related inquiries, data access requests, or to exercise your rights, please contact the platform administrator through the group chat or via email at the address provided during registration.',
+    tr: 'Gizlilikle ilgili sorularınız, veri erişim talepleri veya haklarınızı kullanmak için lütfen grup sohbeti üzerinden veya kayıt sırasında verilen e-posta adresi ile platform yöneticisine ulaşın.',
+  },
+
+  // ── Terms of Service Page ──
+  'terms.title': { en: 'Terms of Service', tr: 'Kullanım Koşulları' },
+  'terms.lastUpdated': { en: 'Last updated: February 2026', tr: 'Son güncelleme: Şubat 2026' },
+
+  'terms.s1.title': { en: '1. Acceptance of Terms', tr: '1. Koşulların Kabulü' },
+  'terms.s1.content': {
+    en: 'By creating an account and using Fantasy Darts ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Platform.',
+    tr: 'Fantazi Dart\'ta ("Platform") hesap oluşturarak ve kullanarak bu Kullanım Koşullarına bağlı olmayı kabul edersiniz. Kabul etmiyorsanız Platformu kullanmayın.',
+  },
+
+  'terms.s2.title': { en: '2. Description of Service', tr: '2. Hizmet Tanımı' },
+  'terms.s2.content': {
+    en: 'Fantasy Darts is a private, non-commercial fantasy prediction platform for a friend group. Users predict darts match outcomes using virtual RTB (Right to Brag) points. The Platform tracks a real darts tournament among friends and provides prediction markets, leaderboards, and statistics.',
+    tr: 'Fantazi Dart, bir arkadaş grubu için özel, ticari olmayan bir fantazi tahmin platformudur. Kullanıcılar sanal RTB (Right to Brag — Övünme Hakkı) puanları kullanarak dart maç sonuçlarını tahmin eder. Platform, arkadaşlar arasındaki gerçek bir dart turnuvasını takip eder ve tahmin piyasaları, sıralamalar ve istatistikler sunar.',
+  },
+
+  'terms.s3.title': { en: '3. Eligibility', tr: '3. Katılım Şartları' },
+  'terms.s3.content': {
+    en: 'You must be at least 18 years old to use this Platform. By creating an account, you confirm that you meet this age requirement. This Platform is intended for invited participants only.',
+    tr: 'Bu Platformu kullanabilmek için en az 18 yaşında olmalısınız. Hesap oluşturarak bu yaş şartını karşıladığınızı onaylarsınız. Bu Platform yalnızca davet edilen katılımcılar içindir.',
+  },
+
+  'terms.s4.title': { en: '4. No Real Money — Fantasy Only', tr: '4. Gerçek Para Yok — Sadece Fantazi' },
+  'terms.s4.content': {
+    en: 'THIS IS NOT A GAMBLING PLATFORM. RTB (Right to Brag) points are virtual tokens with absolutely NO real-money value. RTB points:\n\n• Cannot be purchased with real money\n• Cannot be exchanged, redeemed, or converted to cash\n• Cannot be transferred to other platforms\n• Have no monetary value whatsoever\n\nThis Platform is for entertainment and bragging rights only. If you believe you have a gambling problem, please contact a professional helpline in your country.',
+    tr: 'BU BİR KUMAR PLATFORMU DEĞİLDİR. RTB (Right to Brag — Övünme Hakkı) puanları kesinlikle gerçek para değeri OLMAYAN sanal jetonlardır. RTB puanları:\n\n• Gerçek parayla satın alınamaz\n• Nakde çevrilemez, bozdurulamaz veya dönüştürülemez\n• Diğer platformlara aktarılamaz\n• Hiçbir parasal değeri yoktur\n\nBu Platform yalnızca eğlence ve övünme hakkı içindir. Kumar sorununuz olduğunu düşünüyorsanız, lütfen ülkenizdeki profesyonel yardım hattına başvurun.',
+  },
+
+  'terms.s5.title': { en: '5. User Conduct', tr: '5. Kullanıcı Davranışı' },
+  'terms.s5.content': {
+    en: 'You agree to:\n\n• Use only one account per person\n• Not attempt to manipulate markets, exploit bugs, or gain unfair advantage\n• Treat other players with respect\n• Not share your account credentials with others\n• Not use the Platform for any illegal purpose',
+    tr: 'Şunları kabul edersiniz:\n\n• Kişi başına yalnızca bir hesap kullanmak\n• Piyasaları manipüle etmeye, hataları istismar etmeye veya haksız avantaj elde etmeye çalışmamak\n• Diğer oyunculara saygılı davranmak\n• Hesap bilgilerinizi başkalarıyla paylaşmamak\n• Platformu yasadışı amaçlarla kullanmamak',
+  },
+
+  'terms.s6.title': { en: '6. Privacy', tr: '6. Gizlilik' },
+  'terms.s6.content': {
+    en: 'Your use of the Platform is also governed by our Privacy Policy. By using the Platform, you consent to the collection and use of data as described in our Privacy Policy.',
+    tr: 'Platform kullanımınız ayrıca Gizlilik Politikamız tarafından yönetilir. Platformu kullanarak, Gizlilik Politikamızda açıklanan şekilde veri toplanmasını ve kullanılmasını kabul edersiniz.',
+  },
+
+  'terms.s7.title': { en: '7. Account Termination', tr: '7. Hesap Sonlandırma' },
+  'terms.s7.content': {
+    en: 'You may delete your account at any time by contacting the platform administrator. We reserve the right to suspend or terminate accounts that violate these terms. Upon termination, your personal data will be handled according to our Privacy Policy.',
+    tr: 'Platform yöneticisi ile iletişime geçerek hesabınızı istediğiniz zaman silebilirsiniz. Bu koşulları ihlal eden hesapları askıya alma veya sonlandırma hakkımız saklıdır. Sonlandırma üzerine kişisel verileriniz Gizlilik Politikamıza göre işlenecektir.',
+  },
+
+  'terms.s8.title': { en: '8. Disclaimer of Warranties', tr: '8. Garanti Reddi' },
+  'terms.s8.content': {
+    en: 'The Platform is provided "as is" without warranties of any kind. We do not guarantee uninterrupted service, accuracy of statistics, or availability. The Platform is a hobby project built for fun — not a commercial service.',
+    tr: 'Platform herhangi bir garanti olmaksızın "olduğu gibi" sunulmaktadır. Kesintisiz hizmet, istatistiklerin doğruluğu veya erişilebilirlik garanti edilmez. Platform eğlence için yapılmış bir hobi projesidir — ticari bir hizmet değildir.',
+  },
+
+  'terms.s9.title': { en: '9. Changes to Terms', tr: '9. Koşullardaki Değişiklikler' },
+  'terms.s9.content': {
+    en: 'We may update these terms from time to time. Changes will be posted on this page. Continued use of the Platform after changes constitutes acceptance of the new terms.',
+    tr: 'Bu koşulları zaman zaman güncelleyebiliriz. Değişiklikler bu sayfada yayınlanacaktır. Değişikliklerden sonra Platformu kullanmaya devam etmek yeni koşulların kabulü anlamına gelir.',
+  },
+
+  'terms.s10.title': { en: '10. Contact', tr: '10. İletişim' },
+  'terms.s10.content': {
+    en: 'For questions about these terms, please contact the platform administrator through the group chat or via the email address provided during registration.',
+    tr: 'Bu koşullar hakkında sorularınız için lütfen grup sohbeti üzerinden veya kayıt sırasında verilen e-posta adresi ile platform yöneticisine ulaşın.',
+  },
+
+  // ── Consent / Registration ──
+  'landing.agreePrivacy': {
+    en: 'I agree to the <link>Privacy Policy</link>',
+    tr: '<link>Gizlilik Politikasını</link> kabul ediyorum',
+  },
+  'landing.agreeTerms': {
+    en: 'I agree to the <link>Terms of Service</link>',
+    tr: '<link>Kullanım Koşullarını</link> kabul ediyorum',
+  },
+  'landing.agreeWhatsapp': {
+    en: 'I consent to receiving WhatsApp notifications and acknowledge my phone number may be processed outside Turkey/EU by Meta Platforms, Inc. (optional)',
+    tr: 'WhatsApp bildirimleri almayı ve telefon numaramın Meta Platforms, Inc. tarafından Türkiye/AB dışında işlenebileceğini kabul ediyorum (isteğe bağlı)',
+  },
+  'landing.ageRequired': {
+    en: 'You must confirm you are 18+ to continue',
+    tr: 'Devam etmek için 18 yaşından büyük olduğunuzu onaylamalısınız',
+  },
+  'landing.consentRequired': {
+    en: 'You must agree to the Privacy Policy and Terms of Service',
+    tr: 'Gizlilik Politikası ve Kullanım Koşullarını kabul etmelisiniz',
+  },
+
+  // ── Footer ──
+  'footer.privacy': { en: 'Privacy Policy', tr: 'Gizlilik Politikası' },
+  'footer.terms': { en: 'Terms of Service', tr: 'Kullanım Koşulları' },
+  'footer.copyright': { en: '© 2026 Fantasy Darts. For entertainment only.', tr: '© 2026 Fantazi Dart. Sadece eğlence amaçlıdır.' },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

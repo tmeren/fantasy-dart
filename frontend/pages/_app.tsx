@@ -5,13 +5,14 @@ import { api, User } from '@/lib/api';
 import { LanguageProvider } from '@/lib/LanguageContext';
 import { BetslipProvider } from '@/lib/BetslipContext';
 import BetslipBar from '@/components/BetslipBar';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Auth Context
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string) => Promise<void>;
-  register: (email: string, name: string) => Promise<void>;
+  register: (email: string, name: string, consent?: { privacy_consent: boolean; terms_consent: boolean; age_confirmed: boolean; whatsapp_consent: boolean }) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -51,8 +52,8 @@ function AuthProvider({ children }: { children: ReactNode }) {
     await refreshUser();
   };
 
-  const register = async (email: string, name: string) => {
-    await api.register(email, name);
+  const register = async (email: string, name: string, consent?: { privacy_consent: boolean; terms_consent: boolean; age_confirmed: boolean; whatsapp_consent: boolean }) => {
+    await api.register(email, name, consent);
     await refreshUser();
   };
 
@@ -70,13 +71,15 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <BetslipProvider>
-          <Component {...pageProps} />
-          <BetslipBar />
-        </BetslipProvider>
-      </AuthProvider>
-    </LanguageProvider>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <AuthProvider>
+          <BetslipProvider>
+            <Component {...pageProps} />
+            <BetslipBar />
+          </BetslipProvider>
+        </AuthProvider>
+      </LanguageProvider>
+    </ErrorBoundary>
   );
 }
