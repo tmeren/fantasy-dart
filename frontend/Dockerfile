@@ -3,17 +3,16 @@ FROM node:22-alpine AS base
 # Install dependencies
 FROM base AS deps
 WORKDIR /app
-COPY frontend/package.json frontend/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 # Build the application
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY frontend/ .
+COPY . .
 
 # Server-only backend URL for Next.js rewrites (proxies /api/* to backend)
-# Railway passes service variables as Docker build args automatically
 ARG NEXT_PUBLIC_API_URL
 ENV BACKEND_API_URL=$NEXT_PUBLIC_API_URL
 
