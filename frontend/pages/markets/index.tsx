@@ -117,7 +117,7 @@ function MatchCard({ market, ratings }: { market: Market; ratings: PlayerRating[
   return (
     <Link href={`/markets/${market.id}`}>
       <div className="card hover:border-primary-500/50 cursor-pointer transition-all h-full">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">match</span>
             {market.betting_type === 'parimutuel' && (
@@ -129,50 +129,43 @@ function MatchCard({ market, ratings }: { market: Market; ratings: PlayerRating[
           }`}>{market.status}</span>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          {/* P1 side */}
-          <div className="flex-1 text-right">
-            <div className="font-bold text-lg text-white mb-2">{shortName(sel1.name)}</div>
-            <div className="flex items-center justify-end gap-2">
-              <span className={`px-2 py-0.5 rounded text-sm font-bold ${winPctBgClass(p1WinPct)}`}>{p1WinPct}%</span>
-              <span className={`px-2 py-0.5 rounded text-sm font-bold ${eloBgClass(p1Elo)}`}>{p1Elo.toFixed(0)}</span>
-            </div>
-          </div>
+        {/* Grid layout: 3 columns, 2 rows — ensures horizontal alignment */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-4 gap-y-3">
+          {/* Row 1: Player names + VS */}
+          <div className="text-right font-bold text-lg text-white">{shortName(sel1.name)}</div>
+          <div className="text-dark-500 text-sm font-bold text-center px-1">VS</div>
+          <div className="text-left font-bold text-lg text-white">{shortName(sel2.name)}</div>
 
-          {/* Center: VS + odds */}
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            <span className="text-dark-500 text-sm font-bold">VS</span>
-            <div className="flex gap-2">
-              <button
-                onClick={(e) => handleClick(e, sel1)}
-                className={`font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center transition-all ${
-                  isSelected(sel1.id)
-                    ? 'bg-white text-blue-900 ring-2 ring-primary-400'
-                    : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
-                }`}
-              >
-                {displayOdds(sel1) > 0 ? displayOdds(sel1).toFixed(2) : '—'}
-              </button>
-              <button
-                onClick={(e) => handleClick(e, sel2)}
-                className={`font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center transition-all ${
-                  isSelected(sel2.id)
-                    ? 'bg-white text-blue-900 ring-2 ring-primary-400'
-                    : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
-                }`}
-              >
-                {displayOdds(sel2) > 0 ? displayOdds(sel2).toFixed(2) : '—'}
-              </button>
-            </div>
+          {/* Row 2: Stats + Odds */}
+          <div className="flex items-center justify-end gap-2">
+            <span className={`px-2 py-0.5 rounded text-sm font-bold ${winPctBgClass(p1WinPct)}`}>{p1WinPct}%</span>
+            <span className={`px-2 py-0.5 rounded text-sm font-bold ${eloBgClass(p1Elo)}`}>{p1Elo.toFixed(0)}</span>
           </div>
-
-          {/* P2 side */}
-          <div className="flex-1 text-left">
-            <div className="font-bold text-lg text-white mb-2">{shortName(sel2.name)}</div>
-            <div className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded text-sm font-bold ${eloBgClass(p2Elo)}`}>{p2Elo.toFixed(0)}</span>
-              <span className={`px-2 py-0.5 rounded text-sm font-bold ${winPctBgClass(p2WinPct)}`}>{p2WinPct}%</span>
-            </div>
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={(e) => handleClick(e, sel1)}
+              className={`font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center transition-all ${
+                isSelected(sel1.id)
+                  ? 'bg-white text-blue-900 ring-2 ring-primary-400'
+                  : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
+              }`}
+            >
+              {displayOdds(sel1) > 0 ? displayOdds(sel1).toFixed(2) : '—'}
+            </button>
+            <button
+              onClick={(e) => handleClick(e, sel2)}
+              className={`font-bold px-3 py-1.5 rounded-lg text-base min-w-[3.5rem] text-center transition-all ${
+                isSelected(sel2.id)
+                  ? 'bg-white text-blue-900 ring-2 ring-primary-400'
+                  : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
+              }`}
+            >
+              {displayOdds(sel2) > 0 ? displayOdds(sel2).toFixed(2) : '—'}
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-0.5 rounded text-sm font-bold ${eloBgClass(p2Elo)}`}>{p2Elo.toFixed(0)}</span>
+            <span className={`px-2 py-0.5 rounded text-sm font-bold ${winPctBgClass(p2WinPct)}`}>{p2WinPct}%</span>
           </div>
         </div>
 
