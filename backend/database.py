@@ -251,13 +251,13 @@ def migrate_add_columns():
 
     migrations = []
     if "privacy_consent" not in existing:
-        migrations.append("ALTER TABLE users ADD COLUMN privacy_consent BOOLEAN DEFAULT 0")
+        migrations.append("ALTER TABLE users ADD COLUMN privacy_consent BOOLEAN DEFAULT FALSE")
     if "terms_consent" not in existing:
-        migrations.append("ALTER TABLE users ADD COLUMN terms_consent BOOLEAN DEFAULT 0")
+        migrations.append("ALTER TABLE users ADD COLUMN terms_consent BOOLEAN DEFAULT FALSE")
     if "age_confirmed" not in existing:
-        migrations.append("ALTER TABLE users ADD COLUMN age_confirmed BOOLEAN DEFAULT 0")
+        migrations.append("ALTER TABLE users ADD COLUMN age_confirmed BOOLEAN DEFAULT FALSE")
     if "whatsapp_consent" not in existing:
-        migrations.append("ALTER TABLE users ADD COLUMN whatsapp_consent BOOLEAN DEFAULT 0")
+        migrations.append("ALTER TABLE users ADD COLUMN whatsapp_consent BOOLEAN DEFAULT FALSE")
     if "consent_timestamp" not in existing:
         migrations.append("ALTER TABLE users ADD COLUMN consent_timestamp DATETIME")
 
