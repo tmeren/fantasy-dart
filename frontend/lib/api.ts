@@ -2,8 +2,8 @@
  * API client for Fantasy Darts Betting
  */
 
-// Use environment variable for API URL, fallback to /api for local development
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+// Always use relative /api path — Next.js rewrites proxy to the backend (no CORS)
+const API_BASE = '/api';
 
 export interface User {
   id: number;

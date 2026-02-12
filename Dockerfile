@@ -12,10 +12,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ .
 
-# NEXT_PUBLIC_* vars must be available at build time (inlined into client bundle)
+# Server-only backend URL for Next.js rewrites (proxies /api/* to backend)
 # Railway passes service variables as Docker build args automatically
 ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV BACKEND_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 
