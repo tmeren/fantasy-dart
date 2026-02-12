@@ -602,43 +602,43 @@ Round,Match\_ID,Player\_1,Player\_2,Score\_1,Score\_2,Status,Winner
 
 31,301,Okan Duman,Emre Ozorhan,0,3,Completed,Emre Ozorhan
 
-31,302,Ekin Isik,Muzaffer Akin,,,Scheduled,
+31,302,Ekin Isik,Muzaffer Akin,0,3,Completed,Muzaffer Akin
 
-31,303,Alican Donerkaya,Ece Saritepe,,,Scheduled,
+31,303,Alican Donerkaya,Ece Saritepe,3,0,Completed,Alican Donerkaya
 
-31,304,Berkay Alpagot,Ata Kemal Yukselen,,,Scheduled,
+31,304,Berkay Alpagot,Ata Kemal Yukselen,2,3,Completed,Ata Kemal Yukselen
 
-31,305,Yusuf Cura,Erkut Yaltkaya,,,Scheduled,
+31,305,Yusuf Cura,Erkut Yaltkaya,3,1,Completed,Yusuf Cura
 
-31,306,Yasar Ulucan,Nurten Yilmaz,,,Scheduled,
+31,306,Yasar Ulucan,Nurten Yilmaz,2,3,Completed,Nurten Yilmaz
 
-31,307,Havva Ozkan,Seckin Civan,,,Scheduled,
+31,307,Havva Ozkan,Seckin Civan,3,2,Completed,Havva Ozkan
 
-31,308,Busra Caliskan,Baran Yildiz,,,Scheduled,
+31,308,Busra Caliskan,Baran Yildiz,3,0,Completed,Busra Caliskan
 
-31,309,Ali Celik,Selda Yesiltas,,,Scheduled,
+31,309,Ali Celik,Selda Yesiltas,2,3,Completed,Selda Yesiltas
 
 31,310,Mehmet Ovali,Veli Metli,3,0,Completed,Mehmet Ovali
 
-32,311,Ata Kemal Yukselen,Alican Donerkaya,,,Scheduled,
+32,311,Ata Kemal Yukselen,Alican Donerkaya,2,3,Completed,Alican Donerkaya
 
 32,312,Veli Metli,Okan Duman,3,0,Completed,Veli Metli
 
-32,313,Emre Ozorhan,Busra Caliskan,,,Scheduled,
+32,313,Emre Ozorhan,Busra Caliskan,3,0,Completed,Emre Ozorhan
 
-32,314,Baran Yildiz,Havva Ozkan,,,Scheduled,
+32,314,Baran Yildiz,Havva Ozkan,0,3,Completed,Havva Ozkan
 
-32,315,Seckin Civan,Yasar Ulucan,,,Scheduled,
+32,315,Seckin Civan,Yasar Ulucan,2,3,Completed,Yasar Ulucan
 
-32,316,Nurten Yilmaz,Yusuf Cura,,,Scheduled,
+32,316,Nurten Yilmaz,Yusuf Cura,3,0,Completed,Nurten Yilmaz
 
-32,317,Erkut Yaltkaya,Berkay Alpagot,,,Scheduled,
+32,317,Erkut Yaltkaya,Berkay Alpagot,3,0,Completed,Erkut Yaltkaya
 
-32,318,Mehmet Ovali,Ali Celik,,,Scheduled,
+32,318,Mehmet Ovali,Ali Celik,0,3,Completed,Ali Celik
 
-32,319,Ece Saritepe,Ekin Isik,,,Scheduled,
+32,319,Ece Saritepe,Ekin Isik,3,0,Completed,Ece Saritepe
 
-32,320,Muzaffer Akin,Selda Yesiltas,,,Scheduled,
+32,320,Muzaffer Akin,Selda Yesiltas,3,0,Completed,Muzaffer Akin
 
 33,321,Yasar Ulucan,Baran Yildiz,,,Scheduled,
 
