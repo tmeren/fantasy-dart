@@ -18,6 +18,14 @@ A fun fantasy betting platform for friends. Bet on tournament outcomes with fant
 - Leaderboard with streaks, badges, and ROI tracking
 - Admin panel: enter results, manage markets, view liability
 
+## Live Demo
+
+- **Frontend**: https://frontend-production-fd09.up.railway.app
+- **Backend API**: https://backend-production-19be.up.railway.app
+- **Health Check**: https://backend-production-19be.up.railway.app/api/health
+
+Hosted on [Railway](https://railway.com) with PostgreSQL.
+
 ## Local Development
 
 ### Backend
