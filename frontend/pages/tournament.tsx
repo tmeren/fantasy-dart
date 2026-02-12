@@ -38,8 +38,8 @@ function Navbar() {
 /** Colored dots for last N match results (W=green, L=red, D=yellow) */
 function FormDots({ player, results }: { player: string; results: CompletedMatch[] }) {
   const form: ('W' | 'L' | 'D')[] = [];
-  // Walk results newest-first to get last 5
-  for (let i = results.length - 1; i >= 0 && form.length < 5; i--) {
+  // results are newest-first from API; collect 5 most recent for this player
+  for (let i = 0; i < results.length && form.length < 5; i++) {
     const m = results[i];
     if (m.player1 === player || m.player2 === player) {
       if (m.is_draw) form.push('D');
