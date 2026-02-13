@@ -46,7 +46,7 @@ FATIGUE_FACTORS = {
 
 # --- Monte Carlo ---
 
-MC_ITERATIONS = 10000
+MC_ITERATIONS = 2000
 RANDOM_SEED = 42  # Reproducible results
 
 

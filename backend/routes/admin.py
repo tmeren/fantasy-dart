@@ -51,7 +51,6 @@ router = APIRouter(prefix="/api", tags=["admin"])
 @router.get("/admin/scheduled-matches", response_model=list[ScheduledMatchResponse])
 async def admin_scheduled_matches(user: User = Depends(require_admin)):
     """Get all scheduled (unplayed) matches from the tournament CSV."""
-    invalidate_cache()
     sched = get_scheduled_matches()
     return [
         ScheduledMatchResponse(
@@ -303,7 +302,6 @@ def _settle_prop_markets(db: Session, data):
 @router.get("/admin/current-ratings", response_model=list[PlayerRatingResponse])
 async def admin_current_ratings(user: User = Depends(require_admin)):
     """Get current Elo ratings for all players."""
-    invalidate_cache()
     ratings = get_elo_ratings()
     sorted_ratings = get_sorted_ratings(ratings)
     return [
@@ -324,7 +322,6 @@ async def admin_current_ratings(user: User = Depends(require_admin)):
 @router.get("/admin/current-odds", response_model=list[OutrightOddsEntry])
 async def admin_current_odds(user: User = Depends(require_admin)):
     """Get current outright tournament winner odds (Monte Carlo)."""
-    invalidate_cache()
     ratings = get_elo_ratings()
     sched = get_scheduled_matches()
     outright = get_outright_odds(ratings, sched)

@@ -65,10 +65,13 @@ export default function Admin() {
   const loadTournamentData = async () => {
     setLoadingTournament(true);
     try {
+      const timeout = (ms: number) => new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out')), ms)
+      );
       const [sched, rats, odds] = await Promise.all([
-        api.getScheduledMatches(),
-        api.getCurrentRatings(),
-        api.getCurrentOdds(),
+        Promise.race([api.getScheduledMatches(), timeout(15000)]) as Promise<ScheduledMatch[]>,
+        Promise.race([api.getCurrentRatings(), timeout(15000)]) as Promise<PlayerRating[]>,
+        Promise.race([api.getCurrentOdds(), timeout(30000)]) as Promise<OutrightOdds[]>,
       ]);
       setScheduledMatches(sched);
       setRatings(rats);
