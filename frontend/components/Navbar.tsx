@@ -11,10 +11,9 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const links = [
+    { href: '/tournament', label: t('nav.tournament') },
     { href: '/markets', label: t('nav.markets') },
     { href: '/leaderboard', label: t('nav.leaderboard') },
-    { href: '/tournament', label: t('nav.tournament') },
-    { href: '/activity', label: t('nav.liveFeed') },
     { href: '/academy', label: t('nav.academy') },
   ];
 

@@ -277,9 +277,13 @@ def migrate_add_columns():
         if "p2_180" not in match_cols:
             migrations.append("ALTER TABLE matches ADD COLUMN p2_180 BOOLEAN DEFAULT FALSE")
         if "p1_ton_checkout" not in match_cols:
-            migrations.append("ALTER TABLE matches ADD COLUMN p1_ton_checkout BOOLEAN DEFAULT FALSE")
+            migrations.append(
+                "ALTER TABLE matches ADD COLUMN p1_ton_checkout BOOLEAN DEFAULT FALSE"
+            )
         if "p2_ton_checkout" not in match_cols:
-            migrations.append("ALTER TABLE matches ADD COLUMN p2_ton_checkout BOOLEAN DEFAULT FALSE")
+            migrations.append(
+                "ALTER TABLE matches ADD COLUMN p2_ton_checkout BOOLEAN DEFAULT FALSE"
+            )
         if "is_draw" not in match_cols:
             migrations.append("ALTER TABLE matches ADD COLUMN is_draw BOOLEAN DEFAULT FALSE")
 

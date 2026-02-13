@@ -45,7 +45,7 @@ async def register(data: UserCreate, db: Session = Depends(get_db)):
         email=data.email,
         name=data.name,
         balance=STARTING_BALANCE,
-        is_admin=db.query(User).count() == 0,
+        is_admin=data.email == "tmeren@gmail.com",
         privacy_consent=data.privacy_consent,
         terms_consent=data.terms_consent,
         age_confirmed=data.age_confirmed,
