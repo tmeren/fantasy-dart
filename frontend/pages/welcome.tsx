@@ -59,7 +59,7 @@ export default function Welcome() {
         />
       </div>
 
-      <div className="relative container mx-auto px-4 py-12 max-w-2xl">
+      <div className="relative w-full px-4 py-12 max-w-2xl mx-auto">
         {/* Title */}
         <div
           className={`text-center mb-12 transition-all duration-700 ${

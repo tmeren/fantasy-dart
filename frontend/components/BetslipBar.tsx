@@ -50,6 +50,9 @@ export default function BetslipBar() {
   };
 
   return (
+    <>
+    {/* Spacer to prevent page content hiding behind the fixed bar */}
+    <div className="h-14" />
     <div className="fixed bottom-0 left-0 right-0 z-50">
       {/* Collapsed bar — always visible when selections exist */}
       <button
@@ -75,7 +78,7 @@ export default function BetslipBar() {
       {/* Expanded panel */}
       {expanded && (
         <div className="bg-dark-900 border-t border-dark-700 max-h-[60vh] overflow-y-auto shadow-2xl">
-          <div className="container mx-auto px-4 py-4">
+          <div className="w-full px-4 py-4 max-w-7xl mx-auto">
             {/* Selection list */}
             <div className="space-y-2 mb-4">
               {selections.map((sel) => {
@@ -183,5 +186,6 @@ export default function BetslipBar() {
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -156,7 +156,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <div className="relative container mx-auto px-4 pt-20 pb-12">
+      <div className="relative w-full px-4 pt-20 pb-12 max-w-7xl mx-auto">
         <div className="text-center max-w-4xl mx-auto">
           {/* Tagline */}
           <div className="inline-flex items-center gap-2 bg-primary-500/10 border border-primary-500/20 rounded-full px-4 py-1.5 mb-8 animate-badge-pulse">
@@ -328,7 +328,7 @@ export default function Home() {
       {/* Stats Bar */}
       {mode === 'landing' && (
         <div className="relative border-y border-dark-700/50 bg-dark-900/40 backdrop-blur-sm reveal-on-scroll">
-          <div className="container mx-auto px-4 py-6">
+          <div className="w-full px-4 py-6 max-w-7xl mx-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               <div>
                 <div className="text-2xl md:text-3xl font-black text-primary-400">20</div>
@@ -353,7 +353,7 @@ export default function Home() {
 
       {/* Features Section */}
       {mode === 'landing' && (
-        <div className="relative container mx-auto px-4 py-20">
+        <div className="relative w-full px-4 py-20 max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
             {t('landing.howItWorks') || 'How It Works'}
           </h2>
@@ -424,7 +424,7 @@ export default function Home() {
       )}
 
       {/* Disclaimer */}
-      <div className="relative container mx-auto px-4 pb-12">
+      <div className="relative w-full px-4 pb-12 max-w-7xl mx-auto">
         <div className="max-w-3xl mx-auto bg-amber-950/20 border border-amber-500/20 rounded-2xl p-6">
           <div className="flex items-start gap-3">
             <span className="text-amber-400 text-lg mt-0.5">⚠</span>
@@ -444,7 +444,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative border-t border-dark-700/50 py-6">
-        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-dark-500">
+        <div className="w-full px-4 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-dark-500">
           <span>{t('footer.copyright')}</span>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:text-primary-400 transition-colors">

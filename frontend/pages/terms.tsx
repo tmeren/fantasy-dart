@@ -13,7 +13,7 @@ export default function Terms() {
         <LanguageToggle />
       </div>
 
-      <div className="container mx-auto px-4 py-12 max-w-3xl">
+      <div className="w-full px-4 py-12 max-w-3xl mx-auto">
         {/* Back link */}
         <Link
           href="/"
