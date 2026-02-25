@@ -322,8 +322,8 @@ export default function Tournament() {
     );
   }
 
-  // ── Date-based filtering ──────────────────────────────────────────────────
-  const maxRound = getMaxPlayedRound();
+  // ── Derive max round from actual results (not calendar math) ─────────────
+  const maxRound = results.length > 0 ? Math.max(...results.map(r => r.round)) : 0;
   const dateFilteredResults = results.filter((m) => m.round <= maxRound);
   const standings = computeStandings(dateFilteredResults);
 
