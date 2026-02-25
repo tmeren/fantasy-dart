@@ -41,9 +41,41 @@ from schemas import (
     WhatsAppLogResponse,
 )
 from sqlalchemy.orm import Session
+from deps import hash_password
 from whatsapp_client import whatsapp_client
 
 router = APIRouter(prefix="/api", tags=["admin"])
+
+
+@router.post("/admin/reset-password")
+async def admin_reset_password(
+    email: str,
+    new_password: str,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Reset any user's password (admin only)."""
+    target = db.query(User).filter(User.email == email).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    target.password_hash = hash_password(new_password)
+    db.commit()
+    return {"message": f"Password reset for {target.name} ({target.email})"}
+
+
+@router.post("/admin/clear-password")
+async def admin_clear_password(
+    email: str,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Clear a user's password so they set a new one on next login (admin only)."""
+    target = db.query(User).filter(User.email == email).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    target.password_hash = None
+    db.commit()
+    return {"message": f"Password cleared for {target.name}. They'll set a new one on next login."}
 
 
 # ---- Admin Tournament ----

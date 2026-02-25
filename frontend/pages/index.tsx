@@ -227,7 +227,10 @@ export default function Home() {
                     {t('landing.login')}
                   </button>
                 </form>
-                <p className="text-dark-400 mt-4 text-sm">
+                <p className="text-dark-500 mt-3 text-xs">
+                  {t('landing.forgotPassword') || 'Forgot password? Contact the tournament admin.'}
+                </p>
+                <p className="text-dark-400 mt-3 text-sm">
                   {t('landing.noAccount')}{' '}
                   <button onClick={() => { setMode('register'); setError(''); }} className="text-primary-400 hover:underline">
                     {t('landing.register')}

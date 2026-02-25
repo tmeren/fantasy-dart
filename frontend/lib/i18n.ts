@@ -39,6 +39,7 @@ export const translations = {
   'landing.welcomeBack': { en: 'Welcome Back', tr: 'Tekrar Hoşgeldin' },
   'landing.yourEmail': { en: 'Your email', tr: 'E-posta adresin' },
   'landing.password': { en: 'Password', tr: 'Şifre' },
+  'landing.forgotPassword': { en: 'Forgot password? Contact the tournament admin.', tr: 'Şifreni mi unuttun? Turnuva yöneticisiyle iletişime geç.' },
   'landing.login': { en: 'Login', tr: 'Giriş Yap' },
   'landing.noAccount': { en: "Don't have an account?", tr: 'Hesabın yok mu?' },
   'landing.register': { en: 'Register', tr: 'Kayıt Ol' },
