@@ -11,8 +11,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string) => Promise<void>;
-  register: (email: string, name: string, consent?: { privacy_consent: boolean; terms_consent: boolean; age_confirmed: boolean; whatsapp_consent: boolean }) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, name: string, password: string, consent?: { privacy_consent: boolean; terms_consent: boolean; age_confirmed: boolean; whatsapp_consent: boolean }) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -47,13 +47,13 @@ function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string) => {
-    await api.login(email);
+  const login = async (email: string, password: string) => {
+    await api.login(email, password);
     await refreshUser();
   };
 
-  const register = async (email: string, name: string, consent?: { privacy_consent: boolean; terms_consent: boolean; age_confirmed: boolean; whatsapp_consent: boolean }) => {
-    await api.register(email, name, consent);
+  const register = async (email: string, name: string, password: string, consent?: { privacy_consent: boolean; terms_consent: boolean; age_confirmed: boolean; whatsapp_consent: boolean }) => {
+    await api.register(email, name, password, consent);
     await refreshUser();
   };
 

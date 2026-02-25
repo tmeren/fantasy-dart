@@ -38,6 +38,7 @@ export const translations = {
   'landing.haveAccount': { en: 'I Have an Account', tr: 'Hesabım Var' },
   'landing.welcomeBack': { en: 'Welcome Back', tr: 'Tekrar Hoşgeldin' },
   'landing.yourEmail': { en: 'Your email', tr: 'E-posta adresin' },
+  'landing.password': { en: 'Password', tr: 'Şifre' },
   'landing.login': { en: 'Login', tr: 'Giriş Yap' },
   'landing.noAccount': { en: "Don't have an account?", tr: 'Hesabın yok mu?' },
   'landing.register': { en: 'Register', tr: 'Kayıt Ol' },

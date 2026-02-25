@@ -42,6 +42,7 @@ export default function Home() {
   const router = useRouter();
   const [mode, setMode] = useState<'landing' | 'login' | 'register'>('landing');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [ageConfirmed, setAgeConfirmed] = useState(false);
@@ -75,7 +76,7 @@ export default function Home() {
     e.preventDefault();
     setError('');
     try {
-      await login(email);
+      await login(email, password);
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message);
@@ -94,7 +95,7 @@ export default function Home() {
     }
     setError('');
     try {
-      await register(email, name, {
+      await register(email, name, password, {
         privacy_consent: privacyConsent,
         terms_consent: termsConsent,
         age_confirmed: ageConfirmed,
@@ -213,6 +214,14 @@ export default function Home() {
                     required
                     autoFocus
                   />
+                  <input
+                    type="password"
+                    placeholder={t('landing.password') || 'Password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input mb-4"
+                    required
+                  />
                   {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
                   <button type="submit" className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-primary-600 to-emerald-600 hover:from-primary-500 hover:to-emerald-500 transition-all duration-300">
                     {t('landing.login')}
@@ -257,6 +266,15 @@ export default function Home() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="input mb-4"
                     required
+                  />
+                  <input
+                    type="password"
+                    placeholder={t('landing.password') || 'Password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input mb-4"
+                    required
+                    minLength={4}
                   />
                   <label className="flex items-start gap-3 mb-3 text-left cursor-pointer">
                     <input

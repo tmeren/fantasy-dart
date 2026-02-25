@@ -73,6 +73,7 @@ class User(Base):
     name = Column(String(100), nullable=False)
     balance = Column(Float, default=1000.0)  # Starting RTB
     is_admin = Column(Boolean, default=False)
+    password_hash = Column(String(255), nullable=True)  # Simple password auth
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
@@ -274,6 +275,8 @@ def migrate_add_columns():
         migrations.append("ALTER TABLE users ADD COLUMN phone_number VARCHAR(255)")
     if "whatsapp_opted_in" not in existing:
         migrations.append("ALTER TABLE users ADD COLUMN whatsapp_opted_in BOOLEAN DEFAULT FALSE")
+    if "password_hash" not in existing:
+        migrations.append("ALTER TABLE users ADD COLUMN password_hash VARCHAR(255)")
 
     # Matches table — prop data collection columns (S9)
     if inspector.has_table("matches"):

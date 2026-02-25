@@ -3,6 +3,7 @@
 Extracted from main.py to avoid circular imports between route modules.
 """
 
+import hashlib
 import json
 import os
 import secrets
@@ -69,6 +70,21 @@ manager = ConnectionManager()
 # ============================================================================
 # Auth Helpers
 # ============================================================================
+
+
+def hash_password(password: str) -> str:
+    """Hash a password with a random salt using SHA-256."""
+    salt = secrets.token_hex(16)
+    hashed = hashlib.sha256((salt + password).encode()).hexdigest()
+    return f"{salt}:{hashed}"
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify a password against a stored hash."""
+    if not password_hash or ":" not in password_hash:
+        return False
+    salt, stored_hash = password_hash.split(":", 1)
+    return hashlib.sha256((salt + password).encode()).hexdigest() == stored_hash
 
 
 def create_access_token(user_id: int) -> str:

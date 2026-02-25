@@ -238,19 +238,19 @@ class ApiClient {
   }
 
   // Auth
-  async register(email: string, name: string, consent?: { privacy_consent: boolean; terms_consent: boolean; age_confirmed: boolean; whatsapp_consent: boolean }): Promise<{ access_token: string }> {
+  async register(email: string, name: string, password: string, consent?: { privacy_consent: boolean; terms_consent: boolean; age_confirmed: boolean; whatsapp_consent: boolean }): Promise<{ access_token: string }> {
     const result = await this.fetch<{ access_token: string }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, name, ...consent }),
+      body: JSON.stringify({ email, name, password, ...consent }),
     });
     this.setToken(result.access_token);
     return result;
   }
 
-  async login(email: string): Promise<{ access_token: string }> {
+  async login(email: string, password: string): Promise<{ access_token: string }> {
     const result = await this.fetch<{ access_token: string }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, password }),
     });
     this.setToken(result.access_token);
     return result;

@@ -10,8 +10,10 @@ from deps import (
     MAGIC_LINK_EXPIRE_MINUTES,
     STARTING_BALANCE,
     create_access_token,
+    hash_password,
     log_activity,
     require_user,
+    verify_password,
 )
 from fastapi import APIRouter, Depends, HTTPException
 from phone_utils import validate_e164
@@ -36,14 +38,18 @@ APP_URL = os.getenv("APP_URL", "http://localhost:3000")
 
 @router.post("/register", response_model=TokenResponse)
 async def register(data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user with email and name. Gets 1000 RTB to start."""
+    """Register a new user with email, name and password. Gets 1000 RTB to start."""
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    if len(data.password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+
     user = User(
         email=data.email,
         name=data.name,
+        password_hash=hash_password(data.password),
         balance=STARTING_BALANCE,
         is_admin=data.email == "tmeren@gmail.com",
         privacy_consent=data.privacy_consent,
@@ -72,10 +78,17 @@ async def register(data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(data: UserLogin, db: Session = Depends(get_db)):
-    """Login with email. In production, use magic link."""
+    """Login with email and password."""
     user = db.query(User).filter(User.email == data.email).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found. Please register first.")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # Users without password_hash (existing accounts) — allow login and set password
+    if not user.password_hash:
+        user.password_hash = hash_password(data.password)
+        db.commit()
+    elif not verify_password(data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     user.last_login = datetime.utcnow()
     db.commit()

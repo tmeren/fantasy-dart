@@ -13,6 +13,7 @@ from pydantic import BaseModel, EmailStr
 class UserCreate(BaseModel):
     email: EmailStr
     name: str
+    password: str
     privacy_consent: bool = False
     terms_consent: bool = False
     age_confirmed: bool = False
@@ -21,6 +22,7 @@ class UserCreate(BaseModel):
 
 class UserLogin(BaseModel):
     email: EmailStr
+    password: str
 
 
 class UserResponse(BaseModel):
