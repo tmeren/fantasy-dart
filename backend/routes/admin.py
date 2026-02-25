@@ -21,10 +21,11 @@ from deps import (
 )
 from elo_engine import get_elo_ratings, get_sorted_ratings
 from fastapi import APIRouter, Depends, HTTPException
-from match_data import get_scheduled_matches, invalidate_cache, write_match_result
+from match_data import get_scheduled_matches, invalidate_cache, write_match_result, correct_match_result
 from odds_engine import get_outright_odds
 from prop_odds_calculator import get_all_prop_markets
 from schemas import (
+    CorrectResultRequest,
     EnterResultRequest,
     EnterResultResponse,
     GeneratePropMarketsRequest,
@@ -148,6 +149,50 @@ async def admin_enter_result(
         updated_ratings=rating_list,
         updated_outright_odds=odds_list,
     )
+
+
+@router.post("/admin/correct-result")
+async def admin_correct_result(
+    data: CorrectResultRequest,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Correct an already-completed match result (admin only).
+
+    Used for retroactive corrections like disqualification adjustments.
+    Triggers full Elo recalc and odds refresh after correction.
+    """
+    try:
+        correct_match_result(
+            data.match_id,
+            data.score1,
+            data.score2,
+            data.winner,
+            is_draw=data.is_draw,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    ratings = get_elo_ratings()
+    sched = get_scheduled_matches()
+    _refresh_market_elo_odds(db, ratings, sched)
+
+    await log_activity(
+        db,
+        "match_correction",
+        f"Match M{data.match_id} corrected: "
+        + (f"{data.winner} wins ({data.score1}-{data.score2})" if data.winner else f"Draw ({data.score1}-{data.score2})"),
+        user_id=user.id,
+        data={"match_id": data.match_id, "score1": data.score1, "score2": data.score2, "winner": data.winner, "is_draw": data.is_draw},
+    )
+
+    return {
+        "message": "Match corrected. Elo and odds recalculated.",
+        "match_id": data.match_id,
+        "score": f"{data.score1}-{data.score2}",
+        "winner": data.winner,
+        "is_draw": data.is_draw,
+    }
 
 
 def _refresh_market_elo_odds(db: Session, ratings: dict, sched: list[dict]):

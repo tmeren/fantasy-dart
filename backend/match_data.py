@@ -339,6 +339,42 @@ def write_match_result(
     invalidate_cache()
 
 
+def correct_match_result(
+    match_id: int,
+    score1: int,
+    score2: int,
+    winner: str | None,
+    is_draw: bool = False,
+):
+    """Correct an already-completed match result (admin only).
+
+    Unlike write_match_result, this allows updating completed matches.
+    Used for retroactive corrections (e.g. disqualification adjustments).
+    """
+    from database import Match, SessionLocal
+
+    db = SessionLocal()
+    try:
+        row = db.query(Match).filter(Match.match_id == match_id).first()
+        if row is None:
+            raise ValueError(f"Match {match_id} not found in database")
+        if winner is not None and winner not in (row.player1, row.player2):
+            raise ValueError(
+                f"Winner '{winner}' must be one of: '{row.player1}' or '{row.player2}'"
+            )
+
+        row.score1 = score1
+        row.score2 = score2
+        row.status = "Completed"
+        row.winner = winner
+        row.is_draw = is_draw
+        db.commit()
+    finally:
+        db.close()
+
+    invalidate_cache()
+
+
 # ---------------------------------------------------------------------------
 # Convenience accessors (unchanged signatures)
 # ---------------------------------------------------------------------------

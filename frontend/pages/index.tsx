@@ -291,17 +291,7 @@ export default function Home() {
                       {renderLinked(t('landing.agreeTerms'), '/terms')}
                     </span>
                   </label>
-                  <label className="flex items-start gap-3 mb-4 text-left cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={whatsappConsent}
-                      onChange={(e) => setWhatsappConsent(e.target.checked)}
-                      className="mt-1 accent-primary-500"
-                    />
-                    <span className="text-sm text-dark-400">
-                      {t('landing.agreeWhatsapp')}
-                    </span>
-                  </label>
+                  {/* WhatsApp consent hidden until Meta Business API is configured */}
                   {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
                   <button type="submit" className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-primary-600 to-emerald-600 hover:from-primary-500 hover:to-emerald-500 transition-all duration-300">
                     {t('landing.createAccount')}

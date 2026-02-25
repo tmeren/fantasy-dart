@@ -254,6 +254,14 @@ class EnterResultRequest(BaseModel):
     p2_ton_checkout: bool = False
 
 
+class CorrectResultRequest(BaseModel):
+    match_id: int
+    score1: int
+    score2: int
+    winner: str | None = None
+    is_draw: bool = False
+
+
 class PlayerRatingResponse(BaseModel):
     rank: int
     player: str
