@@ -22,7 +22,7 @@ class UserCreate(BaseModel):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str | None = None
+    password: str
 
 
 class UserResponse(BaseModel):
