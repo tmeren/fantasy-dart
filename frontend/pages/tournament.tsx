@@ -67,12 +67,12 @@ function computeStandings(filteredResults: CompletedMatch[]): StandingEntry[] {
     legs_for: s.legs_for, legs_against: s.legs_against, leg_diff: s.legs_for - s.legs_against,
     remaining: 38 - s.played, score: s.wins * 3, tiebreaks: s.tiebreaks,
   }));
-  // Sort: Score (desc) → TB (desc) → Leg Diff (desc) → Legs For (desc)
+  // Sort: Score (desc) → Leg Diff (desc) → Legs For (desc) → TB (desc)
   list.sort((a, b) =>
     (b.score ?? 0) - (a.score ?? 0) ||
-    (b.tiebreaks ?? 0) - (a.tiebreaks ?? 0) ||
     b.leg_diff - a.leg_diff ||
-    b.legs_for - a.legs_for
+    b.legs_for - a.legs_for ||
+    (b.tiebreaks ?? 0) - (a.tiebreaks ?? 0)
   );
   list.forEach((r, i) => { r.rank = i + 1; });
   return list;
