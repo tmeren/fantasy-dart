@@ -231,7 +231,9 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || 'API request failed');
+      const detail = error.detail;
+      const message = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map((d: any) => d.msg || d).join(', ') : 'API request failed';
+      throw new Error(message);
     }
 
     return response.json();

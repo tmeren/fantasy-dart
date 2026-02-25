@@ -83,12 +83,17 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    # Users without password_hash (existing accounts) — allow login and set password
-    if not user.password_hash:
-        user.password_hash = hash_password(data.password)
-        db.commit()
-    elif not verify_password(data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+    # Password check (optional for backwards compatibility during migration)
+    if data.password:
+        if not user.password_hash:
+            # First login with password — set it
+            user.password_hash = hash_password(data.password)
+            db.commit()
+        elif not verify_password(data.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+    elif user.password_hash:
+        # User has a password but didn't provide one
+        raise HTTPException(status_code=401, detail="Password required")
 
     user.last_login = datetime.utcnow()
     db.commit()
