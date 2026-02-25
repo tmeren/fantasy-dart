@@ -195,6 +195,38 @@ async def admin_correct_result(
     }
 
 
+@router.post("/admin/batch-correct")
+async def admin_batch_correct(
+    corrections: list[CorrectResultRequest],
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Apply multiple match corrections in one call, recalc Elo once at the end."""
+    results = []
+    for c in corrections:
+        try:
+            correct_match_result(
+                c.match_id, c.score1, c.score2, c.winner, is_draw=c.is_draw,
+            )
+            results.append({"match_id": c.match_id, "status": "ok"})
+        except ValueError as e:
+            results.append({"match_id": c.match_id, "status": "error", "detail": str(e)})
+
+    # Single Elo recalc + odds refresh after all corrections
+    ratings = get_elo_ratings()
+    sched = get_scheduled_matches()
+    _refresh_market_elo_odds(db, ratings, sched)
+
+    ok_count = sum(1 for r in results if r["status"] == "ok")
+    await log_activity(
+        db, "batch_correction",
+        f"Batch corrected {ok_count}/{len(corrections)} matches",
+        user_id=user.id,
+    )
+
+    return {"message": f"{ok_count}/{len(corrections)} corrected. Elo recalculated.", "results": results}
+
+
 def _refresh_market_elo_odds(db: Session, ratings: dict, sched: list[dict]):
     """Update Selection.odds for open markets with fresh Elo-derived odds."""
     from odds_engine import get_match_odds as compute_match_odds
