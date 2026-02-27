@@ -5,7 +5,7 @@ import { useAuth } from './_app';
 import { useLanguage, LanguageToggle } from '@/lib/LanguageContext';
 import { shortName, TranslationKey } from '@/lib/i18n';
 import { eloToOdds, eloColorClass, eloBgClass, winPctBgClass, FormBoxes, computeAllInsights, computeStandings } from '@/lib/tournament-utils';
-import { api, StandingEntry, PlayerRating, CompletedMatch, ScheduledMatch, PlayoffBracketResponse } from '@/lib/api';
+import { api, StandingEntry, PlayerRating, CompletedMatch, ScheduledMatch, PlayoffBracketResponse, Market } from '@/lib/api';
 import { useBetslip } from '@/lib/BetslipContext';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
@@ -225,6 +225,7 @@ export default function Tournament() {
   const [results, setResults] = useState<CompletedMatch[]>([]);
   const [upcoming, setUpcoming] = useState<ScheduledMatch[]>([]);
   const [bracket, setBracket] = useState<PlayoffBracketResponse | null>(null);
+  const [matchMarkets, setMatchMarkets] = useState<Market[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [eloExpanded, setEloExpanded] = useState(false);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
@@ -272,13 +273,15 @@ export default function Tournament() {
   const loadAll = async () => {
     setLoadingData(true);
     try {
-      const [r, res, u, b] = await Promise.all([
+      const [r, res, u, b, mkts] = await Promise.all([
         api.getTournamentRatings(),
         api.getResults(),
         api.getUpcomingMatches(),
         api.getPlayoffBracket(),
+        api.getMarkets('open'),
       ]);
       setRatings(r); setResults(res); setUpcoming(u); setBracket(b);
+      setMatchMarkets(mkts.filter(m => m.market_type === 'match' && m.status === 'open'));
     } catch (err) { console.error(err); }
     finally { setLoadingData(false); }
   };
@@ -286,13 +289,15 @@ export default function Tournament() {
   // Silent reload (no loading spinner — for WebSocket updates)
   const loadAllSilent = async () => {
     try {
-      const [r, res, u, b] = await Promise.all([
+      const [r, res, u, b, mkts] = await Promise.all([
         api.getTournamentRatings(),
         api.getResults(),
         api.getUpcomingMatches(),
         api.getPlayoffBracket(),
+        api.getMarkets('open'),
       ]);
       setRatings(r); setResults(res); setUpcoming(u); setBracket(b);
+      setMatchMarkets(mkts.filter(m => m.market_type === 'match' && m.status === 'open'));
     } catch (err) { console.error(err); }
   };
 
@@ -684,9 +689,19 @@ export default function Tournament() {
                       const QFCardH = ({ qf, idx }: { qf: typeof qfs[0]; idx: number }) => {
                         const ins1 = allInsights[qf.higher_seed] || { tag: '', strength: '', weakness: '' };
                         const ins2 = allInsights[qf.lower_seed] || { tag: '', strength: '', weakness: '' };
-                        const mktId = -(9000 + idx);
-                        const sel1Id = -(9000 + idx * 10 + 1);
-                        const sel2Id = -(9000 + idx * 10 + 2);
+                        // Find real market for this QF matchup by matching player names
+                        const realMarket = matchMarkets.find(m => {
+                          const names = m.selections.map(s => s.name);
+                          return names.some(n => n.includes(qf.higher_seed) || qf.higher_seed.includes(n))
+                              && names.some(n => n.includes(qf.lower_seed) || qf.lower_seed.includes(n));
+                        });
+                        const realSel1 = realMarket?.selections.find(s => s.name.includes(qf.higher_seed) || qf.higher_seed.includes(s.name));
+                        const realSel2 = realMarket?.selections.find(s => s.name.includes(qf.lower_seed) || qf.lower_seed.includes(s.name));
+                        const mktId = realMarket?.id ?? -(9000 + idx);
+                        const sel1Id = realSel1?.id ?? -(9000 + idx * 10 + 1);
+                        const sel2Id = realSel2?.id ?? -(9000 + idx * 10 + 2);
+                        const odds1 = realSel1 && realMarket?.betting_type === 'parimutuel' ? realSel1.dynamic_odds : qf.odds_higher;
+                        const odds2 = realSel2 && realMarket?.betting_type === 'parimutuel' ? realSel2.dynamic_odds : qf.odds_lower;
                         return (
                           <div className="bg-dark-800 border border-dark-700 rounded-lg p-2">
                             <div className="text-[10px] text-dark-500 font-bold mb-1.5">{t('playoffs.quarterfinal')} {idx + 1}</div>
@@ -697,7 +712,7 @@ export default function Tournament() {
                                   <span className="font-bold text-white text-xs truncate">{shortName(qf.higher_seed)}</span>
                                   <div className="flex items-center gap-1 shrink-0">
                                     <span className={`px-1 py-0.5 rounded text-[10px] font-bold leading-none ${eloBgClass(qf.elo_higher)}`}>{qf.elo_higher.toFixed(0)}</span>
-                                    <button onClick={() => addSel({ marketId: mktId, selectionId: sel1Id, name: shortName(qf.higher_seed), odds: qf.odds_higher, marketName: `QF${idx+1}`, marketType: 'match' })} className={`font-bold px-1.5 py-0.5 rounded text-[10px] leading-none cursor-pointer transition-colors ${isSel(sel1Id) ? 'bg-white text-blue-900 ring-2 ring-primary-400' : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'}`}>{qf.odds_higher.toFixed(2)}</button>
+                                    <button onClick={() => addSel({ marketId: mktId, selectionId: sel1Id, name: shortName(qf.higher_seed), odds: odds1, marketName: `QF${idx+1}`, marketType: 'match' })} className={`font-bold px-1.5 py-0.5 rounded text-[10px] leading-none cursor-pointer transition-colors ${isSel(sel1Id) ? 'bg-white text-blue-900 ring-2 ring-primary-400' : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'}`}>{odds1.toFixed(2)}</button>
                                   </div>
                                 </div>
                                 <div className="text-[10px] text-orange-400 font-bold italic truncate">{ins1.tag}</div>
@@ -714,7 +729,7 @@ export default function Tournament() {
                                   <span className="font-bold text-dark-200 text-xs truncate">{shortName(qf.lower_seed)}</span>
                                   <div className="flex items-center gap-1 shrink-0">
                                     <span className={`px-1 py-0.5 rounded text-[10px] font-bold leading-none ${eloBgClass(qf.elo_lower)}`}>{qf.elo_lower.toFixed(0)}</span>
-                                    <button onClick={() => addSel({ marketId: mktId, selectionId: sel2Id, name: shortName(qf.lower_seed), odds: qf.odds_lower, marketName: `QF${idx+1}`, marketType: 'match' })} className={`font-bold px-1.5 py-0.5 rounded text-[10px] leading-none cursor-pointer transition-colors ${isSel(sel2Id) ? 'bg-white text-blue-900 ring-2 ring-primary-400' : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'}`}>{qf.odds_lower.toFixed(2)}</button>
+                                    <button onClick={() => addSel({ marketId: mktId, selectionId: sel2Id, name: shortName(qf.lower_seed), odds: odds2, marketName: `QF${idx+1}`, marketType: 'match' })} className={`font-bold px-1.5 py-0.5 rounded text-[10px] leading-none cursor-pointer transition-colors ${isSel(sel2Id) ? 'bg-white text-blue-900 ring-2 ring-primary-400' : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'}`}>{odds2.toFixed(2)}</button>
                                   </div>
                                 </div>
                                 <div className="text-[10px] text-orange-400 font-bold italic truncate">{ins2.tag}</div>

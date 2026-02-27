@@ -634,9 +634,19 @@ export default function Markets() {
                 const finalistNames = bracket.top8.map(p => p.player);
                 const allInsights = computeAllInsights(finalistNames, results, locale as 'en' | 'tr');
                 return bracket.quarterfinals.map((qf, qfIdx) => {
-                const pseudoMarketId = -(9000 + qfIdx);
-                const sel1Id = -(9000 + qfIdx * 10 + 1);
-                const sel2Id = -(9000 + qfIdx * 10 + 2);
+                // Find real market for this QF matchup by matching player names
+                const realMarket = markets.find(m => m.market_type === 'match' && (() => {
+                  const names = m.selections.map(s => s.name);
+                  return names.some(n => n.includes(qf.higher_seed) || qf.higher_seed.includes(n))
+                      && names.some(n => n.includes(qf.lower_seed) || qf.lower_seed.includes(n));
+                })());
+                const realSel1 = realMarket?.selections.find(s => s.name.includes(qf.higher_seed) || qf.higher_seed.includes(s.name));
+                const realSel2 = realMarket?.selections.find(s => s.name.includes(qf.lower_seed) || qf.lower_seed.includes(s.name));
+                const mktId = realMarket?.id ?? -(9000 + qfIdx);
+                const sel1Id = realSel1?.id ?? -(9000 + qfIdx * 10 + 1);
+                const sel2Id = realSel2?.id ?? -(9000 + qfIdx * 10 + 2);
+                const odds1 = realSel1 && realMarket?.betting_type === 'parimutuel' ? realSel1.dynamic_odds : qf.odds_higher;
+                const odds2 = realSel2 && realMarket?.betting_type === 'parimutuel' ? realSel2.dynamic_odds : qf.odds_lower;
                 const ins1 = allInsights[qf.higher_seed] || { tag: '', strength: '', weakness: '' };
                 const ins2 = allInsights[qf.lower_seed] || { tag: '', strength: '', weakness: '' };
                 return (
@@ -657,10 +667,10 @@ export default function Markets() {
                               e.preventDefault();
                               e.stopPropagation();
                               addSelection({
-                                marketId: pseudoMarketId,
+                                marketId: mktId,
                                 selectionId: sel1Id,
                                 name: shortName(qf.higher_seed),
-                                odds: qf.odds_higher,
+                                odds: odds1,
                                 marketName: qf.label,
                                 marketType: 'match',
                               });
@@ -671,7 +681,7 @@ export default function Markets() {
                                 : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
                             }`}
                           >
-                            {qf.odds_higher.toFixed(2)}
+                            {odds1.toFixed(2)}
                           </button>
                         </div>
                       </div>
@@ -683,10 +693,10 @@ export default function Markets() {
                               e.preventDefault();
                               e.stopPropagation();
                               addSelection({
-                                marketId: pseudoMarketId,
+                                marketId: mktId,
                                 selectionId: sel2Id,
                                 name: shortName(qf.lower_seed),
-                                odds: qf.odds_lower,
+                                odds: odds2,
                                 marketName: qf.label,
                                 marketType: 'match',
                               });
@@ -697,7 +707,7 @@ export default function Markets() {
                                 : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
                             }`}
                           >
-                            {qf.odds_lower.toFixed(2)}
+                            {odds2.toFixed(2)}
                           </button>
                           <span className={`px-1.5 py-0.5 rounded text-sm font-bold leading-none ${eloBgClass(qf.elo_lower)}`}>{qf.elo_lower.toFixed(0)}</span>
                         </div>
