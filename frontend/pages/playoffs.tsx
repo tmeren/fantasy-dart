@@ -286,7 +286,7 @@ export default function Playoffs() {
             {/* Mobile: transposed — 5-column grid layout */}
             <div className="sm:hidden card mb-8">
               {/* Column headers */}
-              <div className="grid grid-cols-5 gap-2 px-2 pb-1 items-end">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 3rem 3rem 1.75rem 1fr', gap: '0.25rem' }} className="px-2 pb-1 items-end">
                 <div />
                 <span className="text-[9px] text-yellow-500 font-bold text-center">{locale === 'tr' ? 'Piyasa' : 'Mkt'}</span>
                 <span className="text-[9px] text-green-400 font-bold text-center">Model</span>
@@ -316,7 +316,7 @@ export default function Playoffs() {
                     const predRatio = selBettors > 0 ? Math.round(totalBettors / selBettors) : 0;
                     const filledBars = Math.min(Math.round(predRatio / 2), 10);
                     return (
-                      <div key={o.player} className="grid grid-cols-5 gap-2 px-2 py-1.5 rounded-lg bg-dark-800/40 items-center">
+                      <div key={o.player} style={{ display: 'grid', gridTemplateColumns: '1fr 3rem 3rem 1.75rem 1fr', gap: '0.25rem' }} className="px-2 py-1.5 rounded-lg bg-dark-800/40 items-center">
                         <div className="min-w-0">
                           <div className="font-bold text-sm text-white truncate">{shortName(o.player)}</div>
                         </div>
@@ -350,17 +350,17 @@ export default function Playoffs() {
                         </span>
                         {/* Pool donut */}
                         <div className="flex flex-col items-center">
-                          <svg width="22" height="22" viewBox="0 0 30 30">
+                          <svg width="18" height="18" viewBox="0 0 30 30">
                             <circle cx={cx} cy={cy} r={r2} className="fill-dark-600" />
                             {pct >= 100
                               ? <circle cx={cx} cy={cy} r={r2} className="fill-fuchsia-500" />
                               : piePath && <path d={piePath} className="fill-fuchsia-500" />
                             }
                           </svg>
-                          <span className="text-[8px] text-fuchsia-400 font-bold leading-none">{pct.toFixed(0)}%</span>
+                          <span className="text-[7px] text-fuchsia-400 font-bold leading-none">{pct.toFixed(0)}%</span>
                         </div>
                         {/* Predictor bars */}
-                        <div className="flex items-end gap-[1px] h-[0.875rem] mx-auto w-full max-w-[2.5rem]">
+                        <div className="flex items-end gap-[1px] h-[0.875rem]">
                           {Array.from({ length: 10 }, (_, i) => (
                             <div key={i} className={`flex-1 rounded-[1px] ${i < filledBars ? 'bg-blue-500' : 'bg-dark-600'}`} style={{ height: '100%' }} />
                           ))}
