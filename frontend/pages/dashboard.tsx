@@ -109,9 +109,11 @@ export default function Dashboard() {
         api.getResults(),
         api.getPlayoffBracket().catch(() => null),
       ]);
-      // Filter out match markets whose match has already been completed
+      // Filter out round-robin match markets whose match has already been completed
+      // Skip QF markets (name starts with "QF") — QF players also met in round-robin
       const filtered = marketsData.filter(market => {
         if (market.market_type !== 'match') return true;
+        if (market.name?.startsWith('QF')) return true;
         const sel1 = market.selections[0];
         const sel2 = market.selections[1];
         if (!sel1 || !sel2) return true;
