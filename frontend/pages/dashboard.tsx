@@ -500,8 +500,8 @@ export default function Dashboard() {
                             const piePath = pct >= 100 ? '' : pct > 0 ? `M${cx},${cy} L${cx},${cy - r} A${r},${r} 0 ${largeArc},1 ${dx},${dy} Z` : '';
                             const totalBettors = market.total_unique_bettors || 0;
                             const selBettors = sel.unique_bettors || 0;
-                            const predPct = totalBettors > 0 ? Math.round((selBettors / totalBettors) * 10) : 0;
-                            const filledBars = Math.min(predPct, 10);
+                            const predRatio = selBettors > 0 ? Math.round(totalBettors / selBettors) : 0;
+                            const filledBars = Math.min(Math.round(predRatio / 2), 10);
                             return (
                               <div key={sel.id} className="grid grid-cols-5 gap-2 px-2 py-1.5 rounded-lg bg-dark-800/40 items-center">
                                 <div className="min-w-0">
