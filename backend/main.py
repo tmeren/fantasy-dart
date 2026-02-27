@@ -174,7 +174,13 @@ def _seed_qf_markets_if_needed():
 
 
 def _backfill_betslip_ids():
-    """Retroactively assign betslip_ids to bets that were placed together (same user, within 60s)."""
+    """Retroactively assign betslip_ids to bets placed together.
+
+    Phase 1: Clear invalid betslips (duplicate markets — e.g. two outright picks
+             or 8 QF bets wrongly lumped together).
+    Phase 2: Re-group orphan bets by user + 60s window, then split sub-groups
+             so each betslip has at most one pick per market.
+    """
     import uuid
     from datetime import timedelta
 
@@ -182,7 +188,31 @@ def _backfill_betslip_ids():
 
     db = SessionLocal()
     try:
-        # Find bets without a betslip_id
+        # ── Phase 1: fix existing invalid betslips ──────────────────────
+        existing_ids = [
+            r[0]
+            for r in db.query(Bet.betslip_id).filter(Bet.betslip_id.isnot(None)).distinct().all()
+        ]
+        cleared = 0
+        for bsid in existing_ids:
+            legs = db.query(Bet).filter(Bet.betslip_id == bsid).all()
+            seen_markets: set[int] = set()
+            has_dup = False
+            for leg in legs:
+                mid = leg.selection.market_id if leg.selection else -1
+                if mid in seen_markets:
+                    has_dup = True
+                    break
+                seen_markets.add(mid)
+            if has_dup:
+                for leg in legs:
+                    leg.betslip_id = None
+                    cleared += 1
+        if cleared:
+            db.flush()
+            print(f"[startup] Cleared {cleared} bets from invalid betslips (duplicate markets)")
+
+        # ── Phase 2: assign betslip_ids to orphan bets ──────────────────
         orphan_bets = (
             db.query(Bet)
             .filter(Bet.betslip_id.is_(None))
@@ -190,12 +220,13 @@ def _backfill_betslip_ids():
             .all()
         )
         if not orphan_bets:
+            if cleared:
+                db.commit()
             return
 
-        # Group by user, then cluster by timestamp proximity (60 second window)
-        groups: list[list[Bet]] = []
+        # Group by user + 60-second window
+        time_groups: list[list[Bet]] = []
         current_group: list[Bet] = []
-
         for bet in orphan_bets:
             if not current_group:
                 current_group = [bet]
@@ -204,26 +235,44 @@ def _backfill_betslip_ids():
             ) < timedelta(seconds=60):
                 current_group.append(bet)
             else:
-                groups.append(current_group)
+                time_groups.append(current_group)
                 current_group = [bet]
-
         if current_group:
-            groups.append(current_group)
+            time_groups.append(current_group)
 
-        # Assign betslip_id to groups with 2+ bets
+        # Split each time-group into sub-groups with unique markets.
+        # A real betslip can never have two picks from the same market.
         updated = 0
-        for group in groups:
-            if len(group) >= 2:
-                betslip_id = str(uuid.uuid4())
-                for bet in group:
-                    bet.betslip_id = betslip_id
-                    updated += 1
+        betslips_created = 0
+        for group in time_groups:
+            subgroups: list[list[Bet]] = []
+            cur: list[Bet] = []
+            seen: set[int] = set()
+            for bet in group:
+                mid = bet.selection.market_id if bet.selection else -1
+                if mid in seen:
+                    # Duplicate market → start a new sub-group
+                    subgroups.append(cur)
+                    cur = [bet]
+                    seen = {mid}
+                else:
+                    cur.append(bet)
+                    seen.add(mid)
+            if cur:
+                subgroups.append(cur)
 
-        if updated:
+            for sg in subgroups:
+                if len(sg) >= 2:
+                    betslip_id = str(uuid.uuid4())
+                    for bet in sg:
+                        bet.betslip_id = betslip_id
+                        updated += 1
+                    betslips_created += 1
+
+        if updated or cleared:
             db.commit()
-            print(
-                f"[startup] Backfilled betslip_id for {updated} bets across {sum(1 for g in groups if len(g) >= 2)} betslips"
-            )
+        if updated:
+            print(f"[startup] Backfilled {updated} bets into {betslips_created} betslips")
     except Exception as e:
         print(f"[startup] Betslip backfill error: {e}")
         db.rollback()
@@ -248,8 +297,8 @@ def _prewarm_outright_cache():
 
 
 @app.get("/api/activities", response_model=list[ActivityResponse], tags=["activity"])
-async def get_activities(limit: int = 20, db: Session = Depends(get_db)):
-    """Get recent activity feed."""
+async def get_activities(limit: int = 500, db: Session = Depends(get_db)):
+    """Get activity feed (all activities since start)."""
     activities = db.query(Activity).order_by(Activity.created_at.desc()).limit(limit).all()
     return activities
 

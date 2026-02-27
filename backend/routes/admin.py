@@ -189,11 +189,13 @@ async def generate_qf_markets(
     have a matching open market.
     """
     from odds_engine import get_quarterfinal_matchup_odds
+
     from routes.markets import _market_to_response
 
     invalidate_cache()
     ratings = get_elo_ratings()
     from match_data import get_standings
+
     standings = get_standings()
     current_top8 = [s["player"] for s in standings[:8]]
 
@@ -234,8 +236,16 @@ async def generate_qf_markets(
         db.add(market)
         db.flush()
 
-        db.add(Selection(market_id=market.id, name=qf["higher_seed"], odds=qf["odds_higher"], pool_total=0.0))
-        db.add(Selection(market_id=market.id, name=qf["lower_seed"], odds=qf["odds_lower"], pool_total=0.0))
+        db.add(
+            Selection(
+                market_id=market.id, name=qf["higher_seed"], odds=qf["odds_higher"], pool_total=0.0
+            )
+        )
+        db.add(
+            Selection(
+                market_id=market.id, name=qf["lower_seed"], odds=qf["odds_lower"], pool_total=0.0
+            )
+        )
         created.append(market)
 
     db.commit()
@@ -497,7 +507,9 @@ async def _settle_match_markets(db: Session, match_id: int, winner: str):
 
     Finds any open match market whose selections match the two players,
     then settles it using parimutuel (or fixed) payout logic.
-    Logs settlement announcements to the live activity feed.
+
+    Accumulator-aware: bets that are part of a betslip (acca) defer payout
+    until ALL legs resolve.  Single bets pay out immediately.
     """
     from database import Match as MatchModel
 
@@ -513,6 +525,8 @@ async def _settle_match_markets(db: Session, match_id: int, winner: str):
         .filter(Market.market_type == "match", Market.status == MarketStatus.OPEN)
         .all()
     )
+
+    affected_betslips: set[str] = set()
 
     for market in match_markets:
         sel_names = {s.name for s in market.selections}
@@ -541,18 +555,39 @@ async def _settle_match_markets(db: Session, match_id: int, winner: str):
             .all()
         )
 
+        # Determine final odds for this market
         if market.betting_type == BettingType.PARIMUTUEL:
             total_pool = sum(s.pool_total for s in market.selections)
             house_cut = market.house_cut or 0.10
             pool_after_cut = total_pool * (1 - house_cut)
             winning_pool = winning_sel.pool_total
             final_odds = pool_after_cut / winning_pool if winning_pool > 0 else 0
+        else:
+            final_odds = None  # use bet.potential_win for fixed
 
-            for bet in bets:
-                if bet.selection_id == winning_sel.id:
-                    actual_payout = round(bet.stake * final_odds, 2)
-                    bet.status = BetStatus.WON
-                    bet.settled_at = datetime.utcnow()
+        for bet in bets:
+            is_acca = _is_acca_leg(bet, db)
+            leg_won = bet.selection_id == winning_sel.id
+
+            bet.settled_at = datetime.utcnow()
+            if leg_won:
+                bet.status = BetStatus.WON
+            else:
+                bet.status = BetStatus.LOST
+                bet.actual_payout = 0
+
+            if is_acca:
+                # Defer payout — betslip settlement handles it
+                if leg_won:
+                    bet.actual_payout = 0  # will be set by betslip settlement
+                affected_betslips.add(bet.betslip_id)
+            else:
+                # Single bet — immediate payout
+                if leg_won:
+                    if final_odds is not None:
+                        actual_payout = round(bet.stake * final_odds, 2)
+                    else:
+                        actual_payout = bet.potential_win
                     bet.actual_payout = actual_payout
                     bet.user.balance += actual_payout
                     profit = round(actual_payout - bet.stake, 2)
@@ -572,9 +607,6 @@ async def _settle_match_markets(db: Session, match_id: int, winner: str):
                         },
                     )
                 else:
-                    bet.status = BetStatus.LOST
-                    bet.settled_at = datetime.utcnow()
-                    bet.actual_payout = 0
                     await log_activity(
                         db,
                         "bet_lost",
@@ -587,51 +619,19 @@ async def _settle_match_markets(db: Session, match_id: int, winner: str):
                             "winner": winner,
                         },
                     )
-        else:
-            for bet in bets:
-                if bet.selection_id == winning_sel.id:
-                    bet.status = BetStatus.WON
-                    bet.settled_at = datetime.utcnow()
-                    bet.actual_payout = bet.potential_win
-                    bet.user.balance += bet.potential_win
-                    profit = round(bet.potential_win - bet.stake, 2)
-                    await log_activity(
-                        db,
-                        "bet_won",
-                        f"{bet.user.name} won {bet.potential_win:.0f} RTB "
-                        f"(+{profit:.0f} profit) on '{market.name}' — "
-                        f"backed {winner} correctly!",
-                        user_id=bet.user_id,
-                        data={
-                            "payout": bet.potential_win,
-                            "stake": bet.stake,
-                            "profit": profit,
-                            "market": market.name,
-                            "winner": winner,
-                        },
-                    )
-                else:
-                    bet.status = BetStatus.LOST
-                    bet.settled_at = datetime.utcnow()
-                    bet.actual_payout = 0
-                    await log_activity(
-                        db,
-                        "bet_lost",
-                        f"{bet.user.name} lost {bet.stake:.0f} RTB on '{market.name}' — "
-                        f"{winner} won the match.",
-                        user_id=bet.user_id,
-                        data={
-                            "stake": bet.stake,
-                            "market": market.name,
-                            "winner": winner,
-                        },
-                    )
+
+    # ── Check if any accumulators are now fully settled ─────────────────
+    for bsid in affected_betslips:
+        await _settle_betslip_if_complete(bsid, db)
 
     db.commit()
 
 
 def _settle_prop_markets(db: Session, data):
-    """Auto-settle prop markets based on match result data (S9)."""
+    """Auto-settle prop markets based on match result data (S9).
+
+    Accumulator-aware: acca legs defer payout until all legs settle.
+    """
     from database import Match as MatchModel
     from prop_odds_calculator import short_name
 
@@ -650,6 +650,8 @@ def _settle_prop_markets(db: Session, data):
     )
 
     settled_count = 0
+    affected_betslips: set[str] = set()
+
     for market in prop_markets:
         if sn1 not in market.name and sn2 not in market.name:
             continue
@@ -716,21 +718,141 @@ def _settle_prop_markets(db: Session, data):
         final_odds = pool_after_cut / winning_pool if winning_pool > 0 else 0
 
         for bet in bets:
-            if bet.selection_id == winning_sel.id:
-                actual_payout = round(bet.stake * final_odds, 2)
+            is_acca = _is_acca_leg(bet, db)
+            leg_won = bet.selection_id == winning_sel.id
+
+            bet.settled_at = datetime.utcnow()
+            if leg_won:
                 bet.status = BetStatus.WON
-                bet.settled_at = datetime.utcnow()
-                bet.actual_payout = actual_payout
-                bet.user.balance += actual_payout
             else:
                 bet.status = BetStatus.LOST
-                bet.settled_at = datetime.utcnow()
                 bet.actual_payout = 0
+
+            if is_acca:
+                if leg_won:
+                    bet.actual_payout = 0
+                affected_betslips.add(bet.betslip_id)
+            else:
+                if leg_won:
+                    actual_payout = round(bet.stake * final_odds, 2)
+                    bet.actual_payout = actual_payout
+                    bet.user.balance += actual_payout
 
         settled_count += 1
 
+    # Check accumulators that might now be fully resolved
+    for bsid in affected_betslips:
+        # _settle_betslip_if_complete is async, but prop settlement is sync.
+        # We inline the check here for prop markets.
+        _settle_betslip_if_complete_sync(bsid, db)
+
     if settled_count > 0:
         db.commit()
+
+
+# ============================================================================
+# Accumulator (Betslip) Settlement Helpers
+# ============================================================================
+
+
+def _is_acca_leg(bet: Bet, db: Session) -> bool:
+    """Return True if *bet* belongs to an accumulator (betslip with 2+ legs)."""
+    if not bet.betslip_id:
+        return False
+    sibling_count = (
+        db.query(Bet).filter(Bet.betslip_id == bet.betslip_id, Bet.id != bet.id).count()
+    )
+    return sibling_count > 0
+
+
+async def _settle_betslip_if_complete(betslip_id: str, db: Session):
+    """Check if all legs of an accumulator are settled; if so, calculate payout.
+
+    Rules:
+    - ALL legs must be WON → acca wins, payout = total_stake × combined_final_odds
+    - ANY leg LOST → acca loses, all legs get actual_payout = 0
+    - If any leg still ACTIVE → do nothing (wait for remaining markets)
+    """
+    legs = db.query(Bet).filter(Bet.betslip_id == betslip_id).all()
+    if not legs or len(legs) <= 1:
+        return
+
+    # Any leg still active → not ready
+    if any(leg.status == BetStatus.ACTIVE for leg in legs):
+        return
+
+    _do_betslip_payout(legs, db)
+
+
+def _settle_betslip_if_complete_sync(betslip_id: str, db: Session):
+    """Synchronous version of betslip settlement (used by _settle_prop_markets)."""
+    legs = db.query(Bet).filter(Bet.betslip_id == betslip_id).all()
+    if not legs or len(legs) <= 1:
+        return
+    if any(leg.status == BetStatus.ACTIVE for leg in legs):
+        return
+    _do_betslip_payout(legs, db)
+
+
+def _do_betslip_payout(legs: list[Bet], db: Session):
+    """Core betslip payout logic — shared by async and sync settlement."""
+    all_won = all(leg.status == BetStatus.WON for leg in legs)
+    user = legs[0].user
+    total_stake = sum(leg.stake for leg in legs)
+
+    if all_won:
+        # Combined odds = product of each leg's final settlement odds
+        combined_odds = 1.0
+        for leg in legs:
+            market = leg.selection.market
+            if market.betting_type == BettingType.PARIMUTUEL:
+                pari_data = calculate_parimutuel_odds(market, db)
+                leg_odds = pari_data.get(leg.selection_id, {}).get("odds", leg.odds_at_time)
+            else:
+                leg_odds = leg.odds_at_time
+            combined_odds *= leg_odds
+
+        total_payout = round(total_stake * combined_odds, 2)
+
+        # Distribute proportionally across legs
+        for leg in legs:
+            leg.actual_payout = round((leg.stake / total_stake) * total_payout, 2)
+        user.balance += total_payout
+
+        from deps import log_activity_sync
+
+        log_activity_sync(
+            db,
+            "bet_won",
+            f"{user.name}'s {len(legs)}-fold accumulator won {total_payout:.0f} RTB! "
+            f"(stake {total_stake:.0f}, combined odds {combined_odds:.2f})",
+            user_id=user.id,
+            data={
+                "betslip_id": legs[0].betslip_id,
+                "legs": len(legs),
+                "total_stake": total_stake,
+                "combined_odds": round(combined_odds, 2),
+                "total_payout": total_payout,
+            },
+        )
+    else:
+        # At least one leg lost → entire acca loses
+        for leg in legs:
+            leg.actual_payout = 0
+
+        from deps import log_activity_sync
+
+        log_activity_sync(
+            db,
+            "bet_lost",
+            f"{user.name}'s {len(legs)}-fold accumulator lost ({total_stake:.0f} RTB)",
+            user_id=user.id,
+            data={
+                "betslip_id": legs[0].betslip_id,
+                "legs": len(legs),
+                "total_stake": total_stake,
+            },
+        )
 
 
 # ---- Admin Ratings & Odds ----

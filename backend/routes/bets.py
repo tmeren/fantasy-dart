@@ -35,6 +35,17 @@ async def place_bet(
     if market.status != MarketStatus.OPEN:
         raise HTTPException(status_code=400, detail="Market is not open for betting")
 
+    # ── Betslip validation: no two picks from the same market ──────────
+    if data.betslip_id:
+        existing_legs = db.query(Bet).filter(Bet.betslip_id == data.betslip_id).all()
+        for leg in existing_legs:
+            if leg.selection.market_id == market.id:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Betslip already contains a pick from '{market.name}'. "
+                    "Only one selection per market is allowed in an accumulator.",
+                )
+
     user.balance -= data.stake
     selection.pool_total += data.stake
     db.flush()
@@ -137,12 +148,10 @@ async def get_my_bets(user: User = Depends(require_user), db: Session = Depends(
 
 @router.get("/all", response_model=list[BetPublic])
 async def get_all_bets(db: Session = Depends(get_db)):
-    """Get all active bets (public view — only live predictions)."""
+    """Get all bets (public view — all predictions since start)."""
     bets = (
         db.query(Bet)
-        .filter(Bet.status == BetStatus.ACTIVE)
         .order_by(Bet.created_at.desc())
-        .limit(50)
         .all()
     )
 

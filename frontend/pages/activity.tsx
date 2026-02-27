@@ -66,7 +66,7 @@ export default function ActivityFeed() {
   const loadData = async () => {
     try {
       const [activitiesData, betsData] = await Promise.all([
-        api.getActivities(50),
+        api.getActivities(500),
         api.getAllBets(),
       ]);
       setActivities(activitiesData);

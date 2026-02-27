@@ -152,6 +152,20 @@ async def log_activity(
     )
 
 
+def log_activity_sync(
+    db: Session, activity_type: str, message: str, user_id: int = None, data: dict = None
+):
+    """Synchronous activity logger (for use in non-async settlement helpers)."""
+    activity = Activity(
+        activity_type=activity_type,
+        user_id=user_id,
+        message=message,
+        data=json.dumps(data) if data else None,
+    )
+    db.add(activity)
+    db.flush()
+
+
 # ============================================================================
 # Market Helpers
 # ============================================================================
