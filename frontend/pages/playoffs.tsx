@@ -283,20 +283,17 @@ export default function Playoffs() {
 
             {/* ── Championship Odds (MC + Parimutuel) ── */}
             <h2 className="text-xl font-bold mb-4">{t('playoffs.outrightOdds')}</h2>
-            {/* Mobile: transposed view with 4 data columns */}
-            <div className="sm:hidden card mb-8 space-y-1">
+            {/* Mobile: transposed — 5-column grid layout */}
+            <div className="sm:hidden card mb-8">
               {/* Column headers */}
-              <div className="flex items-center gap-1.5 px-2 pb-1">
-                <div className="flex-1" />
-                <span className="text-[9px] text-yellow-500 font-bold w-[2.5rem] text-center">{locale === 'tr' ? 'Piyasa' : 'Mkt'}</span>
-                <span className="text-[9px] text-green-400 font-bold w-[2.5rem] text-center">Model</span>
-                {outrightMarket && outrightMarket.betting_type === 'parimutuel' && outrightMarket.total_staked > 0 && (
-                  <>
-                    <span className="text-[9px] text-fuchsia-400 font-bold w-[2rem] text-center">Pool</span>
-                    <span className="text-[9px] text-blue-400 font-bold w-[2rem] text-center">{locale === 'tr' ? 'Thm' : 'Pred'}</span>
-                  </>
-                )}
+              <div className="grid grid-cols-5 gap-2 px-2 pb-1 items-end">
+                <div />
+                <span className="text-[9px] text-yellow-500 font-bold text-center">{locale === 'tr' ? 'Piyasa' : 'Mkt'}</span>
+                <span className="text-[9px] text-green-400 font-bold text-center">Model</span>
+                <span className="text-[9px] text-fuchsia-400 font-bold text-center">Pool</span>
+                <span className="text-[9px] text-blue-400 font-bold text-center">{locale === 'tr' ? 'Thm' : 'Pred'}</span>
               </div>
+              <div className="space-y-1">
               {(() => {
                 const marketSels = outrightMarket?.selections || [];
                 return bracket.outright_odds
@@ -307,7 +304,6 @@ export default function Playoffs() {
                     const pariOdds = marketSel && outrightMarket?.betting_type === 'parimutuel'
                       ? marketSel.dynamic_odds : marketSel?.odds;
                     const pct = marketSel?.pool_percentage || 0;
-                    // Donut chart
                     const cx = 15, cy = 15, r2 = 13;
                     const angle = (pct / 100) * 360;
                     const rad = (angle - 90) * Math.PI / 180;
@@ -315,14 +311,13 @@ export default function Playoffs() {
                     const dy = cy + r2 * Math.sin(rad);
                     const largeArc = angle > 180 ? 1 : 0;
                     const piePath = pct >= 100 ? '' : pct > 0 ? `M${cx},${cy} L${cx},${cy - r2} A${r2},${r2} 0 ${largeArc},1 ${dx},${dy} Z` : '';
-                    // Predictor bars
                     const totalBettors = outrightMarket?.total_unique_bettors || 0;
                     const selBettors = marketSel?.unique_bettors || 0;
                     const predPct = totalBettors > 0 ? Math.round((selBettors / totalBettors) * 10) : 0;
                     const filledBars = Math.min(predPct, 10);
                     return (
-                      <div key={o.player} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-dark-800/40">
-                        <div className="flex-1 min-w-0">
+                      <div key={o.player} className="grid grid-cols-5 gap-2 px-2 py-1.5 rounded-lg bg-dark-800/40 items-center">
+                        <div className="min-w-0">
                           <div className="font-bold text-sm text-white truncate">{shortName(o.player)}</div>
                         </div>
                         {/* Market odds */}
@@ -338,7 +333,7 @@ export default function Playoffs() {
                                 marketType: outrightMarket.market_type,
                               });
                             }}
-                            className={`font-bold px-1 py-0.5 rounded text-[11px] w-[2.5rem] text-center shrink-0 transition-colors ${
+                            className={`font-bold py-0.5 rounded text-[11px] text-center transition-colors ${
                               isSelected(marketSel.id)
                                 ? 'bg-white text-blue-900 ring-2 ring-primary-400'
                                 : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
@@ -347,36 +342,34 @@ export default function Playoffs() {
                             {pariOdds.toFixed(2)}
                           </button>
                         ) : (
-                          <span className="font-bold px-1 py-0.5 rounded text-[11px] bg-dark-700 text-dark-500 w-[2.5rem] text-center shrink-0">—</span>
+                          <span className="font-bold py-0.5 rounded text-[11px] bg-dark-700 text-dark-500 text-center">—</span>
                         )}
                         {/* Model odds */}
-                        <span className="font-bold px-1 py-0.5 rounded text-[11px] bg-green-500/20 text-green-400 w-[2.5rem] text-center shrink-0">
+                        <span className="font-bold py-0.5 rounded text-[11px] bg-green-500/20 text-green-400 text-center">
                           {o.odds.toFixed(2)}
                         </span>
-                        {/* Pool donut + Predictor bars */}
-                        {outrightMarket && outrightMarket.betting_type === 'parimutuel' && outrightMarket.total_staked > 0 && (
-                          <>
-                            <div className="flex flex-col items-center w-[2rem] shrink-0">
-                              <svg width="20" height="20" viewBox="0 0 30 30">
-                                <circle cx={cx} cy={cy} r={r2} className="fill-dark-600" />
-                                {pct >= 100
-                                  ? <circle cx={cx} cy={cy} r={r2} className="fill-fuchsia-500" />
-                                  : piePath && <path d={piePath} className="fill-fuchsia-500" />
-                                }
-                              </svg>
-                              <span className="text-[8px] text-fuchsia-400 font-bold leading-none">{pct.toFixed(0)}%</span>
-                            </div>
-                            <div className="flex items-end gap-[1px] w-[2rem] h-[0.875rem] shrink-0">
-                              {Array.from({ length: 10 }, (_, i) => (
-                                <div key={i} className={`flex-1 rounded-[1px] ${i < filledBars ? 'bg-blue-500' : 'bg-dark-600'}`} style={{ height: '100%' }} />
-                              ))}
-                            </div>
-                          </>
-                        )}
+                        {/* Pool donut */}
+                        <div className="flex flex-col items-center">
+                          <svg width="22" height="22" viewBox="0 0 30 30">
+                            <circle cx={cx} cy={cy} r={r2} className="fill-dark-600" />
+                            {pct >= 100
+                              ? <circle cx={cx} cy={cy} r={r2} className="fill-fuchsia-500" />
+                              : piePath && <path d={piePath} className="fill-fuchsia-500" />
+                            }
+                          </svg>
+                          <span className="text-[8px] text-fuchsia-400 font-bold leading-none">{pct.toFixed(0)}%</span>
+                        </div>
+                        {/* Predictor bars */}
+                        <div className="flex items-end gap-[1px] h-[0.875rem] mx-auto w-full max-w-[2.5rem]">
+                          {Array.from({ length: 10 }, (_, i) => (
+                            <div key={i} className={`flex-1 rounded-[1px] ${i < filledBars ? 'bg-blue-500' : 'bg-dark-600'}`} style={{ height: '100%' }} />
+                          ))}
+                        </div>
                       </div>
                     );
                   });
               })()}
+              </div>
             </div>
             {/* Desktop: table view */}
             <div className="hidden sm:block card mb-8 overflow-x-auto">

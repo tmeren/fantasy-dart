@@ -474,27 +474,23 @@ export default function Dashboard() {
                             })}
                           </div>
                         </div>
-                        {/* Mobile: transposed — players as rows with 4 data columns */}
-                        <div className="sm:hidden space-y-1">
+                        {/* Mobile: transposed — 5-column grid layout */}
+                        <div className="sm:hidden">
                           {/* Column headers */}
-                          <div className="flex items-center gap-1.5 px-2 pb-1">
-                            <div className="flex-1" />
-                            <span className="text-[9px] text-yellow-500 font-bold w-[2.5rem] text-center">{locale === 'tr' ? 'Piyasa' : 'Mkt'}</span>
-                            <span className="text-[9px] text-green-400 font-bold w-[2.5rem] text-center">Model</span>
-                            {market.betting_type === 'parimutuel' && market.total_staked > 0 && (
-                              <>
-                                <span className="text-[9px] text-fuchsia-400 font-bold w-[2rem] text-center">Pool</span>
-                                <span className="text-[9px] text-blue-400 font-bold w-[2rem] text-center">{locale === 'tr' ? 'Thm' : 'Pred'}</span>
-                              </>
-                            )}
+                          <div className="grid grid-cols-5 gap-2 px-2 pb-1 items-end">
+                            <div />
+                            <span className="text-[9px] text-yellow-500 font-bold text-center">{locale === 'tr' ? 'Piyasa' : 'Mkt'}</span>
+                            <span className="text-[9px] text-green-400 font-bold text-center">Model</span>
+                            <span className="text-[9px] text-fuchsia-400 font-bold text-center">Pool</span>
+                            <span className="text-[9px] text-blue-400 font-bold text-center">{locale === 'tr' ? 'Thm' : 'Pred'}</span>
                           </div>
+                          <div className="space-y-1">
                           {sorted.map((sel) => {
                             const displayOdds = market.betting_type === 'parimutuel' ? sel.dynamic_odds : sel.odds;
                             const mcEntry = outrightOdds.find(o => sel.name.includes(o.player) || o.player.includes(sel.name));
                             const playerName = top8Players.find(n => sel.name.includes(n) || n.includes(sel.name)) || '';
                             const tag = insights[playerName]?.tag || '';
                             const pct = sel.pool_percentage;
-                            // Donut chart math
                             const cx = 15, cy = 15, r = 13;
                             const angle = (pct / 100) * 360;
                             const rad = (angle - 90) * Math.PI / 180;
@@ -502,48 +498,41 @@ export default function Dashboard() {
                             const dy = cy + r * Math.sin(rad);
                             const largeArc = angle > 180 ? 1 : 0;
                             const piePath = pct >= 100 ? '' : pct > 0 ? `M${cx},${cy} L${cx},${cy - r} A${r},${r} 0 ${largeArc},1 ${dx},${dy} Z` : '';
-                            // Predictor bars
                             const totalBettors = market.total_unique_bettors || 0;
                             const selBettors = sel.unique_bettors || 0;
                             const predPct = totalBettors > 0 ? Math.round((selBettors / totalBettors) * 10) : 0;
                             const filledBars = Math.min(predPct, 10);
                             return (
-                              <div key={sel.id} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-dark-800/40">
-                                <div className="flex-1 min-w-0">
+                              <div key={sel.id} className="grid grid-cols-5 gap-2 px-2 py-1.5 rounded-lg bg-dark-800/40 items-center">
+                                <div className="min-w-0">
                                   <div className="font-bold text-sm text-white truncate">{shortName(sel.name)}</div>
                                   {tag && <div className="text-[10px] text-orange-400 italic truncate">{tag}</div>}
                                 </div>
-                                {/* Market odds */}
-                                <span className="font-bold px-1 py-0.5 rounded text-[11px] bg-white text-blue-900 w-[2.5rem] text-center shrink-0">
+                                <span className="font-bold py-0.5 rounded text-[11px] bg-white text-blue-900 text-center">
                                   {displayOdds > 0 ? displayOdds.toFixed(2) : '—'}
                                 </span>
-                                {/* Model odds */}
-                                <span className="font-bold px-1 py-0.5 rounded text-[11px] bg-green-500/20 text-green-400 w-[2.5rem] text-center shrink-0">
+                                <span className="font-bold py-0.5 rounded text-[11px] bg-green-500/20 text-green-400 text-center">
                                   {mcEntry ? mcEntry.odds.toFixed(2) : '—'}
                                 </span>
-                                {/* Pool donut + Predictor bars */}
-                                {market.betting_type === 'parimutuel' && market.total_staked > 0 && (
-                                  <>
-                                    <div className="flex flex-col items-center w-[2rem] shrink-0">
-                                      <svg width="20" height="20" viewBox="0 0 30 30">
-                                        <circle cx={cx} cy={cy} r={r} className="fill-dark-600" />
-                                        {pct >= 100
-                                          ? <circle cx={cx} cy={cy} r={r} className="fill-fuchsia-500" />
-                                          : piePath && <path d={piePath} className="fill-fuchsia-500" />
-                                        }
-                                      </svg>
-                                      <span className="text-[8px] text-fuchsia-400 font-bold leading-none">{pct.toFixed(0)}%</span>
-                                    </div>
-                                    <div className="flex items-end gap-[1px] w-[2rem] h-[0.875rem] shrink-0">
-                                      {Array.from({ length: 10 }, (_, i) => (
-                                        <div key={i} className={`flex-1 rounded-[1px] ${i < filledBars ? 'bg-blue-500' : 'bg-dark-600'}`} style={{ height: '100%' }} />
-                                      ))}
-                                    </div>
-                                  </>
-                                )}
+                                <div className="flex flex-col items-center">
+                                  <svg width="22" height="22" viewBox="0 0 30 30">
+                                    <circle cx={cx} cy={cy} r={r} className="fill-dark-600" />
+                                    {pct >= 100
+                                      ? <circle cx={cx} cy={cy} r={r} className="fill-fuchsia-500" />
+                                      : piePath && <path d={piePath} className="fill-fuchsia-500" />
+                                    }
+                                  </svg>
+                                  <span className="text-[8px] text-fuchsia-400 font-bold leading-none">{pct.toFixed(0)}%</span>
+                                </div>
+                                <div className="flex items-end gap-[1px] h-[0.875rem] mx-auto w-full max-w-[2.5rem]">
+                                  {Array.from({ length: 10 }, (_, i) => (
+                                    <div key={i} className={`flex-1 rounded-[1px] ${i < filledBars ? 'bg-blue-500' : 'bg-dark-600'}`} style={{ height: '100%' }} />
+                                  ))}
+                                </div>
                               </div>
                             );
                           })}
+                          </div>
                         </div>
                       </div>
                     </Link>
