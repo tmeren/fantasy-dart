@@ -193,8 +193,9 @@ async def generate_qf_markets(
 
     invalidate_cache()
     ratings = get_elo_ratings()
-    sorted_ratings = sorted(ratings, key=lambda r: r["elo"], reverse=True)
-    current_top8 = [r["player"] for r in sorted_ratings[:8]]
+    from match_data import get_standings
+    standings = get_standings()
+    current_top8 = [s["player"] for s in standings[:8]]
 
     qf_odds = get_quarterfinal_matchup_odds(ratings, current_top8)
 

@@ -97,6 +97,7 @@ def _seed_qf_markets_if_needed():
     """Create QF match markets if the playoff bracket exists but no open match markets do."""
     from database import BettingType, Market, MarketStatus, Selection, SessionLocal
     from elo_engine import get_elo_ratings
+    from match_data import get_standings
 
     db = SessionLocal()
     try:
@@ -113,8 +114,8 @@ def _seed_qf_markets_if_needed():
             return  # QF markets already exist
 
         ratings = get_elo_ratings()
-        sorted_ratings = sorted(ratings, key=lambda r: r["elo"], reverse=True)
-        current_top8 = [r["player"] for r in sorted_ratings[:8]]
+        standings = get_standings()
+        current_top8 = [s["player"] for s in standings[:8]]
         if len(current_top8) < 8:
             return  # Not enough players for QF bracket
 
