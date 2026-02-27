@@ -170,7 +170,45 @@ export default function Playoffs() {
               };
 
               return (
-                <div className="card mb-8 overflow-x-auto">
+                <>
+                {/* Mobile: vertical bracket flow */}
+                <div className="md:hidden card mb-8 space-y-4">
+                  <div className="text-center text-xs text-dark-400 font-bold uppercase tracking-wide">{t('playoffs.quarterfinals')}</div>
+                  <div className="space-y-3">
+                    <QFCardH qf={qfs[0]} idx={0} />
+                    <QFCardH qf={qfs[1]} idx={1} />
+                    <QFCardH qf={qfs[2]} idx={2} />
+                    <QFCardH qf={qfs[3]} idx={3} />
+                  </div>
+                  <div className="flex justify-center"><div className="w-px h-6 bg-dark-600" /></div>
+                  <div className="text-center text-xs text-dark-400 font-bold uppercase tracking-wide">{t('playoffs.semifinals')}</div>
+                  <div className="space-y-3">
+                    <div className="bg-dark-800/60 border border-dark-700 border-dashed rounded-lg p-3 text-center">
+                      <div className="text-xs text-dark-500 font-bold mb-1">SF1</div>
+                      <div className="text-sm text-dark-400 italic">{shortName(qfs[0]?.higher_seed)} / {shortName(qfs[0]?.lower_seed)}</div>
+                      <div className="text-xs text-dark-500 font-bold my-1">VS</div>
+                      <div className="text-sm text-dark-400 italic">{shortName(qfs[1]?.higher_seed)} / {shortName(qfs[1]?.lower_seed)}</div>
+                    </div>
+                    <div className="bg-dark-800/60 border border-dark-700 border-dashed rounded-lg p-3 text-center">
+                      <div className="text-xs text-dark-500 font-bold mb-1">SF2</div>
+                      <div className="text-sm text-dark-400 italic">{shortName(qfs[2]?.higher_seed)} / {shortName(qfs[2]?.lower_seed)}</div>
+                      <div className="text-xs text-dark-500 font-bold my-1">VS</div>
+                      <div className="text-sm text-dark-400 italic">{shortName(qfs[3]?.higher_seed)} / {shortName(qfs[3]?.lower_seed)}</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-center"><div className="w-px h-6 bg-dark-600" /></div>
+                  <div className="text-center text-xs text-dark-400 font-bold uppercase tracking-wide">{t('playoffs.final')}</div>
+                  <div className="bg-dark-800/60 border border-yellow-600/30 border-dashed rounded-lg p-4 text-center">
+                    <div className="text-2xl mb-1">🏆</div>
+                    <div className="text-xs text-yellow-500 font-bold mb-1">{t('playoffs.final')}</div>
+                    <div className="text-sm text-dark-400 italic">SF1 {t('playoffs.winner')}</div>
+                    <div className="text-xs text-dark-500 font-bold my-1">VS</div>
+                    <div className="text-sm text-dark-400 italic">SF2 {t('playoffs.winner')}</div>
+                  </div>
+                  <p className="text-xs text-dark-500 mt-4 text-center">{t('playoffs.liveOdds')}</p>
+                </div>
+                {/* Desktop: horizontal bracket */}
+                <div className="hidden md:block card mb-8 overflow-x-auto">
                   <div className="min-w-[900px]">
                     <div className="grid grid-cols-[1fr_1.5rem_auto_1.5rem_auto_1.5rem_auto_1.5rem_1fr] items-center gap-y-3">
                       {/* Header row */}
@@ -239,6 +277,7 @@ export default function Playoffs() {
                   </div>
                   <p className="text-xs text-dark-500 mt-4 text-center">{t('playoffs.liveOdds')}</p>
                 </div>
+                </>
               );
             })()}
 
