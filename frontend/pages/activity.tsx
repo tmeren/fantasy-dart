@@ -6,7 +6,42 @@ import { shortName } from '@/lib/i18n';
 import { api, Activity, Bet } from '@/lib/api';
 import { translateActivity, getActivityIcon } from '@/lib/activityTranslations';
 import Navbar from '@/components/Navbar';
-import Link from 'next/link';
+
+interface BetslipGroup {
+  id: string;
+  bets: Bet[];
+  userName: string;
+  totalStake: number;
+  totalOdds: number;
+  potentialWin: number;
+  isAcca: boolean;
+  placedAt: string;
+}
+
+function groupBetsIntoBetslips(bets: Bet[]): BetslipGroup[] {
+  const groups: Record<string, Bet[]> = {};
+  for (const bet of bets) {
+    const key = bet.betslip_id || `single-${bet.id}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(bet);
+  }
+
+  return Object.entries(groups).map(([id, legs]) => {
+    const totalStake = legs.reduce((sum, b) => sum + b.stake, 0);
+    const totalOdds = legs.reduce((acc, b) => acc * b.odds_at_time, 1);
+    const potentialWin = totalStake * totalOdds;
+    return {
+      id,
+      bets: legs.sort((a, b) => a.id - b.id),
+      userName: legs[0].user_name,
+      totalStake,
+      totalOdds,
+      potentialWin,
+      isAcca: legs.length > 1,
+      placedAt: legs[0].created_at,
+    };
+  }).sort((a, b) => new Date(b.placedAt).getTime() - new Date(a.placedAt).getTime());
+}
 
 export default function ActivityFeed() {
   const { user, loading } = useAuth();
@@ -133,28 +168,51 @@ export default function ActivityFeed() {
             </div>
           </div>
 
-          {/* Recent bets — scrollable */}
+          {/* Recent bets — grouped by betslip */}
           <div className="min-h-0 flex flex-col">
             <div className="card flex-1 min-h-0 flex flex-col">
               <h2 className="text-xl font-bold mb-4 shrink-0">{t('activity.recentBets')}</h2>
               <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mr-2 pr-2" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <div className="space-y-3">
-                  {recentBets.slice(0, 15).map((bet) => (
-                    <div key={bet.id} className="p-3 bg-dark-800 rounded-lg">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium">{shortName(bet.user_name)}</span>
-                        <span className="text-dark-400 text-sm">{new Date(bet.created_at).toLocaleTimeString()}</span>
-                      </div>
-                      <div className="text-sm text-dark-300 mb-2">{bet.market_name}</div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-primary-400">{shortName(bet.selection_name)}</span>
+                  {groupBetsIntoBetslips(recentBets).slice(0, 15).map((slip) => (
+                    <div key={slip.id} className="p-3 bg-dark-800 rounded-lg">
+                      {/* Header: user + type + time */}
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-dark-300">{bet.stake.toFixed(0)}</span>
-                          <span className="odds-badge">{bet.odds_at_time.toFixed(2)}</span>
+                          <span className="font-medium">{shortName(slip.userName)}</span>
+                          {slip.isAcca ? (
+                            <span className="bg-primary-600/20 text-primary-400 text-xs font-bold px-1.5 py-0.5 rounded">
+                              {slip.bets.length}{t('activity.fold')}
+                            </span>
+                          ) : (
+                            <span className="bg-dark-700 text-dark-300 text-xs font-bold px-1.5 py-0.5 rounded">
+                              {t('predictions.single')}
+                            </span>
+                          )}
                         </div>
+                        <span className="text-dark-400 text-xs">{new Date(slip.placedAt).toLocaleTimeString()}</span>
                       </div>
-                      <div className="text-xs text-green-400 mt-1">
-                        {t('activity.toWin')} {bet.potential_win.toFixed(0)} {t('nav.tokens')}
+
+                      {/* Selection legs */}
+                      <div className="space-y-1 mb-2">
+                        {slip.bets.map((bet) => (
+                          <div key={bet.id} className="flex items-center gap-2 text-sm">
+                            <span className="text-blue-400 text-xs">&#9679;</span>
+                            <span className="text-dark-300 truncate flex-1">{shortName(bet.selection_name)}</span>
+                            <span className="text-dark-500 text-xs">{bet.odds_at_time.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Summary: stake, total odds, potential win */}
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-dark-700">
+                        <div className="flex items-center gap-3">
+                          <span className="text-dark-400">{t('activity.totalStake')}: <span className="text-white font-bold">{slip.totalStake.toFixed(0)}</span></span>
+                          {slip.isAcca && (
+                            <span className="text-dark-400">{t('activity.totalOdds')}: <span className="text-white font-bold">{slip.totalOdds.toFixed(2)}</span></span>
+                          )}
+                        </div>
+                        <span className="text-green-400 font-bold">{slip.potentialWin.toFixed(0)} RTB</span>
                       </div>
                     </div>
                   ))}

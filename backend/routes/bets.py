@@ -168,6 +168,8 @@ async def get_all_bets(db: Session = Depends(get_db)):
                 odds_at_time=bet.odds_at_time,
                 potential_win=current_potential,
                 is_parimutuel=is_parimutuel,
+                betslip_id=bet.betslip_id,
+                status=bet.status,
                 created_at=bet.created_at,
             )
         )

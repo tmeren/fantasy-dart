@@ -586,39 +586,71 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {activeBets.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-lg sm:text-xl font-bold mb-4">{t('dashboard.myActiveBets')}</h2>
-            <div className="card overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-dark-400 text-sm border-b border-dark-700">
-                    <th className="pb-3">{t('dashboard.market')}</th>
-                    <th className="pb-3">{t('dashboard.selection')}</th>
-                    <th className="pb-3">{t('dashboard.stake')}</th>
-                    <th className="pb-3">{t('dashboard.odds')}</th>
-                    <th className="pb-3">{t('dashboard.potentialWin')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeBets.map((bet) => (
-                    <tr key={bet.id} className="border-b border-dark-800 last:border-0">
-                      <td className="py-3 text-dark-300">{bet.market_name}</td>
-                      <td className="py-3 font-medium">{bet.selection_name}</td>
-                      <td className="py-3">{bet.stake.toFixed(0)}</td>
-                      <td className="py-3">
-                        <span className="odds-badge">{bet.odds_at_time.toFixed(2)}</span>
-                      </td>
-                      <td className="py-3 text-green-400 font-semibold">
-                        {bet.potential_win.toFixed(0)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {activeBets.length > 0 && (() => {
+          // Group active bets into betslips
+          const groups: Record<string, Bet[]> = {};
+          for (const bet of activeBets) {
+            const key = bet.betslip_id || `single-${bet.id}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(bet);
+          }
+          const betslips = Object.entries(groups).map(([id, legs]) => ({
+            id,
+            bets: legs.sort((a, b) => a.id - b.id),
+            totalStake: legs.reduce((sum, b) => sum + b.stake, 0),
+            totalOdds: legs.reduce((acc, b) => acc * b.odds_at_time, 1),
+            potentialReturn: legs.reduce((sum, b) => sum + b.stake, 0) * legs.reduce((acc, b) => acc * b.odds_at_time, 1),
+            isAcca: legs.length > 1,
+          }));
+
+          return (
+            <div className="mt-8">
+              <h2 className="text-lg sm:text-xl font-bold mb-4">{t('dashboard.myActiveBets')}</h2>
+              <div className="space-y-3">
+                {betslips.map((slip) => (
+                  <div key={slip.id} className="card">
+                    {/* Betslip header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        {slip.isAcca ? (
+                          <span className="bg-primary-600/20 text-primary-400 text-xs font-bold px-2 py-1 rounded">
+                            {slip.bets.length}-fold {t('predictions.acca')}
+                          </span>
+                        ) : (
+                          <span className="bg-dark-700 text-dark-300 text-xs font-bold px-2 py-1 rounded">
+                            {t('predictions.single')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-dark-400">{t('predictions.totalStake')}: <span className="text-white font-bold">{slip.totalStake.toFixed(0)} RTB</span></span>
+                        {slip.isAcca && (
+                          <span className="text-dark-400">{t('predictions.totalOdds')}: <span className="text-white font-bold">{slip.totalOdds.toFixed(2)}</span></span>
+                        )}
+                        <span className="text-green-400 font-bold">{t('predictions.potentialReturn')}: {slip.potentialReturn.toFixed(0)} RTB</span>
+                      </div>
+                    </div>
+                    {/* Legs */}
+                    <div className="space-y-1">
+                      {slip.bets.map((bet) => (
+                        <div key={bet.id} className="flex items-center justify-between py-1.5 border-b border-dark-800/50 last:border-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-blue-400 text-xs">&#9679;</span>
+                            <span className="text-dark-300 text-sm">{bet.market_name}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium text-sm">{bet.selection_name}</span>
+                            <span className="odds-badge text-xs">{bet.odds_at_time.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

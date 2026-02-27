@@ -290,6 +290,10 @@ export const translations = {
   'activity.recentBets': { en: 'Active Predictions', tr: 'Aktif Tahminler' },
   'activity.noBets': { en: 'No active predictions', tr: 'Aktif tahmin yok' },
   'activity.toWin': { en: 'To win:', tr: 'Kazanç:' },
+  'activity.fold': { en: '-fold', tr: '-li kombine' },
+  'activity.totalOdds': { en: 'Total Odds', tr: 'Toplam Oran' },
+  'activity.totalStake': { en: 'Stake', tr: 'Bahis' },
+  'activity.potentialWin': { en: 'Potential Win', tr: 'Potansiyel Kazanç' },
 
   // ── Admin ──
   'admin.title': { en: 'Rightsmaker Admin', tr: 'Rightsmaker Yönetim' },

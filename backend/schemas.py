@@ -173,6 +173,8 @@ class BetPublic(BaseModel):
     odds_at_time: float
     potential_win: float
     is_parimutuel: bool = False
+    betslip_id: str | None = None
+    status: BetStatus = BetStatus.ACTIVE
     created_at: datetime
 
     class Config:

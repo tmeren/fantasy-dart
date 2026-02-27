@@ -90,6 +90,7 @@ async def startup():
     migrate_add_columns()
     seed_matches_from_csv()
     _seed_qf_markets_if_needed()
+    _backfill_betslip_ids()
     _prewarm_outright_cache()
 
 
@@ -144,8 +145,22 @@ def _seed_qf_markets_if_needed():
             db.add(market)
             db.flush()
 
-            db.add(Selection(market_id=market.id, name=qf["higher_seed"], odds=qf["odds_higher"], pool_total=0.0))
-            db.add(Selection(market_id=market.id, name=qf["lower_seed"], odds=qf["odds_lower"], pool_total=0.0))
+            db.add(
+                Selection(
+                    market_id=market.id,
+                    name=qf["higher_seed"],
+                    odds=qf["odds_higher"],
+                    pool_total=0.0,
+                )
+            )
+            db.add(
+                Selection(
+                    market_id=market.id,
+                    name=qf["lower_seed"],
+                    odds=qf["odds_lower"],
+                    pool_total=0.0,
+                )
+            )
             created += 1
 
         db.commit()
@@ -153,6 +168,64 @@ def _seed_qf_markets_if_needed():
             print(f"[startup] Created {created} QF match markets")
     except Exception as e:
         print(f"[startup] QF market seed error: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _backfill_betslip_ids():
+    """Retroactively assign betslip_ids to bets that were placed together (same user, within 60s)."""
+    import uuid
+    from datetime import timedelta
+
+    from database import Bet, SessionLocal
+
+    db = SessionLocal()
+    try:
+        # Find bets without a betslip_id
+        orphan_bets = (
+            db.query(Bet)
+            .filter(Bet.betslip_id.is_(None))
+            .order_by(Bet.user_id, Bet.created_at)
+            .all()
+        )
+        if not orphan_bets:
+            return
+
+        # Group by user, then cluster by timestamp proximity (60 second window)
+        groups: list[list[Bet]] = []
+        current_group: list[Bet] = []
+
+        for bet in orphan_bets:
+            if not current_group:
+                current_group = [bet]
+            elif bet.user_id == current_group[-1].user_id and (
+                bet.created_at - current_group[-1].created_at
+            ) < timedelta(seconds=60):
+                current_group.append(bet)
+            else:
+                groups.append(current_group)
+                current_group = [bet]
+
+        if current_group:
+            groups.append(current_group)
+
+        # Assign betslip_id to groups with 2+ bets
+        updated = 0
+        for group in groups:
+            if len(group) >= 2:
+                betslip_id = str(uuid.uuid4())
+                for bet in group:
+                    bet.betslip_id = betslip_id
+                    updated += 1
+
+        if updated:
+            db.commit()
+            print(
+                f"[startup] Backfilled betslip_id for {updated} bets across {sum(1 for g in groups if len(g) >= 2)} betslips"
+            )
+    except Exception as e:
+        print(f"[startup] Betslip backfill error: {e}")
         db.rollback()
     finally:
         db.close()
