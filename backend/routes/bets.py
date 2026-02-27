@@ -134,8 +134,14 @@ async def get_my_bets(user: User = Depends(require_user), db: Session = Depends(
 
 @router.get("/all", response_model=list[BetPublic])
 async def get_all_bets(db: Session = Depends(get_db)):
-    """Get all bets (public view for social feed)."""
-    bets = db.query(Bet).order_by(Bet.created_at.desc()).limit(50).all()
+    """Get all active bets (public view — only live predictions)."""
+    bets = (
+        db.query(Bet)
+        .filter(Bet.status == BetStatus.ACTIVE)
+        .order_by(Bet.created_at.desc())
+        .limit(50)
+        .all()
+    )
 
     result = []
     for bet in bets:

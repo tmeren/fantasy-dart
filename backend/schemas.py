@@ -58,6 +58,8 @@ class LeaderboardEntry(BaseModel):
     rank: int
     user: UserPublic
     total_bets: int
+    open_bets: int = 0
+    settled_bets: int = 0
     win_rate: float
     profit: float
     roi_pct: float = 0.0
@@ -90,6 +92,7 @@ class SelectionResponse(BaseModel):
     pool_percentage: float = 0  # Percentage of total pool
     dynamic_odds: float = 0  # Calculated odds based on pool (parimutuel)
     is_winner: bool
+    unique_bettors: int = 0  # Number of distinct users who bet on this selection
 
     class Config:
         from_attributes = True
@@ -118,6 +121,7 @@ class MarketResponse(BaseModel):
     selections: list[SelectionResponse]
     total_staked: float | None = 0
     pool_after_cut: float | None = 0  # Total pool minus house cut
+    total_unique_bettors: int = 0  # Total distinct users who bet on this market
 
     class Config:
         from_attributes = True
@@ -222,6 +226,7 @@ class StandingEntry(BaseModel):
     legs_for: int
     legs_against: int
     leg_diff: int
+    score: int
 
 
 class CompletedMatchResponse(BaseModel):
@@ -330,6 +335,57 @@ class PropMarketPreview(BaseModel):
 
 class GeneratePropMarketsRequest(BaseModel):
     match_id: int
+
+
+# ============================================================================
+# Playoff Bracket Schemas
+# ============================================================================
+
+
+class PlayoffPlayerEntry(BaseModel):
+    rank: int
+    player: str
+    elo: float
+    wins: int
+    losses: int
+    draws: int
+    games_played: int
+    score: int  # wins * 3
+
+
+class QuarterfinalMatchup(BaseModel):
+    label: str  # "QF1", "QF2", etc.
+    higher_seed: str
+    lower_seed: str
+    elo_higher: float
+    elo_lower: float
+    odds_higher: float
+    odds_lower: float
+
+
+class ContenderEntry(BaseModel):
+    rank: int
+    player: str
+    elo: float
+    top8_pct: float
+
+
+class PlayoffBracketResponse(BaseModel):
+    top8: list[PlayoffPlayerEntry]
+    quarterfinals: list[QuarterfinalMatchup]
+    contenders: list[ContenderEntry]
+    outright_odds: list[OutrightOddsEntry]
+
+
+class RemainingMatchOdds(BaseModel):
+    match_id: int
+    round: int
+    player1: str
+    player2: str
+    elo1: float
+    elo2: float
+    odds1: float
+    odds2: float
 
 
 # ============================================================================

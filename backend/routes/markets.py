@@ -20,6 +20,7 @@ from deps import (
 )
 from fastapi import APIRouter, Depends, HTTPException
 from schemas import MarketCreate, MarketResponse, MarketSettle
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/markets", tags=["markets"])
@@ -35,7 +36,35 @@ def _market_to_response(market: Market, db: Session) -> MarketResponse:
     if market.betting_type == BettingType.PARIMUTUEL:
         parimutuel_data = calculate_parimutuel_odds(market, db)
 
-    selections = [build_selection_response(s, market, parimutuel_data) for s in market.selections]
+    # Count unique bettors per selection
+    sel_ids = [s.id for s in market.selections]
+    bettor_counts = {}
+    if sel_ids:
+        rows = (
+            db.query(Bet.selection_id, func.count(func.distinct(Bet.user_id)))
+            .filter(Bet.selection_id.in_(sel_ids), Bet.user_id.is_not(None))
+            .group_by(Bet.selection_id)
+            .all()
+        )
+        bettor_counts = {sel_id: cnt for sel_id, cnt in rows}
+
+    # Total unique bettors across the whole market
+    total_unique = (
+        (
+            db.query(func.count(func.distinct(Bet.user_id)))
+            .filter(Bet.selection_id.in_(sel_ids), Bet.user_id.is_not(None))
+            .scalar()
+        )
+        if sel_ids
+        else 0
+    )
+
+    selections = [
+        build_selection_response(
+            s, market, parimutuel_data, unique_bettors=bettor_counts.get(s.id, 0)
+        )
+        for s in market.selections
+    ]
 
     return MarketResponse(
         id=market.id,
@@ -50,6 +79,7 @@ def _market_to_response(market: Market, db: Session) -> MarketResponse:
         selections=selections,
         total_staked=total_staked,
         pool_after_cut=pool_after_cut,
+        total_unique_bettors=total_unique or 0,
     )
 
 

@@ -165,8 +165,8 @@ def process_matches(matches: list[dict]) -> dict[str, PlayerRating]:
             p2.record_snapshot(m["match_id"])
             continue
 
-        if m["winner"] is None:
-            continue  # Skip if no winner determined
+        if m["winner"] is None or m["winner"] == "Draw":
+            continue  # Skip if no winner determined or draw not caught above
 
         winner_name = m["winner"]
         loser_name = m["player2"] if m["player1"] == winner_name else m["player1"]

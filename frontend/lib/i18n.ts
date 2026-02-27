@@ -22,6 +22,7 @@ export const translations = {
   'nav.markets': { en: 'Predictions', tr: 'Tahminler' },
   'nav.leaderboard': { en: 'Rankings', tr: 'Sıralama' },
   'nav.tournament': { en: 'Tournament', tr: 'Turnuva' },
+  'nav.activity': { en: 'Live Activity', tr: 'Canlı Akış' },
   'nav.liveFeed': { en: 'Live Feed', tr: 'Canlı Akış' },
   'nav.admin': { en: 'Admin', tr: 'Yönetim' },
   'nav.tokens': { en: 'RTB', tr: 'RTB' },
@@ -149,6 +150,7 @@ export const translations = {
   'tournament.standings': { en: 'Standings', tr: 'Puan Durumu' },
   'tournament.results': { en: 'Results', tr: 'Sonuçlar' },
   'tournament.upcoming': { en: 'Upcoming Matches', tr: 'Gelecek Maçlar' },
+  'tournament.leagueGames': { en: 'League Games', tr: 'Lig Maçları' },
   'tournament.eloRatings': { en: 'Elo Ratings', tr: 'Elo Puanları' },
   'tournament.roundRobin': { en: 'Round-Robin Standings', tr: 'Lig Puan Durumu' },
   'tournament.player': { en: 'Player', tr: 'Oyuncu' },
@@ -173,6 +175,7 @@ export const translations = {
   'tournament.lost': { en: 'Lost', tr: 'Mağlubiyet' },
   'tournament.legsFor': { en: 'Legs For', tr: 'Alınan Leg' },
   'tournament.legsAgainst': { en: 'Legs Against', tr: 'Verilen Leg' },
+  'tournament.diff': { en: 'Diff', tr: 'Fark' },
   'tournament.legDiff': { en: 'Diff', tr: 'Fark' },
   'tournament.gameNight': { en: 'Game Night', tr: 'Oyun Gecesi' },
   'tournament.throughRound': { en: 'through Round', tr: 'Tur' },
@@ -185,8 +188,10 @@ export const translations = {
   'leaderboard.player': { en: 'Player', tr: 'Oyuncu' },
   'leaderboard.balance': { en: 'Balance', tr: 'Bakiye' },
   'leaderboard.profitLoss': { en: 'Profit/Loss', tr: 'Kar/Zarar' },
-  'leaderboard.staked': { en: 'Committed', tr: 'Taahhüt' },
+  'leaderboard.staked': { en: 'At Risk', tr: 'Risk' },
   'leaderboard.bets': { en: 'Predictions', tr: 'Tahminler' },
+  'leaderboard.openBets': { en: 'Open', tr: 'Açık' },
+  'leaderboard.settledBets': { en: 'Settled', tr: 'Kapanmış' },
   'leaderboard.winRate': { en: 'Win Rate', tr: 'Kazanma %' },
   'leaderboard.streak': { en: 'Streak', tr: 'Seri' },
   'leaderboard.badges': { en: 'Badges', tr: 'Rozetler' },
@@ -212,7 +217,7 @@ export const translations = {
   'badge.sharp.desc': { en: 'Win rate above 60%', tr: '%60 üzeri kazanma oranı' },
 
   // ── Markets ──
-  'markets.title': { en: 'Prediction Corner', tr: 'Tahmin Köşesi' },
+  'markets.title': { en: 'Markets', tr: 'Piyasalar' },
   'markets.all': { en: 'all', tr: 'tümü' },
   'markets.open': { en: 'open', tr: 'açık' },
   'markets.closed': { en: 'closed', tr: 'kapalı' },
@@ -223,7 +228,7 @@ export const translations = {
   // ── Market Detail ──
   'marketDetail.backToMarkets': { en: '← Back to Predictions', tr: '← Tahminlere Dön' },
   'marketDetail.totalPool': { en: 'Total pool:', tr: 'Toplam havuz:' },
-  'marketDetail.houseCut': { en: 'Platform fee:', tr: 'Platform payı:' },
+  'marketDetail.houseCut': { en: 'Platform share:', tr: 'Platform payı:' },
   'marketDetail.payoutPool': { en: 'Payout pool:', tr: 'Ödeme havuzu:' },
   'marketDetail.poolBetting': { en: 'Pool System:', tr: 'Havuz Sistemi:' },
   'marketDetail.poolBettingDesc': {
@@ -248,8 +253,8 @@ export const translations = {
   'marketDetail.returnPct': { en: 'Return', tr: 'Getiri' },
   'marketDetail.howItWorks': { en: 'How does this work?', tr: 'Bu nasıl çalışır?' },
   'marketDetail.howItWorksPool': {
-    en: 'Pool System: Everyone\'s RTB goes into a shared pool. When the market closes, the pool (minus a small platform fee) is split among those who predicted correctly — proportional to how much they committed. The earlier you predict, the better odds you lock in. Odds shift as more predictions come in.',
-    tr: 'Havuz Sistemi: Herkesin RTB puanları ortak bir havuza girer. Piyasa kapandığında, havuz (küçük bir platform payı düşüldükten sonra) doğru tahminde bulunanlara — taahhüt ettikleri miktarla orantılı olarak — paylaştırılır. Ne kadar erken tahmin yaparsan, o kadar iyi oran yakalarsin. Yeni tahminler geldikçe oranlar değişir.',
+    en: 'Everyone\'s RTB goes into a shared pool. When the market closes, the pool is split among those who predicted correctly — proportional to how much they committed. Odds shift as more predictions come in.',
+    tr: 'Herkesin RTB puanları ortak bir havuza girer. Piyasa kapandığında, havuz doğru tahminde bulunanlara — taahhüt ettikleri miktarla orantılı olarak — paylaştırılır. Yeni tahminler geldikçe oranlar değişir.',
   },
   'marketDetail.howItWorksFixed': {
     en: 'Fixed Odds: The odds are set when the market opens and don\'t change. Your potential return is locked in the moment you make your prediction. Simple and predictable — you know exactly what you\'ll win.',
@@ -262,8 +267,8 @@ export const translations = {
   'activity.subtitle': { en: "Real-time updates on everyone's predictions", tr: 'Herkesin tahminleri hakkında anlık güncellemeler' },
   'activity.feedTitle': { en: 'Activity Feed', tr: 'Aktivite Akışı' },
   'activity.noActivity': { en: 'No activity yet', tr: 'Henüz aktivite yok' },
-  'activity.recentBets': { en: 'Recent Predictions', tr: 'Son Tahminler' },
-  'activity.noBets': { en: 'No predictions yet', tr: 'Henüz tahmin yok' },
+  'activity.recentBets': { en: 'Active Predictions', tr: 'Aktif Tahminler' },
+  'activity.noBets': { en: 'No active predictions', tr: 'Aktif tahmin yok' },
   'activity.toWin': { en: 'To win:', tr: 'Kazanç:' },
 
   // ── Admin ──
@@ -297,7 +302,7 @@ export const translations = {
   'admin.description': { en: 'Description (optional)', tr: 'Açıklama (isteğe bağlı)' },
   'admin.marketType': { en: 'Market Type', tr: 'Piyasa Türü' },
   'admin.bettingType': { en: 'System Type', tr: 'Sistem Türü' },
-  'admin.houseCut': { en: 'Platform Fee (%)', tr: 'Platform Payı (%)' },
+  'admin.houseCut': { en: 'Platform Share (%)', tr: 'Platform Payı (%)' },
   'admin.selections': { en: 'Selections', tr: 'Seçenekler' },
   'admin.addSelection': { en: '+ Add Selection', tr: '+ Seçenek Ekle' },
   'admin.settleMarket': { en: 'Settle Market', tr: 'Piyasayı Sonuçlandır' },
@@ -313,10 +318,22 @@ export const translations = {
     tr: 'Dağıtım öncesi havuzdan alınan yüzde (varsayılan: %10)',
   },
 
+  // ── Market type labels (for badges) ──
+  'marketType.label.outright': { en: 'outright', tr: 'genel' },
+  'marketType.label.match': { en: 'match', tr: 'maç' },
+  'marketType.label.prop': { en: 'prop', tr: 'özel' },
+
   // ── Market types ──
   'marketType.match': { en: 'Match (head-to-head)', tr: 'Maç (kafa kafaya)' },
   'marketType.outright': { en: 'Outright (tournament winner)', tr: 'Genel (turnuva şampiyonu)' },
   'marketType.prop': { en: 'Prop (yes/no or multiple)', tr: 'Özel (evet/hayır veya çoklu)' },
+
+  // ── DB content translations (market names & descriptions) ──
+  'db.Tournament Winner': { en: 'Tournament Winner', tr: 'Turnuva Şampiyonu' },
+  'db.Who will win the Darts Championship? Pool betting — odds change with bets. 10% house cut. Odds derived from Elo ratings + Monte Carlo simulation.': {
+    en: 'Who will win the Darts Championship? Pool betting — odds change with bets. 10% house cut. Odds derived from Elo ratings + Monte Carlo simulation.',
+    tr: 'Dart Şampiyonasını kim kazanacak? Havuz bahis sistemi — oranlar bahislerle değişir. %10 platform payı. Oranlar Elo derecelendirmesi + Monte Carlo simülasyonundan türetilmiştir.',
+  },
   'bettingType.parimutuel': { en: 'Pool (Parimutuel) - Odds change with predictions', tr: 'Havuz (Parimütüel) - Oranlar tahminlere göre değişir' },
   'bettingType.fixed': { en: 'Fixed Odds - Traditional', tr: 'Sabit Oran - Geleneksel' },
 
@@ -352,6 +369,31 @@ export const translations = {
   'marketDetail.est': { en: 'est.', tr: 'thm.' },
   'marketDetail.current': { en: '(current)', tr: '(güncel)' },
   'marketDetail.tokens': { en: 'RTB', tr: 'RTB' },
+  'marketDetail.poolDistTitle': { en: 'Pool Distribution', tr: 'Havuz Dağılımı' },
+  'marketDetail.poolDistDesc': {
+    en: 'Shows how much RTB is staked on each player and their share of the total pool.',
+    tr: 'Her oyuncuya ne kadar RTB yatırıldığını ve toplam havuzdaki payını gösterir.',
+  },
+  'marketDetail.poolShareTitle': { en: 'Pool Share (% / RTB)', tr: 'Havuzdan Payı (% / RTB)' },
+  'marketDetail.poolShareDesc': {
+    en: 'The pie chart shows each player\'s share of the total pool as a percentage. The number next to it shows the percentage and the total RTB staked on that player. As more predictions come in, these shares shift.',
+    tr: 'Pasta grafik, her oyuncunun toplam havuzdaki payını yüzde olarak gösterir. Yanındaki sayı yüzdeyi ve o oyuncuya yatırılan toplam RTB\'yi gösterir. Yeni tahminler geldikçe bu paylar değişir.',
+  },
+  'marketDetail.marketOddsTitle': { en: 'Market Odds', tr: 'Piyasa Oranı' },
+  'marketDetail.marketOddsDesc': {
+    en: 'Dynamic odds calculated from the pool distribution. These change as more RTB is committed. Your payout is determined by the final market odds at settlement — not the odds shown at the time of your prediction.',
+    tr: 'Havuz dağılımından hesaplanan dinamik oranlar. Daha fazla RTB taahhüt edildikçe değişir. Ödemeniz, tahmin yaptığınız andaki oranlarla değil, kapanıştaki son piyasa oranlarıyla belirlenir.',
+  },
+  'marketDetail.modelOddsTitle': { en: 'Model Odds', tr: 'Model Oranı' },
+  'marketDetail.modelOddsDesc': {
+    en: 'Initial odds set by the Elo rating model before any predictions are placed. These represent the statistical probability based on player performance history. Use them as a reference point to find value bets.',
+    tr: 'Herhangi bir tahmin yapılmadan önce Elo reytingi modeliyle belirlenen başlangıç oranları. Oyuncu performans geçmişine dayalı istatistiksel olasılığı temsil eder. Değerli bahisleri bulmak için referans noktası olarak kullanın.',
+  },
+  'marketDetail.predictorShareTitle': { en: 'Predictor Share', tr: 'Tahminciden Payı' },
+  'marketDetail.predictorShareDesc': {
+    en: 'Shows the concentration of unique predictors on each player. A low bar means fewer distinct people picked that player — which could signal a contrarian opportunity or an overlooked outcome.',
+    tr: 'Her oyuncudaki benzersiz tahminci yoğunluğunu gösterir. Düşük çubuk, o oyuncuyu daha az kişinin seçtiği anlamına gelir — bu, kontrarian bir fırsat veya gözden kaçan bir sonuç sinyali olabilir.',
+  },
 
   // ── Tournament subtitle (structured) ──
   'tournament.totalMatches': { en: 'Total Matches', tr: 'Toplam Maç' },
@@ -526,10 +568,10 @@ export const translations = {
 
   // T5: Pool vs Fixed Odds
   'academy.t5.title': { en: 'Pool vs Fixed Odds', tr: 'Havuz vs Sabit Oranlar' },
-  'academy.t5.desc': { en: 'How parimutuel pools work and the early-bird advantage.', tr: 'Parimütüel havuz sistemi ve erken tahmin avantajı.' },
+  'academy.t5.desc': { en: 'How parimutuel pools work and how odds shift.', tr: 'Parimütüel havuz sistemi ve oranların nasıl değiştiği.' },
   'academy.t5.content': {
-    en: 'Fantasy Darts has two odds systems. Pool (Parimutuel): Everyone\'s RTB goes into a shared pool. Odds change dynamically as more predictions come in. When the market closes, the pool (minus a platform fee) is split among correct predictors proportional to their stake. Early bets lock in better odds.\n\nFixed Odds: The odds are set when the market opens and don\'t change. Your potential return is locked the moment you predict. Simple and predictable.\n\nThe early-bird advantage in pool markets is real: if you predict correctly before others pile in, your locked-in odds will be higher than the final odds. But beware — if the pool shifts heavily against your pick, the payout could be smaller than expected. Fixed odds remove this uncertainty but may offer lower value.',
-    tr: 'Fantazi Dart\'ta iki oran sistemi var. Havuz (Parimütüel): Herkesin RTB\'si ortak bir havuza girer. Yeni tahminler geldikçe oranlar dinamik olarak değişir. Piyasa kapandığında, havuz (platform payı düşüldükten sonra) doğru tahmin edenlere taahhütleriyle orantılı olarak paylaştırılır. Erken tahminler daha iyi oranları kilitler.\n\nSabit Oran: Oranlar piyasa açıldığında belirlenir ve değişmez. Potansiyel kazancın tahmin yaptığın anda kesinleşir. Basit ve öngörülebilir.\n\nHavuz piyasalarındaki erken tahmin avantajı gerçektir: diğerleri yığılmadan önce doğru tahmin edersen, kilitlediğin oranlar son oranlardan yüksek olur. Ama dikkat — havuz seçiminin aleyhine ağır şekilde kayarsa, ödeme beklenenden küçük olabilir. Sabit oranlar bu belirsizliği ortadan kaldırır ama daha düşük değer sunabilir.',
+    en: 'Fantasy Darts has two odds systems. Pool (Parimutuel): Everyone\'s RTB goes into a shared pool. Odds change dynamically as more predictions come in. When the market closes, the pool is split among correct predictors proportional to their stake.\n\nFixed Odds: The odds are set when the market opens and don\'t change. Your potential return is locked the moment you predict. Simple and predictable.\n\nIn pool markets, odds shift as the pool distribution changes. Fixed odds remove this uncertainty but may offer lower value.',
+    tr: 'Fantazi Dart\'ta iki oran sistemi var. Havuz (Parimütüel): Herkesin RTB\'si ortak bir havuza girer. Yeni tahminler geldikçe oranlar dinamik olarak değişir. Piyasa kapandığında, havuz doğru tahmin edenlere taahhütleriyle orantılı olarak paylaştırılır.\n\nSabit Oran: Oranlar piyasa açıldığında belirlenir ve değişmez. Potansiyel kazancın tahmin yaptığın anda kesinleşir. Basit ve öngörülebilir.\n\nHavuz piyasalarında oranlar havuz dağılımı değiştikçe kayar. Sabit oranlar bu belirsizliği ortadan kaldırır ama daha düşük değer sunabilir.',
   },
 
   // T6: Reading the Form Guide
@@ -757,6 +799,47 @@ export const translations = {
   'footer.privacy': { en: 'Privacy Policy', tr: 'Gizlilik Politikası' },
   'footer.terms': { en: 'Terms of Service', tr: 'Kullanım Koşulları' },
   'footer.copyright': { en: '© 2026 Fantasy Darts. For entertainment only.', tr: '© 2026 Fantazi Dart. Sadece eğlence amaçlıdır.' },
+
+  // ── Nav: Playoffs ──
+  'nav.playoffs': { en: 'Playoffs', tr: 'Playoff' },
+
+  // ── Markets Page — Tab Split ──
+  'markets.poolSystem': { en: 'Pool System', tr: 'Havuz Sistemi' },
+  'markets.houseCutDisclaimer': {
+    en: 'The platform share is for demonstration purposes only — no real commission is taken. It simulates real-world betting mechanics.',
+    tr: 'Platform payı yalnızca gösterim amaçlıdır — gerçek bir komisyon alınmaz. Gerçek dünya bahis mekaniğini simüle eder.',
+  },
+  'markets.tabLeague': { en: 'League', tr: 'Lig' },
+  'markets.tabPlayoffs': { en: 'Playoffs', tr: 'Playoff' },
+  'markets.remainingMatches': { en: 'Remaining Matches', tr: 'Kalan Maçlar' },
+  'markets.outrightWinner': { en: 'Tournament Winner', tr: 'Turnuva Şampiyonu' },
+  'markets.projectedQF': { en: 'Projected Quarterfinals', tr: 'Tahmini Çeyrek Final' },
+  'markets.top8Race': { en: 'Final Top 8', tr: 'Final İlk 8' },
+  'markets.contenders': { en: 'Rest of League', tr: 'Diğer Oyuncular' },
+  'markets.qualifyPct': { en: 'Qualify %', tr: 'Eleme %' },
+  'markets.vs': { en: 'vs', tr: 'vs' },
+  'markets.seed': { en: 'Seed', tr: 'Sıra' },
+
+  // ── Playoffs Bracket Page ──
+  'playoffs.title': { en: 'Playoff Picture', tr: 'Playoff Tablosu' },
+  'playoffs.subtitle': { en: 'Projected knockout bracket based on current standings', tr: 'Güncel sıralamaya göre tahmini eleme tablosu' },
+  'playoffs.quarterfinal': { en: 'Quarter-Final', tr: 'Çeyrek Final' },
+  'playoffs.quarterfinals': { en: 'Quarterfinals', tr: 'Çeyrek Final' },
+  'playoffs.semifinals': { en: 'Semifinals', tr: 'Yarı Final' },
+  'playoffs.final': { en: 'Final', tr: 'Final' },
+  'playoffs.champion': { en: 'Champion', tr: 'Şampiyon' },
+  'playoffs.winner': { en: 'Winner', tr: 'Kazananı' },
+  'playoffs.liveOdds': { en: 'Live odds update after each match result', tr: 'Her maç sonucu sonrası oranlar güncellenir' },
+  'playoffs.raceToTop8': { en: 'Race to Top 8', tr: 'İlk 8\'e Yarış' },
+  'playoffs.finalStandings': { en: 'Final Standings — Top 8', tr: 'Final Sıralama — İlk 8' },
+  'playoffs.outrightOdds': { en: 'Championship Odds', tr: 'Şampiyonluk Oranları' },
+  'playoffs.winPct': { en: 'Win %', tr: 'Kazanma %' },
+  'playoffs.mcOdds': { en: 'Model Odds', tr: 'Model Oran' },
+  'playoffs.marketOdds': { en: 'Market Odds', tr: 'Piyasa Oranı' },
+  'playoffs.top8Pct': { en: 'Top 8 %', tr: 'İlk 8 %' },
+  'playoffs.playerInsights': { en: 'Player Insights', tr: 'Oyuncu Analizi' },
+  'playoffs.strength': { en: 'Strength', tr: 'Güçlü Yön' },
+  'playoffs.weakness': { en: 'Weakness', tr: 'Zayıf Yön' },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
@@ -765,4 +848,10 @@ export function t(key: TranslationKey, locale: Locale): string {
   const entry = translations[key];
   if (!entry) return key;
   return entry[locale] || entry.en;
+}
+
+/** Translate a DB string (market name, description, etc.) via `db.*` keys. Falls back to raw text. */
+export function tDb(text: string, locale: Locale): string {
+  const entry = (translations as Record<string, { en: string; tr: string }>)[`db.${text}`];
+  return entry ? (entry[locale] || entry.en) : text;
 }

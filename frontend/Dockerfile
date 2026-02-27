@@ -13,8 +13,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Server-only backend URL for Next.js rewrites (proxies /api/* to backend)
-ARG NEXT_PUBLIC_API_URL
+# Default ensures rewrites work even if build arg is not explicitly passed
+ARG NEXT_PUBLIC_API_URL=https://backend-production-19be.up.railway.app/api
 ENV BACKEND_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 

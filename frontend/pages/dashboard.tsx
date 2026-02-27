@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from './_app';
 import { useLanguage } from '@/lib/LanguageContext';
-import { api, Market, Bet, Activity } from '@/lib/api';
+import { api, Market, Bet, Activity, CompletedMatch, QuarterfinalMatchup, OutrightOdds, PlayoffPlayerEntry } from '@/lib/api';
+import { translateActivity, getActivityIcon } from '@/lib/activityTranslations';
 import { useBetslip } from '@/lib/BetslipContext';
 import { shortName } from '@/lib/i18n';
+import { eloBgClass, computeAllInsights } from '@/lib/tournament-utils';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 
@@ -55,15 +57,32 @@ function DashboardOdds({ market }: { market: Market }) {
 
 export default function Dashboard() {
   const { user, loading, refreshUser } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const { addSelection, isSelected } = useBetslip();
   const router = useRouter();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [myBets, setMyBets] = useState<Bet[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [quarterfinals, setQuarterfinals] = useState<QuarterfinalMatchup[]>([]);
+  const [outrightOdds, setOutrightOdds] = useState<OutrightOdds[]>([]);
+  const [top8, setTop8] = useState<PlayoffPlayerEntry[]>([]);
+  const [completedResults, setCompletedResults] = useState<CompletedMatch[]>([]);
   const [phoneInput, setPhoneInput] = useState('');
   const [phoneSaving, setPhoneSaving] = useState(false);
+  const [leftColHeight, setLeftColHeight] = useState<number | undefined>(undefined);
+  const leftColRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setLeftColHeight(entry.contentRect.height + entry.target.clientTop * 2);
+      }
+    });
+    ro.observe(node);
+    setLeftColHeight(node.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -83,14 +102,33 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [marketsData, betsData, activitiesData] = await Promise.all([
+      const [marketsData, betsData, activitiesData, resultsData, bracketData] = await Promise.all([
         api.getMarkets('open'),
         api.getMyBets(),
         api.getActivities(10),
+        api.getResults(),
+        api.getPlayoffBracket().catch(() => null),
       ]);
-      setMarkets(marketsData);
+      // Filter out match markets whose match has already been completed
+      const filtered = marketsData.filter(market => {
+        if (market.market_type !== 'match') return true;
+        const sel1 = market.selections[0];
+        const sel2 = market.selections[1];
+        if (!sel1 || !sel2) return true;
+        return !resultsData.some(r =>
+          (r.player1 === sel1.name && r.player2 === sel2.name) ||
+          (r.player1 === sel2.name && r.player2 === sel1.name)
+        );
+      });
+      setMarkets(filtered);
       setMyBets(betsData);
       setActivities(activitiesData);
+      setCompletedResults(resultsData);
+      if (bracketData) {
+        setQuarterfinals(bracketData.quarterfinals || []);
+        setOutrightOdds(bracketData.outright_odds || []);
+        setTop8(bracketData.top8 || []);
+      }
       setError(null);
     } catch (err) {
       console.error('Failed to load data:', err);
@@ -98,23 +136,31 @@ export default function Dashboard() {
     }
   };
 
+  let wsDelay = 5000;
+  const wsMaxDelay = 30000;
   const connectWebSocket = () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     let wsUrl: string;
     if (apiUrl) {
-      wsUrl = apiUrl.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:') + '/ws';
+      // Strip /api path — WS endpoint is at /ws on the backend root
+      const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+      wsUrl = baseUrl.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:') + '/ws';
     } else {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       wsUrl = `${protocol}//${window.location.host.replace(':3000', ':8000')}/ws`;
     }
 
     const websocket = new WebSocket(wsUrl);
+    websocket.onopen = () => { wsDelay = 5000; };
     websocket.onmessage = () => {
       loadData();
       refreshUser();
     };
-    websocket.onerror = () => console.log('WebSocket error');
-    websocket.onclose = () => setTimeout(connectWebSocket, 5000);
+    websocket.onerror = () => {};
+    websocket.onclose = () => {
+      setTimeout(connectWebSocket, wsDelay);
+      wsDelay = Math.min(wsDelay * 2, wsMaxDelay);
+    };
 
     setWs(websocket);
   };
@@ -260,67 +306,197 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-2" ref={leftColRef}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">{t('dashboard.openMarkets')}</h2>
               <Link href="/markets" className="text-primary-400 hover:underline text-sm">
                 {t('dashboard.viewAll')}
               </Link>
             </div>
-            <div className="space-y-4">
-              {markets.slice(0, 4).map((market) => (
-                <Link key={market.id} href={`/markets/${market.id}`}>
-                  <div className="card hover:border-primary-500/50 cursor-pointer transition-colors">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">{market.name}</h3>
-                      <span className="px-2 py-1 rounded text-xs status-open">
-                        {t('dashboard.open')}
-                      </span>
-                    </div>
-                    <DashboardOdds market={market} />
-                    <div className="text-dark-500 text-xs mt-2">
-                      {market.total_staked.toFixed(0)} {t('dashboard.tokensStaked')}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              {markets.length === 0 && (
-                <div className="card text-center text-dark-400">
-                  {t('dashboard.noOpenMarkets')}
+
+            {/* Projected Quarterfinal matchups — dynamic from playoff bracket */}
+            {quarterfinals.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-dark-400 mb-3 uppercase tracking-wide">{t('markets.projectedQF')}</h3>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {quarterfinals.map((qf, qfIdx) => {
+                    const pseudoMarketId = -(9000 + qfIdx);
+                    const sel1Id = -(9000 + qfIdx * 10 + 1);
+                    const sel2Id = -(9000 + qfIdx * 10 + 2);
+                    return (
+                      <Link key={qf.label} href="/markets?tab=playoffs">
+                        <div className="card !py-3 hover:border-primary-500/50 cursor-pointer transition-colors">
+                          <div className="text-center mb-2">
+                            <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 font-bold">{t('playoffs.quarterfinal')} {qfIdx + 1}</span>
+                          </div>
+                          <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-bold text-sm text-white truncate">{shortName(qf.higher_seed)}</span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className={`px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_higher)}`}>{qf.elo_higher.toFixed(0)}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    addSelection({
+                                      marketId: pseudoMarketId,
+                                      selectionId: sel1Id,
+                                      name: shortName(qf.higher_seed),
+                                      odds: qf.odds_higher,
+                                      marketName: qf.label,
+                                      marketType: 'match',
+                                    });
+                                  }}
+                                  className={`font-bold px-2 py-0.5 rounded-lg text-xs min-w-[2.5rem] text-center transition-all leading-none ${
+                                    isSelected(sel1Id)
+                                      ? 'bg-white text-blue-900 ring-2 ring-primary-400'
+                                      : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
+                                  }`}
+                                >
+                                  {qf.odds_higher.toFixed(2)}
+                                </button>
+                              </div>
+                            </div>
+                            <span className="text-dark-500 text-xs font-bold text-center px-2">VS</span>
+                            <div className="flex items-center justify-between gap-1">
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    addSelection({
+                                      marketId: pseudoMarketId,
+                                      selectionId: sel2Id,
+                                      name: shortName(qf.lower_seed),
+                                      odds: qf.odds_lower,
+                                      marketName: qf.label,
+                                      marketType: 'match',
+                                    });
+                                  }}
+                                  className={`font-bold px-2 py-0.5 rounded-lg text-xs min-w-[2.5rem] text-center transition-all leading-none ${
+                                    isSelected(sel2Id)
+                                      ? 'bg-white text-blue-900 ring-2 ring-primary-400'
+                                      : 'bg-white text-blue-900 hover:ring-2 hover:ring-primary-400/50'
+                                  }`}
+                                >
+                                  {qf.odds_lower.toFixed(2)}
+                                </button>
+                                <span className={`px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_lower)}`}>{qf.elo_lower.toFixed(0)}</span>
+                              </div>
+                              <span className="font-bold text-sm text-dark-200 truncate text-right">{shortName(qf.lower_seed)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* Outright tournament champion — rich grid (dynamic from bracket + market) */}
+            {(() => {
+              const outrightMarkets = markets.filter(m => m.market_type === 'outright');
+              const top8Players = top8.map(p => p.player);
+              if (outrightMarkets.length === 0 || top8Players.length === 0) return null;
+              const insights = computeAllInsights(top8Players, completedResults, locale as 'en' | 'tr');
+              return outrightMarkets.map((market) => {
+                const sorted = [...market.selections]
+                  .filter(s => top8Players.some(n => s.name.includes(n) || n.includes(s.name)))
+                  .sort((a, b) => {
+                    const mcA = outrightOdds.find(o => a.name.includes(o.player) || o.player.includes(a.name));
+                    const mcB = outrightOdds.find(o => b.name.includes(o.player) || o.player.includes(b.name));
+                    return (mcA?.odds ?? 999) - (mcB?.odds ?? 999);
+                  });
+                if (sorted.length === 0) return null;
+                return (
+                  <div key={market.id}>
+                    <h3 className="text-sm font-semibold text-dark-400 mb-3 uppercase tracking-wide">{t('markets.outrightWinner')}</h3>
+                    <Link href={`/markets/${market.id}`}>
+                      <div className="card hover:border-primary-500/50 cursor-pointer transition-all">
+                        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                          <div className="grid gap-2" style={{ gridTemplateColumns: `5rem repeat(${sorted.length}, minmax(3.5rem, 1fr))`, minWidth: `${5 + sorted.length * 4}rem` }}>
+                            {/* Player names */}
+                            <div />
+                            {sorted.map((sel) => (
+                              <div key={sel.id} className="text-xs text-dark-300 truncate text-center font-semibold leading-tight">
+                                {shortName(sel.name)}
+                              </div>
+                            ))}
+                            {/* Nickname tags */}
+                            <div />
+                            {sorted.map((sel) => {
+                              const playerName = top8Players.find(n => sel.name.includes(n) || n.includes(sel.name)) || '';
+                              const tag = insights[playerName]?.tag || '';
+                              return (
+                                <div key={`tag-${sel.id}`} className="text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
+                                  {tag}
+                                </div>
+                              );
+                            })}
+                            {/* Market odds row */}
+                            <div className="text-xs text-yellow-500 font-semibold flex flex-col justify-center items-end text-right leading-tight">{locale === 'tr' ? <><div>Piyasa</div><div>Oranı</div></> : <><div>Market</div><div>Odds</div></>}</div>
+                            {sorted.map((sel) => {
+                              const displayOdds = market.betting_type === 'parimutuel' ? sel.dynamic_odds : sel.odds;
+                              return (
+                                <div key={sel.id} className="flex justify-center">
+                                  <span className="font-bold px-2 py-1 rounded-lg text-sm bg-white text-blue-900 w-full text-center">
+                                    {displayOdds > 0 ? displayOdds.toFixed(2) : '—'}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {/* Model odds row */}
+                            <div className="text-xs text-green-400 font-semibold flex flex-col justify-center items-end text-right leading-tight">{locale === 'tr' ? <><div>Model</div><div>Oran</div></> : <><div>Model</div><div>Odds</div></>}</div>
+                            {sorted.map((sel) => {
+                              const mcEntry = outrightOdds.find(o => sel.name.includes(o.player) || o.player.includes(sel.name));
+                              return (
+                                <div key={sel.id} className="flex justify-center">
+                                  <span className="font-bold px-2 py-1 rounded-lg text-sm bg-green-500/20 text-green-400 w-full text-center">
+                                    {mcEntry ? mcEntry.odds.toFixed(2) : '—'}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                );
+              });
+            })()}
+
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col min-h-0" style={leftColHeight ? { height: leftColHeight } : undefined}>
+            <div className="flex items-center justify-between mb-4 shrink-0">
               <h2 className="text-xl font-bold">{t('dashboard.liveActivity')}</h2>
               <Link href="/activity" className="text-primary-400 hover:underline text-sm">
                 {t('dashboard.viewAll')}
               </Link>
             </div>
-            <div className="card">
-              <div className="space-y-3">
-                {activities.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-dark-700 last:border-0">
-                    <div className="text-lg">
-                      {activity.activity_type === 'bet_placed' && '🎯'}
-                      {activity.activity_type === 'user_joined' && '👋'}
-                      {activity.activity_type === 'market_settled' && '🏆'}
-                      {activity.activity_type === 'market_created' && '📢'}
+            <div className="card flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mr-2 pr-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="space-y-3">
+                  {activities.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-3 pb-3 border-b border-dark-700 last:border-0">
+                      <div className="text-lg">
+                        {getActivityIcon(activity.activity_type)}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm">{translateActivity(activity, locale)}</p>
+                        <p className="text-xs text-dark-500">
+                          {new Date(activity.created_at).toLocaleTimeString()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm">{activity.message}</p>
-                      <p className="text-xs text-dark-500">
-                        {new Date(activity.created_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {activities.length === 0 && (
-                  <p className="text-dark-400 text-center text-sm">{t('dashboard.noActivity')}</p>
-                )}
+                  ))}
+                  {activities.length === 0 && (
+                    <p className="text-dark-400 text-center text-sm">{t('dashboard.noActivity')}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

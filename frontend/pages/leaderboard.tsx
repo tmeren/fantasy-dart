@@ -85,10 +85,18 @@ function ExpandedPanel({ entry }: { entry: LeaderboardEntry }) {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-3 text-center">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center">
             <div className="bg-dark-700 rounded-lg p-2">
               <div className="text-dark-400 text-xs">{t('leaderboard.bets')}</div>
               <div className="font-bold">{entry.total_bets}</div>
+            </div>
+            <div className="bg-dark-700 rounded-lg p-2">
+              <div className="text-dark-400 text-xs">{t('leaderboard.openBets')}</div>
+              <div className={`font-bold ${entry.open_bets > 0 ? 'text-yellow-400' : ''}`}>{entry.open_bets}</div>
+            </div>
+            <div className="bg-dark-700 rounded-lg p-2">
+              <div className="text-dark-400 text-xs">{t('leaderboard.settledBets')}</div>
+              <div className="font-bold">{entry.settled_bets}</div>
             </div>
             <div className="bg-dark-700 rounded-lg p-2">
               <div className="text-dark-400 text-xs">{t('leaderboard.staked')}</div>
@@ -168,49 +176,6 @@ export default function Leaderboard() {
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t('leaderboard.title')}</h1>
         <p className="text-dark-400 mb-8">{t('leaderboard.subtitle')}</p>
 
-        {/* Top 3 Podium */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          {leaderboard.slice(0, 3).map((entry, index) => (
-            <div
-              key={entry.user.id}
-              className={`card text-center ${
-                index === 0 ? 'md:order-2 bg-yellow-900/20 border-yellow-500/30' :
-                index === 1 ? 'md:order-1 bg-gray-600/20 border-gray-500/30' :
-                'md:order-3 bg-orange-900/20 border-orange-500/30'
-              }`}
-            >
-              <div className="text-4xl mb-2">{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</div>
-              <div className="text-2xl font-bold mb-1">{shortName(entry.user.name)}</div>
-              {entry.streak && <div className="mb-2"><StreakBadge streak={entry.streak} /></div>}
-              <div className={`text-3xl font-bold ${entry.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {entry.profit >= 0 ? '+' : ''}{entry.profit.toFixed(0)}
-              </div>
-              <div className="text-dark-400 text-sm">{t('leaderboard.profit')}</div>
-              <div className="mt-4 pt-4 border-t border-dark-700 grid grid-cols-3 gap-2 text-sm">
-                <div>
-                  <div className="text-dark-400">{t('leaderboard.balance')}</div>
-                  <div className="font-semibold">{entry.user.balance.toFixed(0)}</div>
-                </div>
-                <div>
-                  <div className="text-dark-400">{t('leaderboard.winRate')}</div>
-                  <div className="font-semibold">{entry.win_rate.toFixed(0)}%</div>
-                </div>
-                <div>
-                  <div className="text-dark-400">ROI</div>
-                  <div className={`font-semibold ${entry.roi_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {entry.roi_pct >= 0 ? '+' : ''}{entry.roi_pct.toFixed(0)}%
-                  </div>
-                </div>
-              </div>
-              {entry.badges && entry.badges.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-dark-700 flex justify-center">
-                  <BadgeList badges={entry.badges} />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
         {/* Full Table */}
         <div className="card overflow-x-auto">
           <table className="w-full">
@@ -219,10 +184,12 @@ export default function Leaderboard() {
                 <th className="pb-3 w-16">{t('leaderboard.rank')}</th>
                 <th className="pb-3">{t('leaderboard.player')}</th>
                 <th className="pb-3 text-right">{t('leaderboard.balance')}</th>
+                <th className="pb-3 text-right hidden sm:table-cell">{t('leaderboard.staked')}</th>
                 <th className="pb-3 text-right">{t('leaderboard.profitLoss')}</th>
                 <th className="pb-3 text-right hidden sm:table-cell">ROI%</th>
-                <th className="pb-3 text-right hidden md:table-cell">{t('leaderboard.staked')}</th>
                 <th className="pb-3 text-right">{t('leaderboard.bets')}</th>
+                <th className="pb-3 text-right hidden md:table-cell">{t('leaderboard.openBets')}</th>
+                <th className="pb-3 text-right hidden md:table-cell">{t('leaderboard.settledBets')}</th>
                 <th className="pb-3 text-right">{t('leaderboard.winRate')}</th>
                 <th className="pb-3 text-center hidden sm:table-cell">{t('leaderboard.streak')}</th>
                 <th className="pb-3 hidden lg:table-cell">{t('leaderboard.badges')}</th>
@@ -252,14 +219,22 @@ export default function Leaderboard() {
                       <span className="ml-1 text-dark-500 text-xs">{expandedUser === entry.user.id ? '▲' : '▼'}</span>
                     </td>
                     <td className="py-4 text-right font-semibold">{entry.user.balance.toFixed(0)}</td>
+                    <td className="py-4 text-right text-dark-300 hidden sm:table-cell">{entry.total_staked.toFixed(0)}</td>
                     <td className={`py-4 text-right font-semibold ${entry.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {entry.profit >= 0 ? '+' : ''}{entry.profit.toFixed(0)}
                     </td>
                     <td className={`py-4 text-right hidden sm:table-cell ${entry.roi_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {entry.roi_pct >= 0 ? '+' : ''}{entry.roi_pct.toFixed(0)}%
                     </td>
-                    <td className="py-4 text-right text-dark-300 hidden md:table-cell">{entry.total_staked.toFixed(0)}</td>
                     <td className="py-4 text-right text-dark-300">{entry.total_bets}</td>
+                    <td className="py-4 text-right text-dark-300 hidden md:table-cell">
+                      {entry.open_bets > 0 ? (
+                        <span className="text-yellow-400">{entry.open_bets}</span>
+                      ) : (
+                        <span>0</span>
+                      )}
+                    </td>
+                    <td className="py-4 text-right text-dark-300 hidden md:table-cell">{entry.settled_bets}</td>
                     <td className="py-4 text-right">
                       <span className={`px-2 py-1 rounded text-sm ${
                         entry.win_rate >= 60 ? 'bg-green-500/20 text-green-400' :

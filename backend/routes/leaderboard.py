@@ -13,17 +13,26 @@ router = APIRouter(prefix="/api/leaderboard", tags=["leaderboard"])
 @router.get("", response_model=list[LeaderboardEntry])
 async def get_leaderboard(db: Session = Depends(get_db)):
     """Get leaderboard sorted by token balance — single aggregate query."""
+    # Exclude voided bets from all counts — they were refunded and don't count
+    non_void = Bet.status != BetStatus.VOID
     stats = (
         db.query(
             User.id,
             User.name,
             User.balance,
-            func.count(Bet.id).label("total_bets"),
+            func.sum(case((non_void, 1), else_=0)).label("total_bets"),
             func.sum(case((Bet.status == BetStatus.WON, 1), else_=0)).label("won_bets"),
-            func.coalesce(func.sum(Bet.stake), 0).label("total_staked"),
+            func.coalesce(func.sum(case((non_void, Bet.stake), else_=0)), 0).label("total_staked"),
+            func.sum(case((Bet.status == BetStatus.ACTIVE, 1), else_=0)).label("open_bets"),
+            func.sum(
+                case(
+                    (Bet.status.in_([BetStatus.WON, BetStatus.LOST]), 1),
+                    else_=0,
+                )
+            ).label("settled_bets"),
         )
         .outerjoin(Bet, Bet.user_id == User.id)
-        .filter(User.is_active.is_(True))
+        .filter(User.is_active.is_(True), User.is_admin.is_(False))
         .group_by(User.id)
         .order_by(User.balance.desc())
         .all()
@@ -42,7 +51,9 @@ async def get_leaderboard(db: Session = Depends(get_db)):
 
     result = []
     for rank, row in enumerate(stats, 1):
-        uid, name, balance, total_bets, won_bets, total_staked = row
+        uid, name, balance, total_bets, won_bets, total_staked, open_bets, settled_bets = row
+        open_bets = open_bets or 0
+        settled_bets = settled_bets or 0
         won_bets = won_bets or 0
         total_staked = float(total_staked or 0)
         profit = round(balance - STARTING_BALANCE, 2)
@@ -88,6 +99,8 @@ async def get_leaderboard(db: Session = Depends(get_db)):
                 rank=rank,
                 user=UserPublic(id=uid, name=name, balance=balance),
                 total_bets=total_bets,
+                open_bets=open_bets,
+                settled_bets=settled_bets,
                 win_rate=win_rate,
                 profit=profit,
                 roi_pct=roi_pct,
@@ -137,6 +150,15 @@ async def get_balance_history(user_id: int, db: Session = Depends(get_db)):
                     timestamp=bet.settled_at or bet.created_at,
                     balance=round(running_balance, 2),
                     event="lost",
+                )
+            )
+        elif bet.status == BetStatus.VOID:
+            running_balance += bet.stake  # Stake was refunded
+            history.append(
+                BalanceHistoryEntry(
+                    timestamp=bet.settled_at or bet.created_at,
+                    balance=round(running_balance, 2),
+                    event="voided_refund",
                 )
             )
 

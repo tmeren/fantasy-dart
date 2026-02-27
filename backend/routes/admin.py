@@ -16,12 +16,19 @@ from database import (
 from deps import (
     build_selection_response,
     calculate_parimutuel_odds,
+    hash_password,
     log_activity,
     require_admin,
 )
 from elo_engine import get_elo_ratings, get_sorted_ratings
 from fastapi import APIRouter, Depends, HTTPException
-from match_data import get_scheduled_matches, invalidate_cache, write_match_result, correct_match_result
+from match_data import (
+    correct_match_result,
+    get_scheduled_matches,
+    invalidate_cache,
+    write_match_result,
+)
+from odds_engine import get_match_odds as compute_match_odds
 from odds_engine import get_outright_odds
 from prop_odds_calculator import get_all_prop_markets
 from schemas import (
@@ -41,7 +48,6 @@ from schemas import (
     WhatsAppLogResponse,
 )
 from sqlalchemy.orm import Session
-from deps import hash_password
 from whatsapp_client import whatsapp_client
 
 router = APIRouter(prefix="/api", tags=["admin"])
@@ -93,6 +99,84 @@ async def admin_scheduled_matches(user: User = Depends(require_admin)):
     ]
 
 
+@router.post("/admin/generate-match-markets")
+async def generate_match_markets(
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Auto-generate match markets for all scheduled matches that don't have one yet.
+
+    Creates a PARIMUTUEL market per match with 2 selections (one per player),
+    seeded with Elo-derived odds. Skips matches that already have an open/closed
+    match market in the DB (matched by player names in selections).
+    """
+    from routes.markets import _market_to_response
+
+    invalidate_cache()
+    sched = get_scheduled_matches()
+    ratings = get_elo_ratings()
+    match_odds_list = compute_match_odds(ratings, sched)
+
+    # Build odds lookup by match_id
+    odds_by_match = {mo["match_id"]: mo for mo in match_odds_list}
+
+    # Find existing match markets so we don't create duplicates
+    existing_markets = (
+        db.query(Market)
+        .filter(
+            Market.market_type == "match",
+            Market.status.in_([MarketStatus.OPEN, MarketStatus.CLOSED]),
+        )
+        .all()
+    )
+    existing_pairs = set()
+    for m in existing_markets:
+        names = frozenset(s.name for s in m.selections)
+        existing_pairs.add(names)
+
+    created = []
+    for match in sched:
+        pair = frozenset([match["player1"], match["player2"]])
+        if pair in existing_pairs:
+            continue
+
+        mo = odds_by_match.get(match["match_id"])
+        odds1 = mo["odds1"] if mo else 2.0
+        odds2 = mo["odds2"] if mo else 2.0
+
+        market = Market(
+            name=f"R{match['round']} M{match['match_id']}: {match['player1']} vs {match['player2']}",
+            description=f"Round {match['round']} — Match {match['match_id']}",
+            market_type="match",
+            betting_type=BettingType.PARIMUTUEL,
+            house_cut=0.10,
+        )
+        db.add(market)
+        db.flush()
+
+        db.add(Selection(market_id=market.id, name=match["player1"], odds=odds1, pool_total=0.0))
+        db.add(Selection(market_id=market.id, name=match["player2"], odds=odds2, pool_total=0.0))
+        created.append(market)
+
+    db.commit()
+
+    if created:
+        await log_activity(
+            db,
+            "match_markets_created",
+            f"{len(created)} match markets auto-generated for upcoming rounds",
+            user_id=user.id,
+            data={"count": len(created), "match_ids": [m.id for m in created]},
+        )
+
+    return {
+        "message": f"{len(created)} match markets created ({len(sched) - len(created)} already existed)",
+        "created": len(created),
+        "skipped": len(sched) - len(created),
+        "markets": [_market_to_response(m, db) for m in created],
+    }
+
+
 @router.post("/admin/enter-result", response_model=EnterResultResponse)
 async def admin_enter_result(
     data: EnterResultRequest,
@@ -126,6 +210,7 @@ async def admin_enter_result(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    await _settle_match_markets(db, data.match_id, data.winner)
     _settle_prop_markets(db, data)
 
     ratings = get_elo_ratings()
@@ -213,9 +298,19 @@ async def admin_correct_result(
         db,
         "match_correction",
         f"Match M{data.match_id} corrected: "
-        + (f"{data.winner} wins ({data.score1}-{data.score2})" if data.winner else f"Draw ({data.score1}-{data.score2})"),
+        + (
+            f"{data.winner} wins ({data.score1}-{data.score2})"
+            if data.winner
+            else f"Draw ({data.score1}-{data.score2})"
+        ),
         user_id=user.id,
-        data={"match_id": data.match_id, "score1": data.score1, "score2": data.score2, "winner": data.winner, "is_draw": data.is_draw},
+        data={
+            "match_id": data.match_id,
+            "score1": data.score1,
+            "score2": data.score2,
+            "winner": data.winner,
+            "is_draw": data.is_draw,
+        },
     )
 
     return {
@@ -238,7 +333,11 @@ async def admin_batch_correct(
     for c in corrections:
         try:
             correct_match_result(
-                c.match_id, c.score1, c.score2, c.winner, is_draw=c.is_draw,
+                c.match_id,
+                c.score1,
+                c.score2,
+                c.winner,
+                is_draw=c.is_draw,
             )
             results.append({"match_id": c.match_id, "status": "ok"})
         except ValueError as e:
@@ -251,16 +350,23 @@ async def admin_batch_correct(
 
     ok_count = sum(1 for r in results if r["status"] == "ok")
     await log_activity(
-        db, "batch_correction",
+        db,
+        "batch_correction",
         f"Batch corrected {ok_count}/{len(corrections)} matches",
         user_id=user.id,
     )
 
-    return {"message": f"{ok_count}/{len(corrections)} corrected. Elo recalculated.", "results": results}
+    return {
+        "message": f"{ok_count}/{len(corrections)} corrected. Elo recalculated.",
+        "results": results,
+    }
 
 
 def _refresh_market_elo_odds(db: Session, ratings: dict, sched: list[dict]):
-    """Update Selection.odds for open markets with fresh Elo-derived odds."""
+    """Update Selection.odds for open markets with fresh Elo-derived odds.
+
+    Also ensures all markets use PARIMUTUEL betting type (dynamic odds).
+    """
     from odds_engine import get_match_odds as compute_match_odds
 
     outright = get_outright_odds(ratings, sched)
@@ -277,6 +383,8 @@ def _refresh_market_elo_odds(db: Session, ratings: dict, sched: list[dict]):
         .all()
     )
     for market in outright_markets:
+        if market.betting_type != BettingType.PARIMUTUEL:
+            market.betting_type = BettingType.PARIMUTUEL
         for sel in market.selections:
             if sel.name in outright_odds_map:
                 sel.odds = outright_odds_map[sel.name]
@@ -287,6 +395,8 @@ def _refresh_market_elo_odds(db: Session, ratings: dict, sched: list[dict]):
         .all()
     )
     for market in match_markets:
+        if market.betting_type != BettingType.PARIMUTUEL:
+            market.betting_type = BettingType.PARIMUTUEL
         if len(market.selections) == 2:
             p1_name = market.selections[0].name
             p2_name = market.selections[1].name
@@ -298,6 +408,144 @@ def _refresh_market_elo_odds(db: Session, ratings: dict, sched: list[dict]):
             elif rev_key in match_odds_map:
                 market.selections[0].odds = match_odds_map[rev_key][1]
                 market.selections[1].odds = match_odds_map[rev_key][0]
+
+    db.commit()
+
+
+async def _settle_match_markets(db: Session, match_id: int, winner: str):
+    """Auto-settle match-type markets when a result is entered.
+
+    Finds any open match market whose selections match the two players,
+    then settles it using parimutuel (or fixed) payout logic.
+    Logs settlement announcements to the live activity feed.
+    """
+    from database import Match as MatchModel
+
+    match_row = db.query(MatchModel).filter(MatchModel.match_id == match_id).first()
+    if not match_row:
+        return
+
+    p1 = match_row.player1
+    p2 = match_row.player2
+
+    match_markets = (
+        db.query(Market)
+        .filter(Market.market_type == "match", Market.status == MarketStatus.OPEN)
+        .all()
+    )
+
+    for market in match_markets:
+        sel_names = {s.name for s in market.selections}
+        if p1 not in sel_names or p2 not in sel_names:
+            continue
+
+        winning_sel = None
+        for sel in market.selections:
+            if sel.name == winner:
+                winning_sel = sel
+                break
+
+        if winning_sel is None:
+            continue
+
+        winning_sel.is_winner = True
+        market.status = MarketStatus.SETTLED
+        market.settled_at = datetime.utcnow()
+
+        bets = (
+            db.query(Bet)
+            .filter(
+                Bet.selection_id.in_([s.id for s in market.selections]),
+                Bet.status == BetStatus.ACTIVE,
+            )
+            .all()
+        )
+
+        if market.betting_type == BettingType.PARIMUTUEL:
+            total_pool = sum(s.pool_total for s in market.selections)
+            house_cut = market.house_cut or 0.10
+            pool_after_cut = total_pool * (1 - house_cut)
+            winning_pool = winning_sel.pool_total
+            final_odds = pool_after_cut / winning_pool if winning_pool > 0 else 0
+
+            for bet in bets:
+                if bet.selection_id == winning_sel.id:
+                    actual_payout = round(bet.stake * final_odds, 2)
+                    bet.status = BetStatus.WON
+                    bet.settled_at = datetime.utcnow()
+                    bet.actual_payout = actual_payout
+                    bet.user.balance += actual_payout
+                    profit = round(actual_payout - bet.stake, 2)
+                    await log_activity(
+                        db,
+                        "bet_won",
+                        f"{bet.user.name} won {actual_payout:.0f} RTB "
+                        f"(+{profit:.0f} profit) on '{market.name}' — "
+                        f"backed {winner} correctly!",
+                        user_id=bet.user_id,
+                        data={
+                            "payout": actual_payout,
+                            "stake": bet.stake,
+                            "profit": profit,
+                            "market": market.name,
+                            "winner": winner,
+                        },
+                    )
+                else:
+                    bet.status = BetStatus.LOST
+                    bet.settled_at = datetime.utcnow()
+                    bet.actual_payout = 0
+                    await log_activity(
+                        db,
+                        "bet_lost",
+                        f"{bet.user.name} lost {bet.stake:.0f} RTB on '{market.name}' — "
+                        f"{winner} won the match.",
+                        user_id=bet.user_id,
+                        data={
+                            "stake": bet.stake,
+                            "market": market.name,
+                            "winner": winner,
+                        },
+                    )
+        else:
+            for bet in bets:
+                if bet.selection_id == winning_sel.id:
+                    bet.status = BetStatus.WON
+                    bet.settled_at = datetime.utcnow()
+                    bet.actual_payout = bet.potential_win
+                    bet.user.balance += bet.potential_win
+                    profit = round(bet.potential_win - bet.stake, 2)
+                    await log_activity(
+                        db,
+                        "bet_won",
+                        f"{bet.user.name} won {bet.potential_win:.0f} RTB "
+                        f"(+{profit:.0f} profit) on '{market.name}' — "
+                        f"backed {winner} correctly!",
+                        user_id=bet.user_id,
+                        data={
+                            "payout": bet.potential_win,
+                            "stake": bet.stake,
+                            "profit": profit,
+                            "market": market.name,
+                            "winner": winner,
+                        },
+                    )
+                else:
+                    bet.status = BetStatus.LOST
+                    bet.settled_at = datetime.utcnow()
+                    bet.actual_payout = 0
+                    await log_activity(
+                        db,
+                        "bet_lost",
+                        f"{bet.user.name} lost {bet.stake:.0f} RTB on '{market.name}' — "
+                        f"{winner} won the match.",
+                        user_id=bet.user_id,
+                        data={
+                            "stake": bet.stake,
+                            "market": market.name,
+                            "winner": winner,
+                        },
+                    )
 
     db.commit()
 
@@ -389,7 +637,7 @@ def _settle_prop_markets(db: Session, data):
 
         for bet in bets:
             if bet.selection_id == winning_sel.id:
-                actual_payout = bet.stake * final_odds
+                actual_payout = round(bet.stake * final_odds, 2)
                 bet.status = BetStatus.WON
                 bet.settled_at = datetime.utcnow()
                 bet.actual_payout = actual_payout
@@ -717,6 +965,200 @@ async def get_match_stats(match_id: int):
         p1_ton_checkout=match_row.p1_ton_checkout,
         p2_ton_checkout=match_row.p2_ton_checkout,
     )
+
+
+# ---- Season Management ----
+
+
+@router.post("/admin/void-old-bets")
+async def void_old_bets(
+    cutoff_round: int = 35,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Void active bets on match/prop markets for rounds 1..cutoff_round.
+
+    Surgical refund: each voided bet's stake is returned to the user's balance.
+    Tournament winner (outright) bets are kept as-is.
+    Bets on rounds after the cutoff are preserved for normal settlement.
+
+    Each void is announced on the live activity feed.
+
+    Query param:
+        cutoff_round (default 35): void bets on matches in rounds 1..cutoff_round.
+    """
+    from database import Match as MatchModel
+    from prop_odds_calculator import short_name
+
+    # Build lookup structures for completed matches up to cutoff
+    old_completed = (
+        db.query(MatchModel)
+        .filter(MatchModel.status == "Completed", MatchModel.round <= cutoff_round)
+        .all()
+    )
+    old_player_pairs = {frozenset((m.player1, m.player2)) for m in old_completed}
+    # Map frozenset pair → round number for announcement context
+    pair_to_round = {frozenset((m.player1, m.player2)): m.round for m in old_completed}
+    # Build short-name pairs for prop market matching
+    old_short_pairs = {
+        frozenset((short_name(m.player1), short_name(m.player2))): m.round for m in old_completed
+    }
+
+    # Find all unsettled markets (open or closed but not yet settled)
+    unsettled_markets = (
+        db.query(Market).filter(Market.status.in_([MarketStatus.OPEN, MarketStatus.CLOSED])).all()
+    )
+
+    voided_count = 0
+    refunded_total = 0.0
+    markets_closed = 0
+    # Track per-user refunds for individual announcements
+    user_refunds: dict[int, list[dict]] = {}
+
+    for market in unsettled_markets:
+        matched_round = None
+
+        if market.market_type == "match":
+            sel_names = frozenset(s.name for s in market.selections)
+            if sel_names in old_player_pairs:
+                matched_round = pair_to_round[sel_names]
+        elif market.market_type == "prop":
+            # Prop market names contain short player names (e.g. "Ali C.")
+            # Check if both short names of any old-match pair appear in the name
+            for pair, rnd in old_short_pairs.items():
+                sn_list = list(pair)
+                if len(sn_list) == 2 and sn_list[0] in market.name and sn_list[1] in market.name:
+                    matched_round = rnd
+                    break
+        # outright (tournament winner) markets: SKIP — keep as-is
+
+        if matched_round is None:
+            continue
+
+        # Void all active bets on this market and refund stakes
+        active_bets = (
+            db.query(Bet)
+            .filter(
+                Bet.selection_id.in_([s.id for s in market.selections]),
+                Bet.status == BetStatus.ACTIVE,
+            )
+            .all()
+        )
+
+        for bet in active_bets:
+            bet.status = BetStatus.VOID
+            bet.settled_at = datetime.utcnow()
+            bet.actual_payout = bet.stake  # Full refund
+            if bet.user:
+                bet.user.balance += bet.stake
+                uid = bet.user.id
+                if uid not in user_refunds:
+                    user_refunds[uid] = []
+                user_refunds[uid].append(
+                    {
+                        "user_name": bet.user.name,
+                        "stake": bet.stake,
+                        "selection": bet.selection.name if bet.selection else "Unknown",
+                        "market": market.name,
+                        "round": matched_round,
+                    }
+                )
+            voided_count += 1
+            refunded_total += bet.stake
+
+        market.status = MarketStatus.SETTLED
+        market.settled_at = datetime.utcnow()
+        markets_closed += 1
+
+    db.commit()
+
+    # Log individual refund announcements per user on the live feed
+    for uid, refunds in user_refunds.items():
+        user_name = refunds[0]["user_name"]
+        total_refund = sum(r["stake"] for r in refunds)
+        bet_details = "; ".join(
+            f"{r['stake']:.0f} RTB on '{r['selection']}' ({r['market']}, Round {r['round']})"
+            for r in refunds
+        )
+        await log_activity(
+            db,
+            "bet_voided_refund",
+            f"Refund: {user_name} received {total_refund:.0f} RTB back. "
+            f"Voided bets: {bet_details}. "
+            f"These were past matches (Rounds 1-{cutoff_round}) that should not have been "
+            f"open for betting. Full stakes refunded.",
+            user_id=uid,
+            data={
+                "user_name": user_name,
+                "refunded_total": round(total_refund, 2),
+                "bet_count": len(refunds),
+                "details": refunds,
+            },
+        )
+
+    # Summary announcement
+    await log_activity(
+        db,
+        "season_cleanup",
+        f"Season cleanup complete: {voided_count} bets voided across {markets_closed} markets "
+        f"for Rounds 1-{cutoff_round}. Total {refunded_total:.0f} RTB refunded to "
+        f"{len(user_refunds)} players. These markets were for past matches that should not "
+        f"have remained open. Tournament winner bets are unaffected.",
+        user_id=user.id,
+        data={
+            "voided_count": voided_count,
+            "refunded_total": round(refunded_total, 2),
+            "markets_closed": markets_closed,
+            "users_affected": len(user_refunds),
+        },
+    )
+
+    return {
+        "message": f"Voided {voided_count} bets, refunded {refunded_total:.0f} RTB, "
+        f"closed {markets_closed} markets, {len(user_refunds)} players refunded",
+        "voided_count": voided_count,
+        "refunded_total": round(refunded_total, 2),
+        "markets_closed": markets_closed,
+        "users_affected": len(user_refunds),
+    }
+
+
+@router.get("/admin/user-balances")
+async def get_user_balances(
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Get all user balances for audit purposes (admin only)."""
+    users = db.query(User).filter(User.is_active.is_(True)).order_by(User.balance.desc()).all()
+    return [
+        {"id": u.id, "name": u.name, "email": u.email, "balance": round(u.balance, 2)}
+        for u in users
+    ]
+
+
+@router.post("/admin/close-all-markets")
+async def close_all_open_markets(
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Close all open markets (no more bets allowed). Admin only."""
+    open_markets = db.query(Market).filter(Market.status == MarketStatus.OPEN).all()
+    closed_count = 0
+    for market in open_markets:
+        market.status = MarketStatus.CLOSED
+        closed_count += 1
+
+    db.commit()
+
+    await log_activity(
+        db,
+        "all_markets_closed",
+        f"All {closed_count} open markets closed",
+        user_id=user.id,
+        data={"closed_count": closed_count},
+    )
+
+    return {"message": f"Closed {closed_count} open markets", "closed_count": closed_count}
 
 
 # ---- WhatsApp Admin ----

@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Locale, TranslationKey, t as translate } from './i18n';
+import { Locale, TranslationKey, t as translate, tDb as translateDb } from './i18n';
 
 interface LanguageContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: (key: TranslationKey) => string;
+  tDb: (text: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | null>(null);
@@ -31,9 +32,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const t = (key: TranslationKey) => translate(key, locale);
+  const tDb = (text: string) => translateDb(text, locale);
 
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t }}>
+    <LanguageContext.Provider value={{ locale, setLocale, t, tDb }}>
       {children}
     </LanguageContext.Provider>
   );

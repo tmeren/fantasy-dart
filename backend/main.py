@@ -89,6 +89,18 @@ async def startup():
     create_tables()
     migrate_add_columns()
     seed_matches_from_csv()
+    _prewarm_outright_cache()
+
+
+def _prewarm_outright_cache():
+    """Pre-warm the MC outright odds cache so first request is instant."""
+    from elo_engine import get_elo_ratings
+    from match_data import get_scheduled_matches
+    from routes.tournament import _get_cached_outright
+
+    ratings = get_elo_ratings()
+    sched = get_scheduled_matches()
+    _get_cached_outright(ratings, sched)
 
 
 # ============================================================================

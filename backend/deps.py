@@ -190,7 +190,7 @@ def calculate_parimutuel_odds(market: Market, db: Session) -> dict:
 
 
 def build_selection_response(
-    sel: Selection, market: Market, parimutuel_data: dict = None
+    sel: Selection, market: Market, parimutuel_data: dict = None, unique_bettors: int = 0
 ) -> SelectionResponse:
     """Build a SelectionResponse with dynamic odds if parimutuel."""
     if market.betting_type == BettingType.PARIMUTUEL and parimutuel_data:
@@ -203,6 +203,7 @@ def build_selection_response(
             pool_percentage=data.get("pool_pct", 0),
             dynamic_odds=data.get("odds", sel.odds),
             is_winner=sel.is_winner,
+            unique_bettors=unique_bettors,
         )
     else:
         return SelectionResponse(
@@ -213,4 +214,5 @@ def build_selection_response(
             pool_percentage=0,
             dynamic_odds=sel.odds,
             is_winner=sel.is_winner,
+            unique_bettors=unique_bettors,
         )

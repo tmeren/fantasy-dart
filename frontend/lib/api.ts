@@ -2,8 +2,8 @@
  * API client for Fantasy Darts Betting
  */
 
-// Always use relative /api path — Next.js rewrites proxy to the backend (no CORS)
-const API_BASE = '/api';
+// Use backend URL directly in production (CORS enabled), fall back to /api proxy for local dev
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface User {
   id: number;
@@ -24,6 +24,7 @@ export interface Selection {
   pool_percentage: number;  // % of total pool
   dynamic_odds: number;  // Current odds based on pool (parimutuel)
   is_winner: boolean;
+  unique_bettors: number;  // Distinct users who bet on this selection
 }
 
 export interface Market {
@@ -39,6 +40,7 @@ export interface Market {
   selections: Selection[];
   total_staked: number;
   pool_after_cut: number;  // Pool minus house cut
+  total_unique_bettors: number;  // Distinct users across the whole market
 }
 
 export interface Bet {
@@ -65,6 +67,8 @@ export interface LeaderboardEntry {
     balance: number;
   };
   total_bets: number;
+  open_bets: number;
+  settled_bets: number;
   win_rate: number;
   profit: number;
   roi_pct: number;
@@ -99,7 +103,7 @@ export interface StandingEntry {
   legs_against: number;
   leg_diff: number;
   remaining?: number;
-  score?: number;
+  score: number;
   tiebreaks?: number;
 }
 
@@ -179,6 +183,53 @@ export interface WhatsAppSendResult {
   message: string;
   sent: number;
   failed: number;
+}
+
+// Playoff Bracket types
+export interface PlayoffPlayerEntry {
+  rank: number;
+  player: string;
+  elo: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  games_played: number;
+  score: number;
+}
+
+export interface QuarterfinalMatchup {
+  label: string;
+  higher_seed: string;
+  lower_seed: string;
+  elo_higher: number;
+  elo_lower: number;
+  odds_higher: number;
+  odds_lower: number;
+}
+
+export interface ContenderEntry {
+  rank: number;
+  player: string;
+  elo: number;
+  top8_pct: number;
+}
+
+export interface PlayoffBracketResponse {
+  top8: PlayoffPlayerEntry[];
+  quarterfinals: QuarterfinalMatchup[];
+  contenders: ContenderEntry[];
+  outright_odds: OutrightOdds[];
+}
+
+export interface RemainingMatchOdds {
+  match_id: number;
+  round: number;
+  player1: string;
+  player2: string;
+  elo1: number;
+  elo2: number;
+  odds1: number;
+  odds2: number;
 }
 
 // Match Stats types (S9)
@@ -403,6 +454,15 @@ class ApiClient {
     });
   }
 
+  // Playoff Bracket & Remaining Matches
+  async getPlayoffBracket(): Promise<PlayoffBracketResponse> {
+    return this.fetch<PlayoffBracketResponse>('/tournament/playoff-bracket');
+  }
+
+  async getRemainingMatches(): Promise<RemainingMatchOdds[]> {
+    return this.fetch<RemainingMatchOdds[]>('/tournament/remaining-matches');
+  }
+
   // Phone / WhatsApp (S19)
   async updatePhone(phoneNumber: string): Promise<PhoneUpdateResponse> {
     return this.fetch<PhoneUpdateResponse>('/auth/phone', {
@@ -420,6 +480,20 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify({ opted_in: optedIn }),
     });
+  }
+
+  // ---- Season Management (Admin) ----
+
+  async voidOldBets(cutoffRound: number = 35): Promise<{ message: string; voided_count: number; refunded_total: number; markets_closed: number; users_affected: number }> {
+    return this.fetch(`/admin/void-old-bets?cutoff_round=${cutoffRound}`, { method: 'POST' });
+  }
+
+  async getUserBalances(): Promise<{ id: number; name: string; email: string; balance: number }[]> {
+    return this.fetch('/admin/user-balances');
+  }
+
+  async closeAllMarkets(): Promise<{ message: string; closed_count: number }> {
+    return this.fetch('/admin/close-all-markets', { method: 'POST' });
   }
 
   async sendWhatsApp(template: string): Promise<WhatsAppSendResult> {

@@ -279,11 +279,18 @@ def _ensure_loaded():
 
 
 def invalidate_cache():
-    """Clear cached data so next access re-reads from DB."""
+    """Clear cached data so next access re-reads from DB. Also clears outright odds cache."""
     global _all_matches, _completed, _scheduled
     _all_matches = None
     _completed = None
     _scheduled = None
+    # Also clear the outright MC cache (imported lazily to avoid circular imports)
+    try:
+        from routes.tournament import invalidate_outright_cache
+
+        invalidate_outright_cache()
+    except ImportError:
+        pass
 
 
 def write_match_result(

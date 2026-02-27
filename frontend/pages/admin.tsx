@@ -400,6 +400,57 @@ export default function Admin() {
                 </div>
               )}
             </div>
+
+            {/* Season Management */}
+            <div className="card border border-red-500/20">
+              <h2 className="text-xl font-bold mb-2 text-red-400">Season Management</h2>
+              <p className="text-dark-400 text-sm mb-4">Operations for season transitions. Void refunds stakes surgically per user. Tournament winner bets are preserved.</p>
+              <div className="grid sm:grid-cols-3 gap-3">
+                <button
+                  onClick={async () => {
+                    if (!confirm('Close ALL open markets? No new bets will be accepted.')) return;
+                    try {
+                      const result = await api.closeAllMarkets();
+                      setSuccessMsg(result.message);
+                      loadMarkets();
+                      setTimeout(() => setSuccessMsg(''), 5000);
+                    } catch (err: any) { alert(err.message); }
+                  }}
+                  className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg hover:bg-yellow-500/20 transition-colors text-left"
+                >
+                  <div className="font-medium text-yellow-400 text-sm">Close All Markets</div>
+                  <div className="text-xs text-dark-400 mt-1">Stop all betting immediately</div>
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Void bets on Rounds 1-35 matches and refund stakes? Tournament winner bets are kept. Each user gets their stakes back.')) return;
+                    try {
+                      const result = await api.voidOldBets();
+                      setSuccessMsg(result.message);
+                      loadMarkets();
+                      setTimeout(() => setSuccessMsg(''), 8000);
+                    } catch (err: any) { alert(err.message); }
+                  }}
+                  className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg hover:bg-orange-500/20 transition-colors text-left"
+                >
+                  <div className="font-medium text-orange-400 text-sm">Void Old Bets (R1-35)</div>
+                  <div className="text-xs text-dark-400 mt-1">Refund stakes on past matches. Tournament winner bets kept.</div>
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const balances = await api.getUserBalances();
+                      const summary = balances.map(u => `${u.name}: ${u.balance.toFixed(0)} RTB`).join('\n');
+                      alert(`User Balances:\n\n${summary}`);
+                    } catch (err: any) { alert(err.message); }
+                  }}
+                  className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg hover:bg-blue-500/20 transition-colors text-left"
+                >
+                  <div className="font-medium text-blue-400 text-sm">View User Balances</div>
+                  <div className="text-xs text-dark-400 mt-1">Audit all user RTB balances</div>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

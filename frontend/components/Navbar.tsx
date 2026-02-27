@@ -12,8 +12,10 @@ export default function Navbar() {
 
   const links = [
     { href: '/tournament', label: t('nav.tournament') },
+    { href: '/playoffs', label: t('nav.playoffs') },
     { href: '/markets', label: t('nav.markets') },
     { href: '/leaderboard', label: t('nav.leaderboard') },
+    { href: '/activity', label: t('nav.activity') },
     { href: '/academy', label: t('nav.academy') },
   ];
 

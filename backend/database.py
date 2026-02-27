@@ -4,6 +4,7 @@ import enum
 import os
 from datetime import datetime
 
+from dotenv import load_dotenv
 from sqlalchemy import (
     Boolean,
     Column,
@@ -18,6 +19,9 @@ from sqlalchemy import (
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
+
+# Load .env file for local development (no-op if file doesn't exist)
+load_dotenv()
 
 # Use DATABASE_URL env var for PostgreSQL in production, SQLite for local dev
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./darts_betting.db")
