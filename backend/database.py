@@ -23,28 +23,27 @@ from sqlalchemy.orm import relationship, sessionmaker
 # Load .env file for local development (no-op if file doesn't exist)
 load_dotenv()
 
-# Use DATABASE_URL env var for PostgreSQL in production, SQLite for local dev
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./darts_betting.db")
+# PostgreSQL required — no SQLite fallback
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL environment variable is required. "
+        "Set it in backend/.env (local) or Railway environment variables (production). "
+        "Example: postgresql://user@localhost/fantasy_darts"
+    )
 
 # Railway sets DATABASE_URL with postgres:// but SQLAlchemy needs postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-connect_args = {}
-if DATABASE_URL.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
-
-pool_kwargs = {}
-if not DATABASE_URL.startswith("sqlite"):
-    pool_kwargs = {
-        "pool_size": 10,
-        "max_overflow": 20,
-        "pool_timeout": 10,
-        "pool_pre_ping": True,
-        "pool_recycle": 1800,
-    }
-
-engine = create_engine(DATABASE_URL, connect_args=connect_args, **pool_kwargs)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=10,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
