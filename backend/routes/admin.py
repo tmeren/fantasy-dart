@@ -177,6 +177,85 @@ async def generate_match_markets(
     }
 
 
+@router.post("/admin/generate-qf-markets")
+async def generate_qf_markets(
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Auto-generate quarterfinal match markets from the current playoff bracket.
+
+    Creates a PARIMUTUEL market per QF matchup with 2 selections, seeded with
+    knockout-adjusted odds from the Monte Carlo engine. Skips QFs that already
+    have a matching open market.
+    """
+    from odds_engine import get_quarterfinal_matchup_odds
+    from routes.markets import _market_to_response
+
+    invalidate_cache()
+    ratings = get_elo_ratings()
+    sorted_ratings = sorted(ratings, key=lambda r: r["elo"], reverse=True)
+    current_top8 = [r["player"] for r in sorted_ratings[:8]]
+
+    qf_odds = get_quarterfinal_matchup_odds(ratings, current_top8)
+
+    # Find existing match markets so we don't create duplicates
+    existing_markets = (
+        db.query(Market)
+        .filter(
+            Market.market_type == "match",
+            Market.status.in_([MarketStatus.OPEN, MarketStatus.CLOSED]),
+        )
+        .all()
+    )
+    existing_pairs = set()
+    for m in existing_markets:
+        existing_pairs.add(frozenset(s.name for s in m.selections))
+
+    created = []
+    for i, qf in enumerate(qf_odds):
+        pair = frozenset([qf["higher_seed"], qf["lower_seed"]])
+        if pair in existing_pairs:
+            continue
+
+        def short(name: str) -> str:
+            parts = name.split()
+            return parts[0] if len(parts) > 1 else name
+
+        seed_h = current_top8.index(qf["higher_seed"]) + 1
+        seed_l = current_top8.index(qf["lower_seed"]) + 1
+        market = Market(
+            name=f"{qf['label']}: #{seed_h} {short(qf['higher_seed'])} vs #{seed_l} {short(qf['lower_seed'])}",
+            description="Quarterfinal match winner. Pool betting — odds change with bets.",
+            market_type="match",
+            betting_type=BettingType.PARIMUTUEL,
+            house_cut=0.10,
+        )
+        db.add(market)
+        db.flush()
+
+        db.add(Selection(market_id=market.id, name=qf["higher_seed"], odds=qf["odds_higher"], pool_total=0.0))
+        db.add(Selection(market_id=market.id, name=qf["lower_seed"], odds=qf["odds_lower"], pool_total=0.0))
+        created.append(market)
+
+    db.commit()
+
+    if created:
+        await log_activity(
+            db,
+            "qf_markets_created",
+            f"{len(created)} QF match markets auto-generated",
+            user_id=user.id,
+            data={"count": len(created), "market_ids": [m.id for m in created]},
+        )
+
+    return {
+        "message": f"{len(created)} QF markets created ({len(qf_odds) - len(created)} already existed)",
+        "created": len(created),
+        "skipped": len(qf_odds) - len(created),
+        "markets": [_market_to_response(m, db) for m in created],
+    }
+
+
 @router.post("/admin/enter-result", response_model=EnterResultResponse)
 async def admin_enter_result(
     data: EnterResultRequest,
