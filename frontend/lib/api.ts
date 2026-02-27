@@ -55,6 +55,7 @@ export interface Bet {
   potential_win: number;  // Estimated (changes for parimutuel)
   actual_payout?: number;  // Final payout after settlement
   is_parimutuel: boolean;
+  betslip_id?: string;  // UUID grouping acca legs
   status: 'active' | 'won' | 'lost' | 'void';
   created_at: string;
 }
@@ -353,10 +354,10 @@ class ApiClient {
   }
 
   // Bets
-  async placeBet(selectionId: number, stake: number): Promise<Bet> {
+  async placeBet(selectionId: number, stake: number, betslipId?: string): Promise<Bet> {
     return this.fetch<Bet>('/bets', {
       method: 'POST',
-      body: JSON.stringify({ selection_id: selectionId, stake }),
+      body: JSON.stringify({ selection_id: selectionId, stake, betslip_id: betslipId || null }),
     });
   }
 

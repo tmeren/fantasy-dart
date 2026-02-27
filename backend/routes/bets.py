@@ -55,6 +55,7 @@ async def place_bet(
         stake=data.stake,
         odds_at_time=current_odds,
         potential_win=potential_win,
+        betslip_id=data.betslip_id,
     )
     db.add(bet)
     db.commit()
@@ -89,6 +90,7 @@ async def place_bet(
         odds_at_time=bet.odds_at_time,
         potential_win=bet.potential_win,
         is_parimutuel=is_parimutuel,
+        betslip_id=bet.betslip_id,
         status=bet.status,
         created_at=bet.created_at,
     )
@@ -124,6 +126,7 @@ async def get_my_bets(user: User = Depends(require_user), db: Session = Depends(
                 potential_win=current_potential,
                 actual_payout=bet.actual_payout,
                 is_parimutuel=is_parimutuel,
+                betslip_id=bet.betslip_id,
                 status=bet.status,
                 created_at=bet.created_at,
             )

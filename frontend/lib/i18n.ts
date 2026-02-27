@@ -27,6 +27,26 @@ export const translations = {
   'nav.admin': { en: 'Admin', tr: 'Yönetim' },
   'nav.tokens': { en: 'RTB', tr: 'RTB' },
   'nav.logout': { en: 'Logout', tr: 'Çıkış' },
+  'nav.myPredictions': { en: 'My Predictions', tr: 'Tahminlerim' },
+
+  // ── Predictions page ──
+  'predictions.title': { en: 'My Predictions', tr: 'Tahminlerim' },
+  'predictions.active': { en: 'Active', tr: 'Aktif' },
+  'predictions.settled': { en: 'Settled', tr: 'Sonuçlanan' },
+  'predictions.all': { en: 'All', tr: 'Tümü' },
+  'predictions.single': { en: 'Single', tr: 'Tekli' },
+  'predictions.acca': { en: 'Accumulator', tr: 'Kombine' },
+  'predictions.legs': { en: 'legs', tr: 'bacak' },
+  'predictions.totalStake': { en: 'Total Stake', tr: 'Toplam Bahis' },
+  'predictions.totalOdds': { en: 'Total Odds', tr: 'Toplam Oran' },
+  'predictions.potentialReturn': { en: 'Potential Return', tr: 'Potansiyel Kazanç' },
+  'predictions.actualPayout': { en: 'Payout', tr: 'Ödeme' },
+  'predictions.noPredictions': { en: 'No predictions yet. Head to Predictions to place your first!', tr: 'Henüz tahmin yok. İlk tahmininizi yapmak için Tahminler sayfasına gidin!' },
+  'predictions.won': { en: 'Won', tr: 'Kazandı' },
+  'predictions.lost': { en: 'Lost', tr: 'Kaybetti' },
+  'predictions.pending': { en: 'Pending', tr: 'Bekliyor' },
+  'predictions.void': { en: 'Void', tr: 'İptal' },
+  'predictions.placedAt': { en: 'Placed', tr: 'Tarih' },
 
   // ── Landing / Auth ──
   'landing.title1': { en: 'Fantasy', tr: 'Fantazi' },

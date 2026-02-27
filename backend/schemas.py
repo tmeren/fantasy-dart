@@ -139,6 +139,7 @@ class MarketSettle(BaseModel):
 class BetCreate(BaseModel):
     selection_id: int
     stake: float
+    betslip_id: str | None = None  # UUID to group acca legs
 
 
 class BetResponse(BaseModel):
@@ -153,6 +154,7 @@ class BetResponse(BaseModel):
     potential_win: float  # Estimated at time of bet
     actual_payout: float | None = None  # Final payout (parimutuel, after settlement)
     is_parimutuel: bool = False  # Whether this is a pool bet
+    betslip_id: str | None = None  # UUID grouping acca legs
     status: BetStatus
     created_at: datetime
 

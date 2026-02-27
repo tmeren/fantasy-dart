@@ -26,6 +26,9 @@ export default function BetslipBar() {
     let success = 0;
     let failed = 0;
 
+    // Generate a shared betslip ID so all legs are grouped
+    const betslipId = crypto.randomUUID();
+
     // Split stake equally across selections for accumulator
     const stakePerBet = selections.length === 1
       ? stake
@@ -33,7 +36,7 @@ export default function BetslipBar() {
 
     for (const sel of selections) {
       try {
-        await api.placeBet(sel.selectionId, stakePerBet);
+        await api.placeBet(sel.selectionId, stakePerBet, betslipId);
         success++;
       } catch {
         failed++;

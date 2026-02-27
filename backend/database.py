@@ -157,6 +157,7 @@ class Bet(Base):
     )  # Locked odds when bet placed (fixed) or estimate (parimutuel)
     potential_win = Column(Float, nullable=False)  # Estimated win (may change for parimutuel)
     actual_payout = Column(Float, nullable=True)  # Actual payout at settlement (parimutuel)
+    betslip_id = Column(String(36), nullable=True, index=True)  # UUID groups acca legs
     status = Column(SQLEnum(BetStatus), default=BetStatus.ACTIVE)
     created_at = Column(DateTime, default=datetime.utcnow)
     settled_at = Column(DateTime, nullable=True)
@@ -302,6 +303,12 @@ def migrate_add_columns():
             )
         if "is_draw" not in match_cols:
             migrations.append("ALTER TABLE matches ADD COLUMN is_draw BOOLEAN DEFAULT FALSE")
+
+    # Bets table — betslip grouping
+    if inspector.has_table("bets"):
+        bet_cols = {c["name"] for c in inspector.get_columns("bets")}
+        if "betslip_id" not in bet_cols:
+            migrations.append("ALTER TABLE bets ADD COLUMN betslip_id VARCHAR(36)")
 
     if migrations:
         with engine.connect() as conn:

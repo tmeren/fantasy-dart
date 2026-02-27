@@ -14,6 +14,7 @@ export default function Navbar() {
     { href: '/tournament', label: t('nav.tournament') },
     { href: '/playoffs', label: t('nav.playoffs') },
     { href: '/markets', label: t('nav.markets') },
+    { href: '/predictions', label: t('nav.myPredictions') },
     { href: '/leaderboard', label: t('nav.leaderboard') },
     { href: '/activity', label: t('nav.activity') },
     { href: '/academy', label: t('nav.academy') },
