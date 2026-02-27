@@ -219,9 +219,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Phone / WhatsApp Card */}
+        {/* Phone / WhatsApp Card — hidden for now */}
         {!user.phone_number && (
-          <div className="mb-8 card border border-primary-500/30 bg-primary-500/5">
+          <div className="hidden mb-8 card border border-primary-500/30 bg-primary-500/5">
             <div className="flex items-start gap-4">
               <div className="text-2xl">📱</div>
               <div className="flex-1">
@@ -261,7 +261,7 @@ export default function Dashboard() {
         )}
 
         {user.phone_number && (
-          <div className="mb-8 card">
+          <div className="hidden mb-8 card">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-lg">📱</span>
