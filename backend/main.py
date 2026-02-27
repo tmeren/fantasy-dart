@@ -89,7 +89,72 @@ async def startup():
     create_tables()
     migrate_add_columns()
     seed_matches_from_csv()
+    _seed_qf_markets_if_needed()
     _prewarm_outright_cache()
+
+
+def _seed_qf_markets_if_needed():
+    """Create QF match markets if the playoff bracket exists but no open match markets do."""
+    from database import BettingType, Market, MarketStatus, Selection, SessionLocal
+    from elo_engine import get_elo_ratings
+
+    db = SessionLocal()
+    try:
+        # Only proceed if there are NO open or closed match markets
+        open_match = (
+            db.query(Market)
+            .filter(
+                Market.market_type == "match",
+                Market.status.in_([MarketStatus.OPEN, MarketStatus.CLOSED]),
+            )
+            .first()
+        )
+        if open_match:
+            return  # QF markets already exist
+
+        ratings = get_elo_ratings()
+        sorted_ratings = sorted(ratings, key=lambda r: r["elo"], reverse=True)
+        current_top8 = [r["player"] for r in sorted_ratings[:8]]
+        if len(current_top8) < 8:
+            return  # Not enough players for QF bracket
+
+        from odds_engine import get_quarterfinal_matchup_odds
+
+        qf_odds = get_quarterfinal_matchup_odds(ratings, current_top8)
+        if not qf_odds:
+            return
+
+        created = 0
+        for qf in qf_odds:
+            parts_h = qf["higher_seed"].split()
+            parts_l = qf["lower_seed"].split()
+            short_h = parts_h[0] if len(parts_h) > 1 else qf["higher_seed"]
+            short_l = parts_l[0] if len(parts_l) > 1 else qf["lower_seed"]
+            seed_h = current_top8.index(qf["higher_seed"]) + 1
+            seed_l = current_top8.index(qf["lower_seed"]) + 1
+
+            market = Market(
+                name=f"{qf['label']}: #{seed_h} {short_h} vs #{seed_l} {short_l}",
+                description="Quarterfinal match winner. Pool betting — odds change with bets.",
+                market_type="match",
+                betting_type=BettingType.PARIMUTUEL,
+                house_cut=0.10,
+            )
+            db.add(market)
+            db.flush()
+
+            db.add(Selection(market_id=market.id, name=qf["higher_seed"], odds=qf["odds_higher"], pool_total=0.0))
+            db.add(Selection(market_id=market.id, name=qf["lower_seed"], odds=qf["odds_lower"], pool_total=0.0))
+            created += 1
+
+        db.commit()
+        if created:
+            print(f"[startup] Created {created} QF match markets")
+    except Exception as e:
+        print(f"[startup] QF market seed error: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 
 def _prewarm_outright_cache():
