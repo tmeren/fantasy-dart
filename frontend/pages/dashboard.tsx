@@ -306,8 +306,8 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-2" ref={leftColRef}>
+        <div className="grid lg:grid-cols-3 gap-8 items-start overflow-hidden">
+          <div className="lg:col-span-2 min-w-0" ref={leftColRef}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg sm:text-xl font-bold">{t('dashboard.openMarkets')}</h2>
               <Link href="/markets" className="text-primary-400 hover:underline text-sm">
@@ -326,15 +326,15 @@ export default function Dashboard() {
                     const sel2Id = -(9000 + qfIdx * 10 + 2);
                     return (
                       <Link key={qf.label} href="/markets?tab=playoffs">
-                        <div className="card !py-3 hover:border-primary-500/50 cursor-pointer transition-colors">
+                        <div className="card !py-3 hover:border-primary-500/50 cursor-pointer transition-colors overflow-hidden">
                           <div className="text-center mb-2">
                             <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 font-bold">{t('playoffs.quarterfinal')} {qfIdx + 1}</span>
                           </div>
-                          <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold text-base sm:text-sm text-white truncate">{shortName(qf.higher_seed)}</span>
+                          <div className="grid grid-cols-[1fr_auto_1fr] items-center min-w-0">
+                            <div className="flex items-center justify-between gap-1 min-w-0">
+                              <span className="font-bold text-sm text-white truncate min-w-0">{shortName(qf.higher_seed)}</span>
                               <div className="flex items-center gap-1 shrink-0">
-                                <span className={`px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_higher)}`}>{qf.elo_higher.toFixed(0)}</span>
+                                <span className={`hidden sm:inline px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_higher)}`}>{qf.elo_higher.toFixed(0)}</span>
                                 <button
                                   onClick={(e) => {
                                     e.preventDefault();
@@ -358,8 +358,8 @@ export default function Dashboard() {
                                 </button>
                               </div>
                             </div>
-                            <span className="text-dark-500 text-xs font-bold text-center px-2">VS</span>
-                            <div className="flex items-center justify-between gap-1">
+                            <span className="text-dark-500 text-xs font-bold text-center px-1 sm:px-2">VS</span>
+                            <div className="flex items-center justify-between gap-1 min-w-0">
                               <div className="flex items-center gap-1 shrink-0">
                                 <button
                                   onClick={(e) => {
@@ -382,9 +382,9 @@ export default function Dashboard() {
                                 >
                                   {qf.odds_lower.toFixed(2)}
                                 </button>
-                                <span className={`px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_lower)}`}>{qf.elo_lower.toFixed(0)}</span>
+                                <span className={`hidden sm:inline px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_lower)}`}>{qf.elo_lower.toFixed(0)}</span>
                               </div>
-                              <span className="font-bold text-base sm:text-sm text-dark-200 truncate text-right">{shortName(qf.lower_seed)}</span>
+                              <span className="font-bold text-sm text-dark-200 truncate text-right min-w-0">{shortName(qf.lower_seed)}</span>
                             </div>
                           </div>
                         </div>
@@ -415,12 +415,13 @@ export default function Dashboard() {
                     <h3 className="text-sm font-semibold text-dark-400 mb-3 uppercase tracking-wide">{t('markets.outrightWinner')}</h3>
                     <Link href={`/markets/${market.id}`}>
                       <div className="card hover:border-primary-500/50 cursor-pointer transition-all overflow-hidden">
-                        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
-                          <div className="grid gap-2" style={{ gridTemplateColumns: `5rem repeat(${sorted.length}, minmax(3.5rem, 1fr))`, minWidth: `${5 + sorted.length * 4}rem` }}>
+                        {/* Desktop: horizontal grid */}
+                        <div className="hidden sm:block overflow-x-auto pb-2">
+                          <div className="grid gap-2" style={{ gridTemplateColumns: `5rem repeat(${sorted.length}, minmax(3.5rem, 1fr))` }}>
                             {/* Player names */}
                             <div />
                             {sorted.map((sel) => (
-                              <div key={sel.id} className="text-sm sm:text-xs text-dark-300 truncate text-center font-semibold leading-tight">
+                              <div key={sel.id} className="text-xs text-dark-300 truncate text-center font-semibold leading-tight">
                                 {shortName(sel.name)}
                               </div>
                             ))}
@@ -430,7 +431,7 @@ export default function Dashboard() {
                               const playerName = top8Players.find(n => sel.name.includes(n) || n.includes(sel.name)) || '';
                               const tag = insights[playerName]?.tag || '';
                               return (
-                                <div key={`tag-${sel.id}`} className="text-sm sm:text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
+                                <div key={`tag-${sel.id}`} className="text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
                                   {tag}
                                 </div>
                               );
@@ -461,6 +462,31 @@ export default function Dashboard() {
                             })}
                           </div>
                         </div>
+                        {/* Mobile: transposed — players as rows */}
+                        <div className="sm:hidden space-y-1">
+                          {sorted.map((sel) => {
+                            const displayOdds = market.betting_type === 'parimutuel' ? sel.dynamic_odds : sel.odds;
+                            const mcEntry = outrightOdds.find(o => sel.name.includes(o.player) || o.player.includes(sel.name));
+                            const playerName = top8Players.find(n => sel.name.includes(n) || n.includes(sel.name)) || '';
+                            const tag = insights[playerName]?.tag || '';
+                            return (
+                              <div key={sel.id} className="flex items-center gap-2 px-2 py-2 rounded-lg bg-dark-800/40">
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-bold text-sm text-white truncate">{shortName(sel.name)}</div>
+                                  {tag && <div className="text-xs text-orange-400 italic truncate">{tag}</div>}
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="font-bold px-2 py-1 rounded-lg text-xs bg-white text-blue-900 min-w-[3rem] text-center">
+                                    {displayOdds > 0 ? displayOdds.toFixed(2) : '—'}
+                                  </span>
+                                  <span className="font-bold px-2 py-1 rounded-lg text-xs bg-green-500/20 text-green-400 min-w-[3rem] text-center">
+                                    {mcEntry ? mcEntry.odds.toFixed(2) : '—'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </Link>
                   </div>
@@ -470,14 +496,14 @@ export default function Dashboard() {
 
           </div>
 
-          <div className="flex flex-col min-h-0" style={leftColHeight ? { height: leftColHeight } : undefined}>
+          <div className="flex flex-col min-h-0 min-w-0" style={leftColHeight ? { height: leftColHeight } : undefined}>
             <div className="flex items-center justify-between mb-4 shrink-0">
               <h2 className="text-lg sm:text-xl font-bold">{t('dashboard.liveActivity')}</h2>
               <Link href="/activity" className="text-primary-400 hover:underline text-sm">
                 {t('dashboard.viewAll')}
               </Link>
             </div>
-            <div className="card flex-1 min-h-0 flex flex-col">
+            <div className="card flex-1 min-h-0 flex flex-col overflow-hidden">
               <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mr-2 pr-2" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <div className="space-y-3">
                   {activities.map((activity) => (

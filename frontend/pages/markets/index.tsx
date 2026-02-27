@@ -440,12 +440,12 @@ export default function Markets() {
                   return (
                     <Link key={market.id} href={`/markets/${market.id}`}>
                       <div className="card hover:border-primary-500/50 cursor-pointer transition-all mb-4 overflow-hidden">
-                        {/* Player names */}
-                        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
-                        <div className="grid gap-2" style={{ gridTemplateColumns: `5rem repeat(${sorted.length}, minmax(3.5rem, 1fr))`, minWidth: `${5 + sorted.length * 4}rem` }}>
+                        {/* Desktop: horizontal grid */}
+                        <div className="hidden sm:block overflow-x-auto pb-2">
+                        <div className="grid gap-2" style={{ gridTemplateColumns: `5rem repeat(${sorted.length}, minmax(3.5rem, 1fr))` }}>
                           <div />
                           {sorted.map((sel) => (
-                            <div key={sel.id} className="text-sm sm:text-xs text-dark-300 truncate text-center font-semibold leading-tight">
+                            <div key={sel.id} className="text-xs text-dark-300 truncate text-center font-semibold leading-tight">
                               {shortName(sel.name)}
                             </div>
                           ))}
@@ -455,7 +455,7 @@ export default function Markets() {
                             const playerName = top8Players.find(n => sel.name.includes(n) || n.includes(sel.name)) || '';
                             const tag = outrightInsights[playerName]?.tag || '';
                             return (
-                              <div key={`tag-${sel.id}`} className="text-sm sm:text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
+                              <div key={`tag-${sel.id}`} className="text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
                                 {tag}
                               </div>
                             );
@@ -532,6 +532,35 @@ export default function Markets() {
                             </>
                           )}
                         </div>
+                        </div>
+                        {/* Mobile: transposed — players as rows */}
+                        <div className="sm:hidden space-y-1">
+                          {sorted.map((sel) => {
+                            const displayOdds = market.betting_type === 'parimutuel' ? sel.dynamic_odds : sel.odds;
+                            const mcEntry = bracket.outright_odds.find(o => sel.name.includes(o.player) || o.player.includes(sel.name));
+                            const playerName = top8Players.find(n => sel.name.includes(n) || n.includes(sel.name)) || '';
+                            const tag = outrightInsights[playerName]?.tag || '';
+                            const pct = sel.pool_percentage;
+                            return (
+                              <div key={sel.id} className="flex items-center gap-2 px-2 py-2 rounded-lg bg-dark-800/40">
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-bold text-sm text-white truncate">{shortName(sel.name)}</div>
+                                  {tag && <div className="text-xs text-orange-400 italic truncate">{tag}</div>}
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="font-bold px-2 py-1 rounded-lg text-xs bg-white text-blue-900 min-w-[3rem] text-center">
+                                    {displayOdds > 0 ? displayOdds.toFixed(2) : '—'}
+                                  </span>
+                                  <span className="font-bold px-2 py-1 rounded-lg text-xs bg-green-500/20 text-green-400 min-w-[3rem] text-center">
+                                    {mcEntry ? mcEntry.odds.toFixed(2) : '—'}
+                                  </span>
+                                  {market.betting_type === 'parimutuel' && market.total_staked > 0 && (
+                                    <span className="text-xs text-fuchsia-400 font-bold min-w-[2.5rem] text-right">{pct.toFixed(0)}%</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                         {market.betting_type === 'parimutuel' && (
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mt-3 text-dark-400">

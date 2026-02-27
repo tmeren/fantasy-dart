@@ -131,8 +131,17 @@ function StandingsChart({
   allPlayers: StandingEntry[];
   t: (key: TranslationKey) => string;
 }) {
-  const W = 800, H = 380;
-  const PAD = { top: 30, right: 80, bottom: 50, left: 45 };
+  // Responsive: detect mobile for compact chart (no right-side labels)
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const check = () => setCompact(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const W = compact ? 500 : 800, H = compact ? 320 : 380;
+  const PAD = { top: 25, right: compact ? 15 : 80, bottom: compact ? 40 : 50, left: compact ? 30 : 45 };
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top - PAD.bottom;
   const xScale = (gn: number) => PAD.left + ((gn - 1) / Math.max(gameNights - 1, 1)) * chartW;
@@ -141,19 +150,19 @@ function StandingsChart({
   return (
     <div className="card mb-6">
       <h3 className="text-base font-bold text-dark-300 mb-4">{t('tournament.positionChart')}</h3>
-      <div className="w-full overflow-x-auto">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[500px]" style={{ maxHeight: 400 }}>
+      <div className="w-full">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           {[1, 5, 10, 15, 20].map(pos => (
             <g key={pos}>
               <line x1={PAD.left} y1={yScale(pos)} x2={W - PAD.right} y2={yScale(pos)} stroke="#374151" strokeWidth="1" strokeDasharray="4 4" />
-              <text x={PAD.left - 8} y={yScale(pos) + 4} textAnchor="end" fill="#6b7280" fontSize="11">{pos}</text>
+              <text x={PAD.left - 8} y={yScale(pos) + 4} textAnchor="end" fill="#6b7280" fontSize={compact ? "12" : "11"}>{pos}</text>
             </g>
           ))}
           <line x1={PAD.left} y1={yScale(8.5)} x2={W - PAD.right} y2={yScale(8.5)} stroke="#22c55e" strokeWidth="1" strokeDasharray="6 3" opacity="0.25" />
           {Array.from({ length: gameNights }, (_, i) => i + 1).map(gn => (
-            <text key={gn} x={xScale(gn)} y={H - PAD.bottom + 18} textAnchor="middle" fill="#6b7280" fontSize="10">{gn}</text>
+            <text key={gn} x={xScale(gn)} y={H - PAD.bottom + 18} textAnchor="middle" fill="#6b7280" fontSize={compact ? "11" : "10"}>{gn}</text>
           ))}
-          <text x={W / 2} y={H - 5} textAnchor="middle" fill="#9ca3af" fontSize="11">{t('tournament.gameNight')}</text>
+          <text x={W / 2} y={H - 5} textAnchor="middle" fill="#9ca3af" fontSize={compact ? "12" : "11"}>{t('tournament.gameNight')}</text>
           {selectedPlayers.map((player, idx) => {
             const positions = history[player];
             if (!positions || positions.length === 0) return null;
@@ -164,11 +173,13 @@ function StandingsChart({
               <g key={player}>
                 <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 {positions.map((pos, i) => (
-                  <circle key={i} cx={xScale(i + 1)} cy={yScale(pos)} r="3" fill={color} stroke="#111827" strokeWidth="1.5" />
+                  <circle key={i} cx={xScale(i + 1)} cy={yScale(pos)} r={compact ? 2.5 : 3} fill={color} stroke="#111827" strokeWidth="1.5" />
                 ))}
-                <text x={xScale(positions.length) + 8} y={yScale(lastPos) + 4} fill={color} fontSize="10" fontWeight="600">
-                  {shortName(player)} ({lastPos})
-                </text>
+                {!compact && (
+                  <text x={xScale(positions.length) + 8} y={yScale(lastPos) + 4} fill={color} fontSize="10" fontWeight="600">
+                    {shortName(player)} ({lastPos})
+                  </text>
+                )}
               </g>
             );
           })}
@@ -183,7 +194,7 @@ function StandingsChart({
             <button
               key={s.player}
               onClick={() => onTogglePlayer(s.player)}
-              className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors border ${
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-colors border ${
                 isSelected ? 'text-white' : 'bg-dark-800 text-dark-400 hover:text-white border-dark-700'
               }`}
               style={isSelected ? { backgroundColor: color + '20', borderColor: color, color } : undefined}
