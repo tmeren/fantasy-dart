@@ -363,7 +363,7 @@ export default function Markets() {
   ];
 
   return (
-    <div className="min-h-screen bg-dark-950">
+    <div className="min-h-screen bg-dark-950 overflow-x-hidden">
       <Navbar />
       <div className="w-full px-4 py-6 max-w-7xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold mb-6">{t('markets.title')}</h1>
@@ -439,13 +439,13 @@ export default function Markets() {
                     });
                   return (
                     <Link key={market.id} href={`/markets/${market.id}`}>
-                      <div className="card hover:border-primary-500/50 cursor-pointer transition-all mb-4">
+                      <div className="card hover:border-primary-500/50 cursor-pointer transition-all mb-4 overflow-hidden">
                         {/* Player names */}
-                        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
                         <div className="grid gap-2" style={{ gridTemplateColumns: `5rem repeat(${sorted.length}, minmax(3.5rem, 1fr))`, minWidth: `${5 + sorted.length * 4}rem` }}>
                           <div />
                           {sorted.map((sel) => (
-                            <div key={sel.id} className="text-xs text-dark-300 truncate text-center font-semibold leading-tight">
+                            <div key={sel.id} className="text-sm sm:text-xs text-dark-300 truncate text-center font-semibold leading-tight">
                               {shortName(sel.name)}
                             </div>
                           ))}
@@ -455,7 +455,7 @@ export default function Markets() {
                             const playerName = top8Players.find(n => sel.name.includes(n) || n.includes(sel.name)) || '';
                             const tag = outrightInsights[playerName]?.tag || '';
                             return (
-                              <div key={`tag-${sel.id}`} className="text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
+                              <div key={`tag-${sel.id}`} className="text-sm sm:text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
                                 {tag}
                               </div>
                             );

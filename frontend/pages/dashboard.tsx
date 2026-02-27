@@ -178,7 +178,7 @@ export default function Dashboard() {
   const potentialWin = activeBets.reduce((sum, b) => sum + b.potential_win, 0);
 
   return (
-    <div className="min-h-screen bg-dark-950">
+    <div className="min-h-screen bg-dark-950 overflow-x-hidden">
       <Navbar />
 
       <div className="w-full px-4 py-6 max-w-7xl mx-auto">
@@ -192,30 +192,30 @@ export default function Dashboard() {
         )}
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{t('dashboard.welcome')} {user.name}</h1>
-          <p className="text-dark-400">{t('dashboard.subtitle')}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t('dashboard.welcome')} {user.name}</h1>
+          <p className="text-base text-dark-400">{t('dashboard.subtitle')}</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8">
           <div className="card">
-            <div className="text-dark-400 text-sm">{t('dashboard.balance')}</div>
-            <div className="text-3xl font-bold text-primary-400">{user.balance.toFixed(0)}</div>
-            <div className="text-dark-500 text-xs">{t('nav.tokens')}</div>
+            <div className="text-dark-400 text-base md:text-sm">{t('dashboard.balance')}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-primary-400">{user.balance.toFixed(0)}</div>
+            <div className="text-dark-500 text-sm md:text-xs">{t('nav.tokens')}</div>
           </div>
           <div className="card">
-            <div className="text-dark-400 text-sm">{t('dashboard.activeBets')}</div>
-            <div className="text-3xl font-bold">{activeBets.length}</div>
-            <div className="text-dark-500 text-xs">{t('dashboard.openPositions')}</div>
+            <div className="text-dark-400 text-base md:text-sm">{t('dashboard.activeBets')}</div>
+            <div className="text-2xl sm:text-3xl font-bold">{activeBets.length}</div>
+            <div className="text-dark-500 text-sm md:text-xs">{t('dashboard.openPositions')}</div>
           </div>
           <div className="card">
-            <div className="text-dark-400 text-sm">{t('dashboard.atRisk')}</div>
-            <div className="text-3xl font-bold text-yellow-400">{totalAtRisk.toFixed(0)}</div>
-            <div className="text-dark-500 text-xs">{t('dashboard.tokensStaked')}</div>
+            <div className="text-dark-400 text-base md:text-sm">{t('dashboard.atRisk')}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-yellow-400">{totalAtRisk.toFixed(0)}</div>
+            <div className="text-dark-500 text-sm md:text-xs">{t('dashboard.tokensStaked')}</div>
           </div>
           <div className="card">
-            <div className="text-dark-400 text-sm">{t('dashboard.potentialWin')}</div>
-            <div className="text-3xl font-bold text-green-400">{potentialWin.toFixed(0)}</div>
-            <div className="text-dark-500 text-xs">{t('dashboard.ifAllWin')}</div>
+            <div className="text-dark-400 text-base md:text-sm">{t('dashboard.potentialWin')}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-400">{potentialWin.toFixed(0)}</div>
+            <div className="text-dark-500 text-sm md:text-xs">{t('dashboard.ifAllWin')}</div>
           </div>
         </div>
 
@@ -309,7 +309,7 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2" ref={leftColRef}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">{t('dashboard.openMarkets')}</h2>
+              <h2 className="text-lg sm:text-xl font-bold">{t('dashboard.openMarkets')}</h2>
               <Link href="/markets" className="text-primary-400 hover:underline text-sm">
                 {t('dashboard.viewAll')}
               </Link>
@@ -332,7 +332,7 @@ export default function Dashboard() {
                           </div>
                           <div className="grid grid-cols-[1fr_auto_1fr] items-center">
                             <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold text-sm text-white truncate">{shortName(qf.higher_seed)}</span>
+                              <span className="font-bold text-base sm:text-sm text-white truncate">{shortName(qf.higher_seed)}</span>
                               <div className="flex items-center gap-1 shrink-0">
                                 <span className={`px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_higher)}`}>{qf.elo_higher.toFixed(0)}</span>
                                 <button
@@ -384,7 +384,7 @@ export default function Dashboard() {
                                 </button>
                                 <span className={`px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_lower)}`}>{qf.elo_lower.toFixed(0)}</span>
                               </div>
-                              <span className="font-bold text-sm text-dark-200 truncate text-right">{shortName(qf.lower_seed)}</span>
+                              <span className="font-bold text-base sm:text-sm text-dark-200 truncate text-right">{shortName(qf.lower_seed)}</span>
                             </div>
                           </div>
                         </div>
@@ -414,13 +414,13 @@ export default function Dashboard() {
                   <div key={market.id}>
                     <h3 className="text-sm font-semibold text-dark-400 mb-3 uppercase tracking-wide">{t('markets.outrightWinner')}</h3>
                     <Link href={`/markets/${market.id}`}>
-                      <div className="card hover:border-primary-500/50 cursor-pointer transition-all">
-                        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                      <div className="card hover:border-primary-500/50 cursor-pointer transition-all overflow-hidden">
+                        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
                           <div className="grid gap-2" style={{ gridTemplateColumns: `5rem repeat(${sorted.length}, minmax(3.5rem, 1fr))`, minWidth: `${5 + sorted.length * 4}rem` }}>
                             {/* Player names */}
                             <div />
                             {sorted.map((sel) => (
-                              <div key={sel.id} className="text-xs text-dark-300 truncate text-center font-semibold leading-tight">
+                              <div key={sel.id} className="text-sm sm:text-xs text-dark-300 truncate text-center font-semibold leading-tight">
                                 {shortName(sel.name)}
                               </div>
                             ))}
@@ -430,7 +430,7 @@ export default function Dashboard() {
                               const playerName = top8Players.find(n => sel.name.includes(n) || n.includes(sel.name)) || '';
                               const tag = insights[playerName]?.tag || '';
                               return (
-                                <div key={`tag-${sel.id}`} className="text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
+                                <div key={`tag-${sel.id}`} className="text-sm sm:text-xs text-orange-400 truncate text-center font-semibold italic leading-tight">
                                   {tag}
                                 </div>
                               );
@@ -472,7 +472,7 @@ export default function Dashboard() {
 
           <div className="flex flex-col min-h-0" style={leftColHeight ? { height: leftColHeight } : undefined}>
             <div className="flex items-center justify-between mb-4 shrink-0">
-              <h2 className="text-xl font-bold">{t('dashboard.liveActivity')}</h2>
+              <h2 className="text-lg sm:text-xl font-bold">{t('dashboard.liveActivity')}</h2>
               <Link href="/activity" className="text-primary-400 hover:underline text-sm">
                 {t('dashboard.viewAll')}
               </Link>
@@ -504,7 +504,7 @@ export default function Dashboard() {
 
         {activeBets.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-xl font-bold mb-4">{t('dashboard.myActiveBets')}</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-4">{t('dashboard.myActiveBets')}</h2>
             <div className="card overflow-x-auto">
               <table className="w-full">
                 <thead>
