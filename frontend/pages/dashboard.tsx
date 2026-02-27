@@ -105,7 +105,7 @@ export default function Dashboard() {
       const [marketsData, betsData, activitiesData, resultsData, bracketData] = await Promise.all([
         api.getMarkets('open'),
         api.getMyBets(),
-        api.getActivities(10),
+        api.getActivities(50),
         api.getResults(),
         api.getPlayoffBracket().catch(() => null),
       ]);
@@ -316,7 +316,10 @@ export default function Dashboard() {
             </div>
 
             {/* Projected Quarterfinal matchups — dynamic from playoff bracket */}
-            {quarterfinals.length > 0 && (
+            {quarterfinals.length > 0 && (() => {
+              const qfTop8Players = top8.map(p => p.player);
+              const qfInsights = qfTop8Players.length > 0 ? computeAllInsights(qfTop8Players, completedResults, locale as 'en' | 'tr') : {};
+              return (
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-dark-400 mb-3 uppercase tracking-wide">{t('markets.projectedQF')}</h3>
                 <div className="grid sm:grid-cols-2 gap-3">
@@ -324,6 +327,8 @@ export default function Dashboard() {
                     const pseudoMarketId = -(9000 + qfIdx);
                     const sel1Id = -(9000 + qfIdx * 10 + 1);
                     const sel2Id = -(9000 + qfIdx * 10 + 2);
+                    const tag1 = qfInsights[qf.higher_seed]?.tag || '';
+                    const tag2 = qfInsights[qf.lower_seed]?.tag || '';
                     return (
                       <Link key={qf.label} href="/markets?tab=playoffs">
                         <div className="card !py-3 hover:border-primary-500/50 cursor-pointer transition-colors overflow-hidden">
@@ -332,7 +337,10 @@ export default function Dashboard() {
                           </div>
                           <div className="grid grid-cols-[1fr_auto_1fr] items-center min-w-0">
                             <div className="flex items-center justify-between gap-1 min-w-0">
-                              <span className="font-bold text-sm text-white truncate min-w-0">{shortName(qf.higher_seed)}</span>
+                              <div className="min-w-0">
+                                <span className="font-bold text-sm text-white truncate block">{shortName(qf.higher_seed)}</span>
+                                {tag1 && <span className="text-xs text-orange-400 italic truncate block">{tag1}</span>}
+                              </div>
                               <div className="flex items-center gap-1 shrink-0">
                                 <span className={`hidden sm:inline px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_higher)}`}>{qf.elo_higher.toFixed(0)}</span>
                                 <button
@@ -384,7 +392,10 @@ export default function Dashboard() {
                                 </button>
                                 <span className={`hidden sm:inline px-1.5 py-0.5 rounded text-xs font-bold leading-none ${eloBgClass(qf.elo_lower)}`}>{qf.elo_lower.toFixed(0)}</span>
                               </div>
-                              <span className="font-bold text-sm text-dark-200 truncate text-right min-w-0">{shortName(qf.lower_seed)}</span>
+                              <div className="min-w-0 text-right">
+                                <span className="font-bold text-sm text-dark-200 truncate block">{shortName(qf.lower_seed)}</span>
+                                {tag2 && <span className="text-xs text-orange-400 italic truncate block">{tag2}</span>}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -393,7 +404,8 @@ export default function Dashboard() {
                   })}
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Outright tournament champion — rich grid (dynamic from bracket + market) */}
             {(() => {
@@ -464,6 +476,13 @@ export default function Dashboard() {
                         </div>
                         {/* Mobile: transposed — players as rows */}
                         <div className="sm:hidden space-y-1">
+                          <div className="flex items-center gap-2 px-2 pb-1">
+                            <div className="flex-1" />
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[10px] text-yellow-500 font-semibold min-w-[3rem] text-center">{locale === 'tr' ? 'Piyasa' : 'Market'}</span>
+                              <span className="text-[10px] text-green-400 font-semibold min-w-[3rem] text-center">{locale === 'tr' ? 'Model' : 'Model'}</span>
+                            </div>
+                          </div>
                           {sorted.map((sel) => {
                             const displayOdds = market.betting_type === 'parimutuel' ? sel.dynamic_odds : sel.odds;
                             const mcEntry = outrightOdds.find(o => sel.name.includes(o.player) || o.player.includes(sel.name));
@@ -496,7 +515,7 @@ export default function Dashboard() {
 
           </div>
 
-          <div className="flex flex-col min-h-0 min-w-0" style={leftColHeight ? { height: leftColHeight } : undefined}>
+          <div className="flex flex-col min-h-0 min-w-0 max-h-[70vh] lg:max-h-none" style={leftColHeight ? { height: leftColHeight } : undefined}>
             <div className="flex items-center justify-between mb-4 shrink-0">
               <h2 className="text-lg sm:text-xl font-bold">{t('dashboard.liveActivity')}</h2>
               <Link href="/activity" className="text-primary-400 hover:underline text-sm">
