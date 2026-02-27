@@ -14,6 +14,8 @@ COPY --from=frontend-deps /app/node_modules ./node_modules
 COPY frontend/ .
 ARG NEXT_PUBLIC_API_URL
 ENV BACKEND_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG CACHEBUST=1
 RUN npm run build
 
 FROM node:22-alpine AS frontend
